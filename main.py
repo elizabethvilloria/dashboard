@@ -101,6 +101,39 @@ def draw_person_circle(frame, keypoints, color=(255, 0, 255)):
         center = (avg_x, avg_y)
     cv2.circle(frame, center, 10, color, 2)
 
+def compute_head_box(keypoints):
+    """Compute a square box around the head using COCO keypoints (nose/eyes/ears).
+    Returns ((x1, y1), (x2, y2)) or None if not enough info.
+    """
+    head_indices = [0, 1, 2, 3, 4]  # nose, left eye, right eye, left ear, right ear
+    visible = [keypoints[i] for i in head_indices if keypoints[i][0] > 0 and keypoints[i][1] > 0]
+    if not visible:
+        # fallback to nose if present
+        nose = keypoints[0]
+        if nose[0] > 0 and nose[1] > 0:
+            cx, cy = int(nose[0]), int(nose[1])
+            side = 60
+            return (cx - side // 2, cy - side // 2), (cx + side // 2, cy + side // 2)
+        return None
+
+    min_x = int(min(kp[0] for kp in visible))
+    min_y = int(min(kp[1] for kp in visible))
+    max_x = int(max(kp[0] for kp in visible))
+    max_y = int(max(kp[1] for kp in visible))
+
+    cx = (min_x + max_x) // 2
+    cy = (min_y + max_y) // 2
+    width = max_x - min_x
+    height = max_y - min_y
+    side = int(max(width, height) * 1.4)
+    if side < 30:
+        side = 30
+    x1 = cx - side // 2
+    y1 = cy - side // 2
+    x2 = x1 + side
+    y2 = y1 + side
+    return (x1, y1), (x2, y2)
+
 def classify_posture(keypoints, posture_threshold):
     """Classifies posture as 'Standing' or 'Sitting' based on relative keypoint positions."""
     # Keypoint indices from COCO model
@@ -482,10 +515,13 @@ def run_detection(model):
                         start_point = (min_x - padding, min_y - padding)
                         end_point = (max_x + padding, max_y + padding)
 
-                        # Draw a rectangle (bounding box) to represent the person for better accuracy
-                        cv2.rectangle(frame, start_point, end_point, (255, 0, 255), 2)
-                        # Cache box for skipped frames
-                        new_boxes.append((start_point, end_point))
+                        # Draw a square head box instead of full-body box
+                        head_box = compute_head_box(person_keypoints)
+                        if head_box is not None:
+                            hb_sp, hb_ep = head_box
+                            cv2.rectangle(frame, hb_sp, hb_ep, (255, 0, 255), 2)
+                            # Cache head box for skipped frames
+                            new_boxes.append((hb_sp, hb_ep))
 
                         # Minimal classification to keep logging working
                         box_height = end_point[1] - start_point[1]

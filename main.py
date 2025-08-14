@@ -518,18 +518,16 @@ def run_detection(model):
                     nose_x, nose_y = person_keypoints[0]
                     person_id = track_ids[i]
 
-                    # Determine person's current zone by robust center (nose → torso → bbox)
+                    # Determine person's current zone by nose position
                     current_zone = None
-                    center_pt = compute_person_center_for_zone(person_keypoints)
-                    if center_pt is not None:
-                        cx, cy = center_pt
-                        if left_exit_zone[0] <= cx < left_exit_zone[2]:
+                    if nose_x > 0 and nose_y > 0:
+                        if left_exit_zone[0] <= nose_x < left_exit_zone[2]:
                             current_zone = "left_exit"
-                        elif right_exit_zone[0] <= cx < right_exit_zone[2]:
+                        elif right_exit_zone[0] <= nose_x < right_exit_zone[2]:
                             current_zone = "right_exit"
-                        elif bottom_exit_zone[1] <= cy < bottom_exit_zone[3]:
+                        elif bottom_exit_zone[1] <= nose_y < bottom_exit_zone[3]:
                             current_zone = "bottom_exit"
-                        elif inside_zone[0] <= cx < inside_zone[2] and cy < inside_zone[3]:
+                        elif inside_zone[0] <= nose_x < inside_zone[2] and nose_y < inside_zone[3]:
                             current_zone = "inside"
                             passengers_in_trike_count += 1
 

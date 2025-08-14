@@ -385,6 +385,7 @@ def run_detection(model):
     passenger_entry_times = {}
 
     # --- Main Loop ---
+    frame_idx = 0
     while True:
         if use_picamera2:
             frame = picam2.capture_array()
@@ -396,15 +397,27 @@ def run_detection(model):
         if not ret:
             break
 
+        frame_idx += 1
+
         # Get current time
         current_time = datetime.datetime.now().strftime("%m-%d-%y %H:%M")
 
         passengers_in_trike_count = 0
 
         # Pause AI model during drag to keep UI responsive
-        if shared_state['dragging_line'] is None:
-            # Run YOLOv8 tracking on the frame
-            results = model.track(frame, persist=True, verbose=False, device="cpu", tracker="bytetrack.yaml")
+        # Also skip every other frame to reduce CPU load
+        if shared_state['dragging_line'] is None and (frame_idx % 2 == 0):
+            # Run YOLOv8 tracking on the frame with smaller inference size
+            results = model.track(
+                frame,
+                persist=True,
+                verbose=False,
+                device="cpu",
+                tracker="bytetrack.yaml",
+                imgsz=320,
+                conf=0.5,
+                max_det=10
+            )
 
             if results and results[0].boxes is not None and results[0].boxes.id is not None:
                 boxes = results[0].boxes.xywh.cpu()

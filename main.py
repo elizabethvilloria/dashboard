@@ -569,32 +569,33 @@ def run_detection(model):
 
         # --- Zone Labels ---
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = config["font_scale"]
-        font_thickness = config["font_thickness"]
+        # Smaller label font for on-screen text
+        label_font_scale = 0.6
+        label_font_thickness = 1
         exit_text = "Exit"
-        text_size = cv2.getTextSize(exit_text, font, font_scale, font_thickness)[0]
+        text_size = cv2.getTextSize(exit_text, font, label_font_scale, label_font_thickness)[0]
 
         # Center "Exit" in left zone
         left_text_x = (side_margin - text_size[0]) // 2
-        cv2.putText(frame, exit_text, (left_text_x, 30), font, font_scale, exit_red, font_thickness)
+        cv2.putText(frame, exit_text, (left_text_x, 30), font, label_font_scale, exit_red, label_font_thickness)
 
         # Center "Exit" in right zone
         right_text_x = (frame_width - side_margin) + ((side_margin - text_size[0]) // 2)
-        cv2.putText(frame, exit_text, (right_text_x, 30), font, font_scale, exit_red, font_thickness)
+        cv2.putText(frame, exit_text, (right_text_x, 30), font, label_font_scale, exit_red, label_font_thickness)
         
         # Center "Exit" in bottom zone
         bottom_text_x = (frame_width - text_size[0]) // 2
         bottom_text_y = frame_height - (bottom_margin - text_size[1]) // 2
-        cv2.putText(frame, exit_text, (bottom_text_x, bottom_text_y), font, font_scale, exit_red, font_thickness)
+        cv2.putText(frame, exit_text, (bottom_text_x, bottom_text_y), font, label_font_scale, exit_red, label_font_thickness)
 
-        cv2.putText(frame, "Inside E-Trike", (inside_zone[0] + 10, 30), font, font_scale, inside_green, font_thickness)
+        cv2.putText(frame, "Inside E-Trike", (inside_zone[0] + 10, 30), font, label_font_scale, inside_green, label_font_thickness)
 
-        # Display clock and counters
-        cv2.putText(frame, current_time, (side_margin + 10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, info_text_white, 2, cv2.LINE_AA)
+        # Display clock and counters (smaller font)
+        cv2.putText(frame, current_time, (side_margin + 10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, info_text_white, 1, cv2.LINE_AA)
         display_count = passengers_in_trike_count if did_infer else last_passengers_in_trike_count
-        cv2.putText(frame, f"Passengers Inside: {display_count}", (side_margin + 10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, info_text_white, 2, cv2.LINE_AA)
+        cv2.putText(frame, f"Passengers Inside: {display_count}", (side_margin + 10, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, info_text_white, 1, cv2.LINE_AA)
         # FPS display
-        cv2.putText(frame, f"FPS: {smoothed_fps:.1f}", (side_margin + 10, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, info_text_white, 2, cv2.LINE_AA)
+        cv2.putText(frame, f"FPS: {smoothed_fps:.1f}", (side_margin + 10, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.6, info_text_white, 1, cv2.LINE_AA)
         
         # Add instruction or feedback text
         if shared_state['feedback_message']:

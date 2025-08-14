@@ -383,6 +383,9 @@ def run_detection(model):
     # --- Passenger Counting ---
     person_last_zone = {}
     passenger_entry_times = {}
+    # Cache for skipped frames to avoid flicker
+    latest_circles = []  # list of (x, y)
+    last_passengers_in_trike_count = 0
 
     # --- Main Loop ---
     frame_idx = 0
@@ -406,6 +409,7 @@ def run_detection(model):
 
         # Pause AI model during drag to keep UI responsive
         # Also skip every other frame to reduce CPU load
+        did_infer = False
         if shared_state['dragging_line'] is None and (frame_idx % 2 == 0):
             # Run YOLOv8 tracking on the frame with smaller inference size
             results = model.track(
@@ -418,12 +422,13 @@ def run_detection(model):
                 conf=0.5,
                 max_det=10
             )
+            did_infer = True
 
             if results and results[0].boxes is not None and results[0].boxes.id is not None:
                 boxes = results[0].boxes.xywh.cpu()
                 track_ids = results[0].boxes.id.int().cpu().tolist()
                 all_keypoints = results[0].keypoints.xy.cpu().numpy()
-
+                new_circles = []
                 for i, person_keypoints in enumerate(all_keypoints):
                     nose_x, nose_y = person_keypoints[0]
                     person_id = track_ids[i]
@@ -457,6 +462,20 @@ def run_detection(model):
 
                         # Draw only a circle to represent the person (reduced rendering for performance)
                         draw_person_circle(frame, person_keypoints)
+                        # Cache circle center for skipped frames
+                        nose = person_keypoints[0]
+                        if nose[0] > 0 and nose[1] > 0:
+                            center = (int(nose[0]), int(nose[1]))
+                        else:
+                            visible = [kp for kp in person_keypoints if kp[0] > 0 and kp[1] > 0]
+                            if visible:
+                                avg_x = int(sum(kp[0] for kp in visible) / len(visible))
+                                avg_y = int(sum(kp[1] for kp in visible) / len(visible))
+                                center = (avg_x, avg_y)
+                            else:
+                                center = None
+                        if center is not None:
+                            new_circles.append(center)
 
                         # Minimal classification to keep logging working
                         box_height = end_point[1] - start_point[1]
@@ -478,6 +497,15 @@ def run_detection(model):
                     # Update person's last known zone
                     if current_zone is not None:
                         person_last_zone[person_id] = current_zone
+
+                # Save caches after processing all people this frame
+                latest_circles = new_circles
+                last_passengers_in_trike_count = passengers_in_trike_count
+
+        # If we skipped inference this frame, draw last known circles to avoid flicker
+        if not did_infer and latest_circles:
+            for cx, cy in latest_circles:
+                cv2.circle(frame, (cx, cy), 10, (255, 0, 255), 2)
 
         # --- Draw Zones ---
         side_margin = shared_state['side_margin'] # Use updated margin
@@ -553,7 +581,8 @@ def run_detection(model):
 
         # Display clock and counters
         cv2.putText(frame, current_time, (side_margin + 10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, info_text_white, 2, cv2.LINE_AA)
-        cv2.putText(frame, f"Passengers Inside: {passengers_in_trike_count}", (side_margin + 10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, info_text_white, 2, cv2.LINE_AA)
+        display_count = passengers_in_trike_count if did_infer else last_passengers_in_trike_count
+        cv2.putText(frame, f"Passengers Inside: {display_count}", (side_margin + 10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, info_text_white, 2, cv2.LINE_AA)
         
         # Add instruction or feedback text
         if shared_state['feedback_message']:

@@ -384,7 +384,7 @@ def run_detection(model):
     person_last_zone = {}
     passenger_entry_times = {}
     # Cache for skipped frames to avoid flicker
-    latest_circles = []  # list of (x, y)
+    latest_boxes = []  # list of ((x1, y1), (x2, y2))
     last_passengers_in_trike_count = 0
 
     # --- Main Loop ---
@@ -450,7 +450,7 @@ def run_detection(model):
                 boxes = results[0].boxes.xywh.cpu()
                 track_ids = results[0].boxes.id.int().cpu().tolist()
                 all_keypoints = results[0].keypoints.xy.cpu().numpy()
-                new_circles = []
+                new_boxes = []
                 for i, person_keypoints in enumerate(all_keypoints):
                     nose_x, nose_y = person_keypoints[0]
                     person_id = track_ids[i]
@@ -482,22 +482,10 @@ def run_detection(model):
                         start_point = (min_x - padding, min_y - padding)
                         end_point = (max_x + padding, max_y + padding)
 
-                        # Draw only a circle to represent the person (reduced rendering for performance)
-                        draw_person_circle(frame, person_keypoints)
-                        # Cache circle center for skipped frames
-                        nose = person_keypoints[0]
-                        if nose[0] > 0 and nose[1] > 0:
-                            center = (int(nose[0]), int(nose[1]))
-                        else:
-                            visible = [kp for kp in person_keypoints if kp[0] > 0 and kp[1] > 0]
-                            if visible:
-                                avg_x = int(sum(kp[0] for kp in visible) / len(visible))
-                                avg_y = int(sum(kp[1] for kp in visible) / len(visible))
-                                center = (avg_x, avg_y)
-                            else:
-                                center = None
-                        if center is not None:
-                            new_circles.append(center)
+                        # Draw a rectangle (bounding box) to represent the person for better accuracy
+                        cv2.rectangle(frame, start_point, end_point, (255, 0, 255), 2)
+                        # Cache box for skipped frames
+                        new_boxes.append((start_point, end_point))
 
                         # Minimal classification to keep logging working
                         box_height = end_point[1] - start_point[1]
@@ -521,13 +509,13 @@ def run_detection(model):
                         person_last_zone[person_id] = current_zone
 
                 # Save caches after processing all people this frame
-                latest_circles = new_circles
+                latest_boxes = new_boxes
                 last_passengers_in_trike_count = passengers_in_trike_count
 
-        # If we skipped inference this frame, draw last known circles to avoid flicker
-        if not did_infer and latest_circles:
-            for cx, cy in latest_circles:
-                cv2.circle(frame, (cx, cy), 10, (255, 0, 255), 2)
+        # If we skipped inference this frame, draw last known boxes to avoid flicker
+        if not did_infer and latest_boxes:
+            for (sp, ep) in latest_boxes:
+                cv2.rectangle(frame, sp, ep, (255, 0, 255), 2)
 
         # --- Draw Zones ---
         side_margin = shared_state['side_margin'] # Use updated margin

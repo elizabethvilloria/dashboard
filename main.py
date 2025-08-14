@@ -134,6 +134,36 @@ def compute_head_box(keypoints):
     y2 = y1 + side
     return (x1, y1), (x2, y2)
 
+def compute_person_center_for_zone(keypoints):
+    """Choose a robust reference point to determine zones.
+    Priority: nose → average of shoulders/hips → bbox center of visible keypoints.
+    Returns (x, y) or None.
+    """
+    # 1) Nose
+    nose = keypoints[0]
+    if nose[0] > 0 and nose[1] > 0:
+        return int(nose[0]), int(nose[1])
+
+    # 2) Torso center (shoulders and hips)
+    torso_indices = [5, 6, 11, 12]
+    torso_pts = [(int(keypoints[i][0]), int(keypoints[i][1])) for i in torso_indices
+                 if keypoints[i][0] > 0 and keypoints[i][1] > 0]
+    if torso_pts:
+        avg_x = sum(p[0] for p in torso_pts) // len(torso_pts)
+        avg_y = sum(p[1] for p in torso_pts) // len(torso_pts)
+        return avg_x, avg_y
+
+    # 3) Visible keypoints bbox center
+    visible = [kp for kp in keypoints if kp[0] > 0 and kp[1] > 0]
+    if visible:
+        min_x = int(min(kp[0] for kp in visible))
+        min_y = int(min(kp[1] for kp in visible))
+        max_x = int(max(kp[0] for kp in visible))
+        max_y = int(max(kp[1] for kp in visible))
+        return (min_x + max_x) // 2, (min_y + max_y) // 2
+
+    return None
+
 def classify_posture(keypoints, posture_threshold):
     """Classifies posture as 'Standing' or 'Sitting' based on relative keypoint positions."""
     # Keypoint indices from COCO model
@@ -488,16 +518,18 @@ def run_detection(model):
                     nose_x, nose_y = person_keypoints[0]
                     person_id = track_ids[i]
 
-                    # Determine person's current zone by nose position
+                    # Determine person's current zone by robust center (nose → torso → bbox)
                     current_zone = None
-                    if nose_x > 0 and nose_y > 0:
-                        if left_exit_zone[0] <= nose_x < left_exit_zone[2]:
+                    center_pt = compute_person_center_for_zone(person_keypoints)
+                    if center_pt is not None:
+                        cx, cy = center_pt
+                        if left_exit_zone[0] <= cx < left_exit_zone[2]:
                             current_zone = "left_exit"
-                        elif right_exit_zone[0] <= nose_x < right_exit_zone[2]:
+                        elif right_exit_zone[0] <= cx < right_exit_zone[2]:
                             current_zone = "right_exit"
-                        elif bottom_exit_zone[1] <= nose_y < bottom_exit_zone[3]:
+                        elif bottom_exit_zone[1] <= cy < bottom_exit_zone[3]:
                             current_zone = "bottom_exit"
-                        elif inside_zone[0] <= nose_x < inside_zone[2] and nose_y < inside_zone[3]:
+                        elif inside_zone[0] <= cx < inside_zone[2] and cy < inside_zone[3]:
                             current_zone = "inside"
                             passengers_in_trike_count += 1
 

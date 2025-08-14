@@ -392,6 +392,9 @@ def run_detection(model):
     # Camera flip settings from config
     flip_horizontal = bool(config.get('flip_horizontal', False))
     flip_vertical = bool(config.get('flip_vertical', False))
+    # FPS tracking
+    last_frame_time = time.time()
+    smoothed_fps = 0.0
     while True:
         if use_picamera2:
             frame = picam2.capture_array()
@@ -410,6 +413,14 @@ def run_detection(model):
             frame = cv2.flip(frame, 1)
         elif flip_vertical:
             frame = cv2.flip(frame, 0)
+
+        # Update FPS (EMA smoothing)
+        now_t = time.time()
+        dt = now_t - last_frame_time
+        if dt > 0:
+            inst_fps = 1.0 / dt
+            smoothed_fps = (0.9 * smoothed_fps) + (0.1 * inst_fps) if smoothed_fps > 0 else inst_fps
+        last_frame_time = now_t
 
         frame_idx += 1
 
@@ -594,6 +605,8 @@ def run_detection(model):
         cv2.putText(frame, current_time, (side_margin + 10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, info_text_white, 2, cv2.LINE_AA)
         display_count = passengers_in_trike_count if did_infer else last_passengers_in_trike_count
         cv2.putText(frame, f"Passengers Inside: {display_count}", (side_margin + 10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, info_text_white, 2, cv2.LINE_AA)
+        # FPS display
+        cv2.putText(frame, f"FPS: {smoothed_fps:.1f}", (side_margin + 10, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, info_text_white, 2, cv2.LINE_AA)
         
         # Add instruction or feedback text
         if shared_state['feedback_message']:

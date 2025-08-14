@@ -86,6 +86,21 @@ def draw_skeleton(frame, keypoints, color=(255, 0, 255)):
         if start_pos[0] > 0 and start_pos[1] > 0 and end_pos[0] > 0 and end_pos[1] > 0:
             cv2.line(frame, start_pos, end_pos, color, 1)
 
+def draw_person_circle(frame, keypoints, color=(255, 0, 255)):
+    """Draws a single circle to represent the person (at nose or centroid)."""
+    # Prefer nose (index 0) if visible
+    nose = keypoints[0]
+    if nose[0] > 0 and nose[1] > 0:
+        center = (int(nose[0]), int(nose[1]))
+    else:
+        visible = [kp for kp in keypoints if kp[0] > 0 and kp[1] > 0]
+        if not visible:
+            return
+        avg_x = int(sum(kp[0] for kp in visible) / len(visible))
+        avg_y = int(sum(kp[1] for kp in visible) / len(visible))
+        center = (avg_x, avg_y)
+    cv2.circle(frame, center, 10, color, 2)
+
 def classify_posture(keypoints, posture_threshold):
     """Classifies posture as 'Standing' or 'Sitting' based on relative keypoint positions."""
     # Keypoint indices from COCO model
@@ -427,43 +442,13 @@ def run_detection(model):
                         start_point = (min_x - padding, min_y - padding)
                         end_point = (max_x + padding, max_y + padding)
 
-                        # Draw skeleton before the rectangle
-                        draw_skeleton(frame, person_keypoints)
+                        # Draw only a circle to represent the person (reduced rendering for performance)
+                        draw_person_circle(frame, person_keypoints)
 
-                        cv2.rectangle(frame, start_point, end_point, (0, 255, 0), 2)
-                        
-                        # Classify and display passenger type
+                        # Minimal classification to keep logging working
                         box_height = end_point[1] - start_point[1]
                         passenger_type = classify_passenger(person_keypoints, box_height)
                         posture = classify_posture(person_keypoints, posture_threshold)
-                        
-                        # Display tracker ID, type, and Time Onboard with different colors
-                        font = cv2.FONT_HERSHEY_SIMPLEX
-                        font_scale = 0.7
-                        font_thickness = 2
-                        x_pos, y_pos = start_point[0], start_point[1] - 10
-                        
-                        # Define colors
-                        id_color = info_text_white  # White
-                        passenger_type_color = info_text_white # White
-                        time_onboard_color = info_text_white  # White
-                        
-                        # 1. Draw "ID: <person_id>"
-                        id_text_part = f"ID: {person_id}"
-                        cv2.putText(frame, id_text_part, (x_pos, y_pos), font, font_scale, id_color, font_thickness)
-                        x_pos += cv2.getTextSize(id_text_part, font, font_scale, font_thickness)[0][0]
-
-                        # 2. Draw "(<passenger_type>)"
-                        passenger_type_part = f" ({passenger_type}/{posture})"
-                        cv2.putText(frame, passenger_type_part, (x_pos, y_pos), font, font_scale, passenger_type_color, font_thickness)
-                        x_pos += cv2.getTextSize(passenger_type_part, font, font_scale, font_thickness)[0][0]
-
-                        # --- Time Onboard ---
-                        if person_id in passenger_entry_times:
-                            dwell_seconds = int(time.time() - passenger_entry_times[person_id])
-                            time_onboard_part = f" Time Onboard: {dwell_seconds}s"
-                            # 3. Draw "Time Onboard: <seconds>s"
-                            cv2.putText(frame, time_onboard_part, (x_pos, y_pos), font, font_scale, time_onboard_color, font_thickness)
 
                         # --- Passenger Counting ---
                         if current_zone is not None:

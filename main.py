@@ -389,6 +389,9 @@ def run_detection(model):
 
     # --- Main Loop ---
     frame_idx = 0
+    # Camera flip settings from config
+    flip_horizontal = bool(config.get('flip_horizontal', False))
+    flip_vertical = bool(config.get('flip_vertical', False))
     while True:
         if use_picamera2:
             frame = picam2.capture_array()
@@ -399,6 +402,14 @@ def run_detection(model):
 
         if not ret:
             break
+
+        # Apply flips as configured
+        if flip_horizontal and flip_vertical:
+            frame = cv2.flip(frame, -1)
+        elif flip_horizontal:
+            frame = cv2.flip(frame, 1)
+        elif flip_vertical:
+            frame = cv2.flip(frame, 0)
 
         frame_idx += 1
 

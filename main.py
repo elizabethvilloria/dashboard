@@ -589,12 +589,12 @@ def run_detection(model):
 
         cv2.putText(frame, "Inside E-Trike", (inside_zone[0] + 10, 30), font, font_scale, inside_green, font_thickness)
 
-        # Display clock and counters (use config font scale/thickness)
-        cv2.putText(frame, current_time, (side_margin + 10, 70), cv2.FONT_HERSHEY_SIMPLEX, config["font_scale"], info_text_white, config["font_thickness"], cv2.LINE_AA)
+        # Display clock and counters
+        cv2.putText(frame, current_time, (side_margin + 10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, info_text_white, 2, cv2.LINE_AA)
         display_count = passengers_in_trike_count if did_infer else last_passengers_in_trike_count
-        cv2.putText(frame, f"Passengers Inside: {display_count}", (side_margin + 10, 110), cv2.FONT_HERSHEY_SIMPLEX, config["font_scale"], info_text_white, config["font_thickness"], cv2.LINE_AA)
+        cv2.putText(frame, f"Passengers Inside: {display_count}", (side_margin + 10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, info_text_white, 2, cv2.LINE_AA)
         # FPS display
-        cv2.putText(frame, f"FPS: {smoothed_fps:.1f}", (side_margin + 10, 150), cv2.FONT_HERSHEY_SIMPLEX, config["font_scale"], info_text_white, config["font_thickness"], cv2.LINE_AA)
+        cv2.putText(frame, f"FPS: {smoothed_fps:.1f}", (side_margin + 10, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, info_text_white, 2, cv2.LINE_AA)
         
         # Add instruction or feedback text
         if shared_state['feedback_message']:

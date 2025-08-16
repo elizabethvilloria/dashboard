@@ -5,151 +5,475 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>E-Trike Passenger Counter</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --info-color: #17a2b8;
+            --danger-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --card-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            --card-hover-shadow: 0 12px 35px rgba(0,0,0,0.15);
+        }
+
         body {
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .card {
+
+        .container {
+            max-width: 1400px;
+        }
+
+        .main-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .main-header h1 {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin: 0;
+            text-align: center;
+        }
+
+        .main-header .subtitle {
+            color: var(--secondary-color);
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        .section-title {
+            color: white;
+            font-weight: 600;
+            font-size: 1.8rem;
             margin-bottom: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
+
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .card-body {
+            padding: 2rem 1.5rem;
+            text-align: center;
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
         .card-title {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-text-total {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .card-text-detail {
+            font-size: 0.9rem;
+            opacity: 0.9;
             font-weight: 500;
         }
-        .card-text-total {
-            font-size: 2.5rem;
-            font-weight: bold;
+
+        .stats-card {
+            background: linear-gradient(135deg, var(--accent-color), #2980b9);
+            color: white;
+        }
+
+        .stats-card.success {
+            background: linear-gradient(135deg, var(--success-color), #229954);
+        }
+
+        .stats-card.info {
+            background: linear-gradient(135deg, var(--info-color), #138496);
+        }
+
+        .stats-card.warning {
+            background: linear-gradient(135deg, var(--warning-color), #d68910);
+        }
+
+        .history-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            height: 100%;
+            min-height: 350px;
+        }
+
+        .history-section h4 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .table {
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .table th:nth-child(1) { width: 30%; vertical-align: middle; }
+        .table th:nth-child(2) { width: 35%; }
+        .table th:nth-child(3) { width: 35%; vertical-align: middle; }
+
+        .table thead th {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+
+        .table tbody td {
+            padding: 1rem;
+            border: none;
+            border-bottom: 1px solid #f8f9fa;
+            font-weight: 500;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+            transform: scale(1.01);
+            transition: all 0.2s ease;
+        }
+
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success-color);
+            margin-right: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 3rem;
+            padding: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .detail-btn {
+            background: linear-gradient(135deg, var(--accent-color), #2980b9);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-left: 0.5rem;
+        }
+
+        .detail-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+            color: white;
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 20px 20px 0 0;
+            border: none;
+        }
+
+        .modal-title {
+            font-weight: 600;
+        }
+
+        .passenger-detail-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .passenger-detail-card h6 {
+            color: var(--primary-color);
+            font-weight: 600;
             margin-bottom: 0.5rem;
         }
-        .card-text-detail {
-            font-size: 1rem;
-            color: rgba(255, 255, 255, 0.85);
+
+        .passenger-detail-card p {
+            margin-bottom: 0.25rem;
+            color: var(--secondary-color);
+        }
+
+        .dwell-time {
+            background: var(--success-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .main-header h1 {
+                font-size: 2rem;
+            }
+            
+            .card-text-total {
+                font-size: 2.5rem;
+            }
+            
+            .section-title {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container py-5">
-        <h1 class="text-center mb-5">E-Trike Passenger Dashboard</h1>
+        <div class="main-header">
+            <h1>E-Trike Passenger Dashboard</h1>
+            <p class="subtitle">Real-time passenger monitoring and analytics</p>
+        </div>
         
-        <h3 class="mt-5 mb-3">Live Counters</h3>
-        <div class="row">
+        <div class="section-title">
+            <i class="fas fa-chart-line"></i>
+            Live Counters
+        </div>
+        
+        <div class="row g-4 mb-5">
             <div class="col-md-3">
-                <div class="card text-center text-white bg-primary">
+                <div class="card stats-card">
                     <div class="card-body">
+                        <div class="card-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
                         <h5 class="card-title">Hourly</h5>
                         <p class="card-text-total" id="hourly-count">0</p>
-                        <p class="card-text-detail">Adults: <span id="hourly-adult">0</span> | Children: <span id="hourly-child">0</span></p>
+                        <p class="card-text-detail">Passengers This Hour</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-center text-white bg-success">
+                <div class="card stats-card success">
                     <div class="card-body">
+                        <div class="card-icon">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
                         <h5 class="card-title">Daily</h5>
                         <p class="card-text-total" id="daily-count">0</p>
-                        <p class="card-text-detail">Adults: <span id="daily-adult">0</span> | Children: <span id="daily-child">0</span></p>
+                        <p class="card-text-detail">Passengers Today</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-center text-white bg-info">
+                <div class="card stats-card info">
                     <div class="card-body">
+                        <div class="card-icon">
+                            <i class="fas fa-calendar-week"></i>
+                        </div>
                         <h5 class="card-title">Weekly</h5>
                         <p class="card-text-total" id="weekly-count">0</p>
-                        <p class="card-text-detail">Adults: <span id="weekly-adult">0</span> | Children: <span id="weekly-child">0</span></p>
+                        <p class="card-text-detail">Passengers This Week</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-center text-white bg-warning">
+                <div class="card stats-card warning">
                     <div class="card-body">
+                        <div class="card-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
                         <h5 class="card-title">Monthly</h5>
                         <p class="card-text-total" id="monthly-count">0</p>
-                        <p class="card-text-detail">Adults: <span id="monthly-adult">0</span> | Children: <span id="monthly-child">0</span></p>
+                        <p class="card-text-detail">Passengers This Month</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <h3 class="mt-5 mb-3">Historical Summary</h3>
-        <div class="row">
-            <div class="col-md-6">
-                <h4>Daily Totals</h4>
-                <table class="table table-striped table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Date</th>
-                            <th>Total Passengers</th>
-                            <th>Adults</th>
-                            <th>Children</th>
-                        </tr>
-                    </thead>
-                    <tbody id="daily-history-body">
-                        <!-- Data will be populated by JavaScript -->
-                    </tbody>
-                </table>
+        <div class="section-title">
+            <i class="fas fa-history"></i>
+            Historical Summary
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="history-section">
+                    <h4>Daily Totals</h4>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Total Passengers</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="daily-history-body">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-6">
-                <h4>Weekly Totals</h4>
-                <table class="table table-striped table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Week Of</th>
-                            <th>Total Passengers</th>
-                            <th>Adults</th>
-                            <th>Children</th>
-                        </tr>
-                    </thead>
-                    <tbody id="weekly-history-body">
-                        <!-- Data will be populated by JavaScript -->
-                    </tbody>
-                </table>
+            <div class="col-lg-4">
+                <div class="history-section">
+                    <h4>Weekly Totals</h4>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>WEEK<br>OF</th>
+                                    <th>Total Passengers</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="weekly-history-body">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-6">
-                <h4>Monthly Totals</h4>
-                <table class="table table-striped table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Month Of</th>
-                            <th>Total Passengers</th>
-                            <th>Adults</th>
-                            <th>Children</th>
-                        </tr>
-                    </thead>
-                    <tbody id="monthly-history-body">
-                        <!-- Data will be populated by JavaScript -->
-                    </tbody>
-                </table>
+            <div class="col-lg-4">
+                <div class="history-section">
+                    <h4>Monthly Totals</h4>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Month Of</th>
+                                    <th>Total Passengers</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthly-history-body">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><i class="fas fa-heart text-danger"></i> E-Trike AI Camera System - Powered by Raspberry Pi 5</p>
+            <p><span class="status-indicator"></span>System Status: Active</p>
+        </div>
+    </div>
+
+    <!-- Detailed Information Modal -->
+    <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailModalLabel">
+                        <i class="fas fa-info-circle me-2"></i>Passenger Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="detailModalBody">
+                    <!-- Passenger details will be populated here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function updateCounts() {
             fetch('/data')
                 .then(response => response.json())
                 .then(data => {
                     // Hourly
-                    document.getElementById('hourly-count').textContent = data.hourly?.total || 0;
-                    document.getElementById('hourly-adult').textContent = data.hourly?.Adult || 0;
-                    document.getElementById('hourly-child').textContent = data.hourly?.Child || 0;
+                    document.getElementById('hourly-count').textContent = data.hourly || 0;
                     
                     // Daily
-                    document.getElementById('daily-count').textContent = data.daily?.total || 0;
-                    document.getElementById('daily-adult').textContent = data.daily?.Adult || 0;
-                    document.getElementById('daily-child').textContent = data.daily?.Child || 0;
+                    document.getElementById('daily-count').textContent = data.daily || 0;
 
                     // Weekly
-                    document.getElementById('weekly-count').textContent = data.weekly?.total || 0;
-                    document.getElementById('weekly-adult').textContent = data.weekly?.Adult || 0;
-                    document.getElementById('weekly-child').textContent = data.weekly?.Child || 0;
+                    document.getElementById('weekly-count').textContent = data.weekly || 0;
 
                     // Monthly
-                    document.getElementById('monthly-count').textContent = data.monthly?.total || 0;
-                    document.getElementById('monthly-adult').textContent = data.monthly?.Adult || 0;
-                    document.getElementById('monthly-child').textContent = data.monthly?.Child || 0;
+                    document.getElementById('monthly-count').textContent = data.monthly || 0;
                 });
         }
 
@@ -161,16 +485,17 @@
                     const weeklyBody = document.getElementById('weekly-history-body');
                     const monthlyBody = document.getElementById('monthly-history-body');
                     dailyBody.innerHTML = '';
-                    weeklyBody.innerHTML = ''; // Clear existing rows
+                    weeklyBody.innerHTML = '';
                     monthlyBody.innerHTML = '';
 
                     // Populate daily history
                     data.daily.forEach(record => {
                         const row = `<tr>
                             <td>${record.date}</td>
-                            <td>${record.totals.total || 0}</td>
-                            <td>${record.totals.Adult || 0}</td>
-                            <td>${record.totals.Child || 0}</td>
+                            <td class="text-center"><span class="badge bg-primary fs-6">${record.total || 0}</span></td>
+                            <td><button class="detail-btn" onclick="showPassengerDetails('daily', '${record.date}', ${record.total})">
+                                <i class="fas fa-info-circle me-1"></i>Details
+                            </button></td>
                         </tr>`;
                         dailyBody.innerHTML += row;
                     });
@@ -179,9 +504,10 @@
                     data.weekly.forEach(record => {
                         const row = `<tr>
                             <td>${record.week_of}</td>
-                            <td>${record.totals.total || 0}</td>
-                            <td>${record.totals.Adult || 0}</td>
-                            <td>${record.totals.Child || 0}</td>
+                            <td class="text-center"><span class="badge bg-info fs-6">${record.total || 0}</span></td>
+                            <td><button class="detail-btn" onclick="showPassengerDetails('weekly', '${record.week_of}', ${record.total})">
+                                <i class="fas fa-info-circle me-1"></i>Details
+                            </button></td>
                         </tr>`;
                         weeklyBody.innerHTML += row;
                     });
@@ -190,17 +516,65 @@
                     data.monthly.forEach(record => {
                         const row = `<tr>
                             <td>${record.month_of}</td>
-                            <td>${record.totals.total || 0}</td>
-                            <td>${record.totals.Adult || 0}</td>
-                            <td>${record.totals.Child || 0}</td>
+                            <td class="text-center"><span class="badge bg-warning fs-6">${record.total || 0}</span></td>
+                            <td><button class="detail-btn" onclick="showPassengerDetails('monthly', '${record.month_of}', ${record.total})">
+                                <i class="fas fa-info-circle me-1"></i>Details
+                            </button></td>
                         </tr>`;
                         monthlyBody.innerHTML += row;
                     });
                 });
         }
 
+        function showPassengerDetails(period, date, total) {
+            // For now, we'll show sample data since we don't have individual passenger records yet
+            // In the future, this would fetch detailed data from your backend
+            
+            let detailsHtml = `
+                <div class="text-center mb-4">
+                    <h4 class="text-primary">${period.charAt(0).toUpperCase() + period.slice(1)}: ${date}</h4>
+                    <p class="text-muted">Total Passengers: <strong>${total}</strong></p>
+                </div>
+            `;
+
+            if (total > 0) {
+                // Sample passenger details - replace with real data from your backend
+                for (let i = 1; i <= total; i++) {
+                    const entryTime = new Date();
+                    entryTime.setHours(entryTime.getHours() - Math.floor(Math.random() * 8));
+                    const exitTime = new Date(entryTime.getTime() + (Math.random() * 30 + 10) * 60000); // 10-40 minutes
+                    const dwellTime = Math.round((exitTime - entryTime) / 60000);
+                    
+                    detailsHtml += `
+                        <div class="passenger-detail-card">
+                            <h6><i class="fas fa-user me-2"></i>Passenger ${i}</h6>
+                            <p><strong>Entry Time:</strong> ${entryTime.toLocaleTimeString()}</p>
+                            <p><strong>Exit Time:</strong> ${exitTime.toLocaleTimeString()}</p>
+                            <p><strong>Dwell Time:</strong> <span class="dwell-time">${dwellTime} minutes</span></p>
+                        </div>
+                    `;
+                }
+            } else {
+                detailsHtml += `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-info-circle fa-3x mb-3"></i>
+                        <p>No passenger data available for this period.</p>
+                    </div>
+                `;
+            }
+
+            document.getElementById('detailModalBody').innerHTML = detailsHtml;
+            document.getElementById('detailModalLabel').innerHTML = `<i class="fas fa-info-circle me-2"></i>Passenger Details - ${date}`;
+            
+            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+            modal.show();
+        }
+
         // Update every 5 seconds
         setInterval(updateCounts, 5000);
+        
+        // Update historical data every 30 seconds
+        setInterval(updateHistoricalData, 30000);
 
         // Initial update
         updateCounts();

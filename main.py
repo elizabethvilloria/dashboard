@@ -3,8 +3,6 @@ import time
 import datetime
 from ultralytics import YOLO
 import os
-import torch
-import math
 import json
 from collections import defaultdict
 
@@ -51,55 +49,6 @@ def classify_passenger(person_keypoints, box_height):
     else:
         return "Adult"
 
-
-def draw_skeleton(frame, keypoints, color=(255, 0, 255)):
-    """Draws skeleton keypoints and connections."""
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.4
-    font_thickness = 1
-    
-    # Standard COCO keypoint connections
-    skeleton_connections = [
-        # Head
-        (0, 1), (0, 2), (1, 3), (2, 4),
-        # Body
-        (5, 6), (5, 11), (6, 12), (11, 12),
-        # Arms
-        (5, 7), (7, 9), (6, 8), (8, 10),
-        # Legs
-        (11, 13), (13, 15), (12, 14), (14, 16)
-    ]
-
-    for i, kp in enumerate(keypoints):
-        x, y = int(kp[0]), int(kp[1])
-        if x > 0 and y > 0:
-            cv2.circle(frame, (x, y), 3, color, -1)
-            # cv2.putText(frame, str(i), (x, y - 5), font, font_scale, color, font_thickness) # Uncomment to see keypoint indices
-
-    for start_idx, end_idx in skeleton_connections:
-        start_kp = keypoints[start_idx]
-        end_kp = keypoints[end_idx]
-        
-        start_pos = (int(start_kp[0]), int(start_kp[1]))
-        end_pos = (int(end_kp[0]), int(end_kp[1]))
-
-        if start_pos[0] > 0 and start_pos[1] > 0 and end_pos[0] > 0 and end_pos[1] > 0:
-            cv2.line(frame, start_pos, end_pos, color, 1)
-
-def draw_person_circle(frame, keypoints, color=(255, 0, 255)):
-    """Draws a single circle to represent the person (at nose or centroid)."""
-    # Prefer nose (index 0) if visible
-    nose = keypoints[0]
-    if nose[0] > 0 and nose[1] > 0:
-        center = (int(nose[0]), int(nose[1]))
-    else:
-        visible = [kp for kp in keypoints if kp[0] > 0 and kp[1] > 0]
-        if not visible:
-            return
-        avg_x = int(sum(kp[0] for kp in visible) / len(visible))
-        avg_y = int(sum(kp[1] for kp in visible) / len(visible))
-        center = (avg_x, avg_y)
-    cv2.circle(frame, center, 10, color, 2)
 
 def compute_head_box(keypoints):
     """Compute a square box around the head using COCO keypoints (nose/eyes/ears).
@@ -164,74 +113,6 @@ def compute_person_center_for_zone(keypoints):
 
     return None
 
-def classify_posture(keypoints, posture_threshold):
-    """Classifies posture as 'Standing' or 'Sitting' based on relative keypoint positions."""
-    # Keypoint indices from COCO model
-    left_shoulder_idx, right_shoulder_idx = 5, 6
-    left_hip_idx, right_hip_idx = 11, 12
-    left_knee_idx, right_knee_idx = 13, 14
-
-    # Get keypoint coordinates
-    left_shoulder = keypoints[left_shoulder_idx]
-    right_shoulder = keypoints[right_shoulder_idx]
-    left_hip = keypoints[left_hip_idx]
-    right_hip = keypoints[right_hip_idx]
-    left_knee = keypoints[left_knee_idx]
-    right_knee = keypoints[right_knee_idx]
-
-    # --- Check for visibility and calculate average positions ---
-    # We need at least one shoulder, one hip, and one knee to make a guess.
-    
-    # Calculate average shoulder y-coordinate
-    if left_shoulder[1] > 0 and right_shoulder[1] > 0:
-        shoulder_y = (left_shoulder[1] + right_shoulder[1]) / 2
-    elif left_shoulder[1] > 0:
-        shoulder_y = left_shoulder[1]
-    elif right_shoulder[1] > 0:
-        shoulder_y = right_shoulder[1]
-    else:
-        return "Unknown" # Not enough data
-
-    # Calculate average hip y-coordinate
-    if left_hip[1] > 0 and right_hip[1] > 0:
-        hip_y = (left_hip[1] + right_hip[1]) / 2
-    elif left_hip[1] > 0:
-        hip_y = left_hip[1]
-    elif right_hip[1] > 0:
-        hip_y = right_hip[1]
-    else:
-        return "Unknown"
-
-    # Calculate average knee y-coordinate
-    if left_knee[1] > 0 and right_knee[1] > 0:
-        knee_y = (left_knee[1] + right_knee[1]) / 2
-    elif left_knee[1] > 0:
-        knee_y = left_knee[1]
-    elif right_knee[1] > 0:
-        knee_y = right_knee[1]
-    else:
-        return "Unknown"
-        
-    # --- Heuristic Logic ---
-    # Normalize distances by torso height to make it scale-invariant.
-    torso_height = abs(hip_y - shoulder_y)
-    if torso_height == 0:
-        return "Unknown"
-
-    # Calculate vertical distance between hip and knee.
-    vertical_hip_knee_dist = abs(knee_y - hip_y)
-    
-    # The threshold determines the switch from sitting to standing.
-    # If the vertical distance between the hip and knee is small compared to the torso height,
-    # the person is likely sitting.
-    # This value (0.55) might need tuning for your specific camera angle.
-    
-    if (vertical_hip_knee_dist / torso_height) < posture_threshold:
-        return "Sitting"
-    else:
-        return "Standing"
-
-
 def load_config():
     """Load configuration from a JSON file."""
     try:
@@ -258,7 +139,7 @@ def load_config():
                 "info_text_white": [255, 255, 255],
                 "hover_yellow": [0, 255, 255] # Hover color
             },
-            "posture_threshold": 0.55 # Default posture threshold
+            # posture_threshold removed - not currently used
         }
     
     # Ensure bottom_margin exists in case of old config file
@@ -296,9 +177,7 @@ def run_detection(model):
         'feedback_timestamp': 0 # Timestamp for feedback message
     }
     
-    # --- Posture Detection Threshold ---
-    # Load this from config to allow for easy tuning.
-    posture_threshold = config.get('posture_threshold', 0.55)
+            # Posture detection removed - not currently used
 
     # Initialize video capture (try OpenCV indices, then fall back to Picamera2 on Raspberry Pi)
     cap = None
@@ -338,7 +217,7 @@ def run_detection(model):
                     print("Error: Picamera2 started but returned an empty frame.")
                     return
                 use_picamera2 = True
-                print("Info: Using Picamera2 backend for frames.")
+                # Using Picamera2 backend for frames
             except Exception as e:
                 print(f"Error: Could not initialize Picamera2. {e}")
                 print("Hint: On Raspberry Pi OS, install Picamera2: sudo apt update && sudo apt install -y python3-picamera2 libcamera-apps")
@@ -348,7 +227,8 @@ def run_detection(model):
             print("If you're on Raspberry Pi, install Picamera2 (sudo apt install -y python3-picamera2 libcamera-apps) or check camera connections.")
             return
     else:
-        print(f"Info: Using OpenCV VideoCapture index {used_index}.")
+        # Using OpenCV VideoCapture index
+        pass
 
     frame_height, frame_width, _ = frame.shape
 
@@ -412,7 +292,7 @@ def run_detection(model):
                 config['side_margin'] = shared_state['side_margin']
                 config['bottom_margin'] = shared_state['bottom_margin']
                 save_config(config)
-                print(f"New side margin ({config['side_margin']}) and bottom margin ({config['bottom_margin']}) saved to config.json")
+                # Configuration saved to config.json
                 
                 # Show "Saved!" message
                 shared_state['feedback_message'] = 'Configuration Saved!'
@@ -556,7 +436,7 @@ def run_detection(model):
                         # Minimal classification to keep logging working
                         box_height = end_point[1] - start_point[1]
                         passenger_type = classify_passenger(person_keypoints, box_height)
-                        posture = classify_posture(person_keypoints, posture_threshold)
+                        # posture = classify_posture(person_keypoints, posture_threshold) # Removed as per edit hint
 
                         # --- Passenger Counting ---
                         if current_zone is not None:
@@ -568,7 +448,7 @@ def run_detection(model):
                             elif current_zone != "inside" and last_zone == "inside":
                                 if person_id in passenger_entry_times:
                                     dwell_time = time.time() - passenger_entry_times.pop(person_id)
-                                    print(f"Passenger {person_id} was onboard for {dwell_time:.2f} seconds.")
+                                    # Dwell time calculation kept for future dashboard use, terminal print removed
                     
                     # Update person's last known zone
                     if current_zone is not None:

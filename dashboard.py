@@ -33,7 +33,7 @@ def get_latest_log_time():
                                 log_data = json.load(f)
                                 if not log_data: continue
                                 # Find the max timestamp in the latest day's file
-                                file_max_ts = max(entry.get('timestamp', 0) for entry in log_data)
+                                file_max_ts = max(entry.get('entry_timestamp', 0) for entry in log_data)
                                 if file_max_ts > latest_timestamp:
                                     latest_timestamp = file_max_ts
                                     latest_time = day_date
@@ -177,7 +177,7 @@ def get_passenger_counts():
                 # Hourly count (rolling)
                 hourly_count = 0
                 for entry in log_data:
-                    entry_time = datetime.datetime.fromtimestamp(entry['timestamp'])
+                    entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
                     if (now - entry_time).total_seconds() <= 3600:
                         hourly_count += 1
                 counts['hourly'] = hourly_count

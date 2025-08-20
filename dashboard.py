@@ -235,6 +235,65 @@ def historical_data():
     with open(HISTORICAL_FILE, 'r') as f:
         return jsonify(json.load(f))
 
+@app.route('/passenger-details')
+def passenger_details():
+    """Get individual passenger records for a specific date."""
+    date = request.args.get('date')
+    period = request.args.get('period', 'daily')
+    
+    if not date:
+        return jsonify({'error': 'Date parameter required'}), 400
+    
+    try:
+        # Parse the date
+        if period == 'daily':
+            target_date = datetime.datetime.strptime(date, '%Y-%m-%d')
+            log_file = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month), f"{target_date.day}.json")
+            
+            if os.path.exists(log_file):
+                with open(log_file, 'r') as f:
+                    passengers = json.load(f)
+                    return jsonify({'passengers': passengers})
+            else:
+                return jsonify({'passengers': []})
+                
+        elif period == 'weekly':
+            # For weekly, we need to get all days in that week
+            target_date = datetime.datetime.strptime(date, '%Y-%m-%d')
+            start_of_week = target_date - datetime.timedelta(days=target_date.weekday())
+            all_passengers = []
+            
+            for i in range(7):
+                day = start_of_week + datetime.timedelta(days=i)
+                log_file = os.path.join(LOG_DIR, str(day.year), str(day.month), f"{day.day}.json")
+                if os.path.exists(log_file):
+                    with open(log_file, 'r') as f:
+                        day_passengers = json.load(f)
+                        all_passengers.extend(day_passengers)
+            
+            return jsonify({'passengers': all_passengers})
+            
+        elif period == 'monthly':
+            # For monthly, get all days in that month
+            target_date = datetime.datetime.strptime(date, '%Y-%m')
+            month_dir = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month))
+            all_passengers = []
+            
+            if os.path.exists(month_dir):
+                for day_file in os.listdir(month_dir):
+                    if day_file.endswith('.json'):
+                        day_path = os.path.join(month_dir, day_file)
+                        with open(day_path, 'r') as f:
+                            day_passengers = json.load(f)
+                            all_passengers.extend(day_passengers)
+            
+            return jsonify({'passengers': all_passengers})
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    return jsonify({'passengers': []})
+
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
     shutdown_server = request.environ.get('werkzeug.server.shutdown')

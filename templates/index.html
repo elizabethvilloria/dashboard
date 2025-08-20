@@ -527,47 +527,56 @@
         }
 
         function showPassengerDetails(period, date, total) {
-            // For now, we'll show sample data since we don't have individual passenger records yet
-            // In the future, this would fetch detailed data from your backend
-            
-            let detailsHtml = `
-                <div class="text-center mb-4">
-                    <h4 class="text-primary">${period.charAt(0).toUpperCase() + period.slice(1)}: ${date}</h4>
-                    <p class="text-muted">Total Passengers: <strong>${total}</strong></p>
-                </div>
-            `;
-
-            if (total > 0) {
-                // Sample passenger details - replace with real data from your backend
-                for (let i = 1; i <= total; i++) {
-                    const entryTime = new Date();
-                    entryTime.setHours(entryTime.getHours() - Math.floor(Math.random() * 8));
-                    const exitTime = new Date(entryTime.getTime() + (Math.random() * 30 + 10) * 60000); // 10-40 minutes
-                    const dwellTime = Math.round((exitTime - entryTime) / 60000);
-                    
-                    detailsHtml += `
-                        <div class="passenger-detail-card">
-                            <h6><i class="fas fa-user me-2"></i>Passenger ${i}</h6>
-                            <p><strong>Entry Time:</strong> ${entryTime.toLocaleTimeString()}</p>
-                            <p><strong>Exit Time:</strong> ${exitTime.toLocaleTimeString()}</p>
-                            <p><strong>Dwell Time:</strong> <span class="dwell-time">${dwellTime} minutes</span></p>
-                        </div>
-                    `;
-                }
-            } else {
-                detailsHtml += `
-                    <div class="text-center text-muted">
-                        <i class="fas fa-info-circle fa-3x mb-3"></i>
-                        <p>No passenger data available for this period.</p>
-                    </div>
-                `;
-            }
-
-            document.getElementById('detailModalBody').innerHTML = detailsHtml;
+            // Show loading message
+            document.getElementById('detailModalBody').innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading passenger details...</div>';
             document.getElementById('detailModalLabel').innerHTML = `<i class="fas fa-info-circle me-2"></i>Passenger Details - ${date}`;
             
             const modal = new bootstrap.Modal(document.getElementById('detailModal'));
             modal.show();
+            
+            // Fetch real passenger data from backend
+            fetch(`/passenger-details?date=${date}&period=${period}`)
+                .then(response => response.json())
+                .then(data => {
+                    let detailsHtml = `
+                        <div class="text-center mb-4">
+                            <h4 class="text-primary">${period.charAt(0).toUpperCase() + period.slice(1)}: ${date}</h4>
+                            <p class="text-muted">Total Passengers: <strong>${data.passengers ? data.passengers.length : 0}</strong></p>
+                        </div>
+                    `;
+
+                    if (data.passengers && data.passengers.length > 0) {
+                        data.passengers.forEach((passenger, index) => {
+                            const entryTime = passenger.entry_timestamp ? new Date(passenger.entry_timestamp * 1000).toLocaleString() : 'N/A';
+                            const exitTime = passenger.exit_timestamp ? new Date(passenger.exit_timestamp * 1000).toLocaleString() : 'Still inside';
+                            const dwellTime = passenger.dwell_time_minutes ? `${passenger.dwell_time_minutes} minutes` : 'N/A';
+                            const passengerType = passenger.type || 'Unknown';
+                            const personId = passenger.person_id || (index + 1);
+                            
+                            detailsHtml += `
+                                <div class="passenger-detail-card">
+                                    <h6><i class="fas fa-user me-2"></i>Person ID: ${personId} (${passengerType})</h6>
+                                    <p><strong>Entry Time:</strong> ${entryTime}</p>
+                                    <p><strong>Exit Time:</strong> ${exitTime}</p>
+                                    <p><strong>Dwell Time:</strong> <span class="dwell-time">${dwellTime}</span></p>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        detailsHtml += `
+                            <div class="text-center text-muted">
+                                <i class="fas fa-info-circle fa-3x mb-3"></i>
+                                <p>No passenger data available for this period.</p>
+                            </div>
+                        `;
+                    }
+
+                    document.getElementById('detailModalBody').innerHTML = detailsHtml;
+                })
+                .catch(error => {
+                    console.error('Error fetching passenger details:', error);
+                    document.getElementById('detailModalBody').innerHTML = '<p class="text-center text-danger">Error loading passenger details.</p>';
+                });
         }
 
         // Update every 5 seconds

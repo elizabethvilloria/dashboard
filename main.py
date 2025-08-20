@@ -350,7 +350,7 @@ def run_detection(model):
     right_exit_zone = (frame_width - side_margin, 0, frame_width, frame_height)
     # Bottom exit zone
     bottom_exit_zone = (0, frame_height - bottom_margin, frame_width, frame_height)
-    # Area between exit zones
+    # Area between exit zones (detection now uses full body center, not just nose)
     inside_zone = (side_margin, 0, frame_width - side_margin, frame_height - bottom_margin)
 
     # --- Passenger Counting ---
@@ -425,19 +425,25 @@ def run_detection(model):
                 all_keypoints = results[0].keypoints.xy.cpu().numpy()
                 new_boxes = []
                 for i, person_keypoints in enumerate(all_keypoints):
-                    nose_x, nose_y = person_keypoints[0]
                     person_id = track_ids[i]
+                    
+                    # Get bounding box center (more reliable than nose keypoint)
+                    box = boxes[i]  # xywh format: [center_x, center_y, width, height]
+                    center_x, center_y = float(box[0]), float(box[1])
+                    
+                    # Also get nose position for backup (in case we need it for drawing)
+                    nose_x, nose_y = person_keypoints[0]
 
-                    # Determine person's current zone by nose position
+                    # Determine person's current zone by body center position (more reliable)
                     current_zone = None
-                    if nose_x > 0 and nose_y > 0:
-                        if left_exit_zone[0] <= nose_x < left_exit_zone[2]:
+                    if center_x > 0 and center_y > 0:
+                        if left_exit_zone[0] <= center_x < left_exit_zone[2]:
                             current_zone = "left_exit"
-                        elif right_exit_zone[0] <= nose_x < right_exit_zone[2]:
+                        elif right_exit_zone[0] <= center_x < right_exit_zone[2]:
                             current_zone = "right_exit"
-                        elif bottom_exit_zone[1] <= nose_y < bottom_exit_zone[3]:
+                        elif bottom_exit_zone[1] <= center_y < bottom_exit_zone[3]:
                             current_zone = "bottom_exit"
-                        elif inside_zone[0] <= nose_x < inside_zone[2] and nose_y < inside_zone[3]:
+                        elif inside_zone[0] <= center_x < inside_zone[2] and center_y < inside_zone[3]:
                             current_zone = "inside"
                             passengers_in_trike_count += 1
 

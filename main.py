@@ -24,7 +24,13 @@ def log_passenger_entry(person_id, passenger_type):
     
     log_file = os.path.join(log_dir, f"{now.day}.json")
     
-    new_entry = {"person_id": person_id, "type": passenger_type, "timestamp": now.timestamp()}
+    new_entry = {
+        "person_id": person_id, 
+        "type": passenger_type, 
+        "entry_timestamp": now.timestamp(),
+        "exit_timestamp": None,
+        "dwell_time_minutes": None
+    }
     
     # Read existing data and append the new entry
     try:
@@ -40,6 +46,30 @@ def log_passenger_entry(person_id, passenger_type):
     
     with open(log_file, 'w') as f:
         json.dump(logs, f, indent=4)
+
+def log_passenger_exit(person_id, dwell_time_seconds):
+    """Updates a passenger entry with exit timestamp and dwell time."""
+    now = datetime.datetime.now()
+    log_dir = os.path.join(LOG_DIR, str(now.year), str(now.month))
+    log_file = os.path.join(log_dir, f"{now.day}.json")
+    
+    if os.path.exists(log_file):
+        try:
+            with open(log_file, 'r') as f:
+                logs = json.load(f)
+            
+            # Find the most recent entry for this person_id that doesn't have an exit time
+            for entry in reversed(logs):
+                if entry.get("person_id") == person_id and entry.get("exit_timestamp") is None:
+                    entry["exit_timestamp"] = now.timestamp()
+                    entry["dwell_time_minutes"] = round(dwell_time_seconds / 60, 1)
+                    break
+            
+            with open(log_file, 'w') as f:
+                json.dump(logs, f, indent=4)
+                
+        except (json.JSONDecodeError, FileNotFoundError):
+            pass  # If file is corrupted, skip exit logging
 
 def classify_passenger(person_keypoints, box_height):
     """Classifies a passenger as 'Adult' or 'Child' based on bounding box height."""
@@ -447,8 +477,8 @@ def run_detection(model):
                                 passenger_entry_times[person_id] = time.time()
                             elif current_zone != "inside" and last_zone == "inside":
                                 if person_id in passenger_entry_times:
-                                    dwell_time = time.time() - passenger_entry_times.pop(person_id)
-                                    # Dwell time calculation kept for future dashboard use, terminal print removed
+                                    dwell_time_seconds = time.time() - passenger_entry_times.pop(person_id)
+                                    log_passenger_exit(person_id, dwell_time_seconds)
                     
                     # Update person's last known zone
                     if current_zone is not None:

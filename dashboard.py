@@ -244,5 +244,5 @@ def shutdown():
     return 'Server shutting down...'
 
 if __name__ == '__main__':
-    print("Dashboard is running on http://127.0.0.1:5000/")
-    app.run(debug=True) 
+    print("Dashboard is running on http://127.0.0.1:5001/")
+    app.run(debug=True, port=5001) 

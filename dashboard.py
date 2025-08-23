@@ -477,6 +477,25 @@ def shutdown():
     return 'Server shutting down...'
 
 if __name__ == '__main__':
-    # Run in HTTP mode for now until DNS propagates
-    print("Dashboard is running on http://0.0.0.0:5001/")
-    app.run(debug=True, host='0.0.0.0', port=5001) 
+    import ssl
+    import os
+    
+    # Check if SSL certificates exist
+    cert_path = '/etc/letsencrypt/live/etrikedashboard.com/fullchain.pem'
+    key_path = '/etc/letsencrypt/live/etrikedashboard.com/privkey.pem'
+    
+    try:
+        # Try HTTPS first
+        if os.path.exists(cert_path) and os.path.exists(key_path):
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS)  # Use TLS instead of TLSv1_2
+            context.load_cert_chain(cert_path, key_path)
+            print("Dashboard is running on https://etrikedashboard.com:5001/")
+            app.run(debug=True, host='0.0.0.0', port=5001, ssl_context=context)
+        else:
+            # Fall back to HTTP
+            print("Dashboard is running on http://0.0.0.0:5001/")
+            app.run(debug=True, host='0.0.0.0', port=5001)
+    except Exception as e:
+        print(f"SSL Error: {e}")
+        print("Falling back to HTTP mode...")
+        app.run(debug=True, host='0.0.0.0', port=5001) 

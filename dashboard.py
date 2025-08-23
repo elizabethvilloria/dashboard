@@ -1,10 +1,18 @@
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, session, redirect, url_for, flash
 import json
 import datetime
 from collections import defaultdict
 import os
+import hashlib
 
 app = Flask(__name__)
+app.secret_key = 'etrike-secret-key-change-this'  # Change this to a random string
+
+# Simple authentication (in production, use proper user database)
+USERS = {
+    'admin': hashlib.sha256('password123'.encode()).hexdigest(),  # Change this password
+    'user': hashlib.sha256('etrike2025'.encode()).hexdigest()
+}
 
 LOG_DIR = "logs"
 HISTORICAL_FILE = "historical_summary.json"
@@ -217,16 +225,84 @@ def get_passenger_counts():
 
     return dict(counts)
 
+def login_required(f):
+    """Decorator to require login for routes"""
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'logged_in' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        
+        if username in USERS and USERS[username] == password_hash:
+            session['logged_in'] = True
+            session['username'] = username
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid credentials')
+    
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>E-Trike Login</title>
+        <style>
+            body { font-family: Arial; background: linear-gradient(135deg, #667eea, #764ba2); 
+                   display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+            .login-box { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+            input { width: 100%; padding: 0.5rem; margin: 0.5rem 0; border: 1px solid #ddd; border-radius: 5px; }
+            button { width: 100%; padding: 0.75rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; }
+            button:hover { background: #5a6fd8; }
+            .error { color: red; margin: 0.5rem 0; }
+        </style>
+    </head>
+    <body>
+        <div class="login-box">
+            <h2>E-Trike Dashboard Login</h2>
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="error">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <form method="POST">
+                <input type="text" name="username" placeholder="Username" required>
+                <input type="password" name="password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+            <p><small>Default: admin/password123 or user/etrike2025</small></p>
+        </div>
+    </body>
+    </html>
+    '''
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
     update_historical_summary()
     return render_template('index.html')
 
 @app.route('/data')
+@login_required
 def data():
     return jsonify(get_passenger_counts())
 
 @app.route('/historical-data')
+@login_required
 def historical_data():
     # Always update historical data when requested
     update_historical_summary()
@@ -236,6 +312,7 @@ def historical_data():
         return jsonify(json.load(f))
 
 @app.route('/passenger-details')
+@login_required
 def passenger_details():
     """Get individual passenger records for a specific date."""
     date = request.args.get('date')

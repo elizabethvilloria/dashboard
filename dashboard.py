@@ -416,5 +416,21 @@ def shutdown():
     return 'Server shutting down...'
 
 if __name__ == '__main__':
-    print("Dashboard is running on http://0.0.0.0:5001/")
-    app.run(debug=True, host='0.0.0.0', port=5001) 
+    import ssl
+    import os
+    
+    # Check if SSL certificates exist
+    cert_path = '/etc/letsencrypt/live/etrikegerweiss.duckdns.org/fullchain.pem'
+    key_path = '/etc/letsencrypt/live/etrikegerweiss.duckdns.org/privkey.pem'
+    
+    if os.path.exists(cert_path) and os.path.exists(key_path):
+        # Run with HTTPS
+        context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+        context.load_cert_chain(cert_path, key_path)
+        print("Dashboard is running on https://etrikegerweiss.duckdns.org:5001/")
+        app.run(debug=False, host='0.0.0.0', port=5001, ssl_context=context)
+    else:
+        # Fall back to HTTP
+        print("Dashboard is running on http://0.0.0.0:5001/")
+        print("For HTTPS, install SSL certificates with: sudo certbot --nginx -d etrikegerweiss.duckdns.org")
+        app.run(debug=True, host='0.0.0.0', port=5001) 

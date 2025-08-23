@@ -10,8 +10,7 @@ app.secret_key = 'etrike-secret-key-change-this'  # Change this to a random stri
 
 # Simple authentication (in production, use proper user database)
 USERS = {
-    'admin': hashlib.sha256('password123'.encode()).hexdigest(),  # Change this password
-    'user': hashlib.sha256('etrike2025'.encode()).hexdigest()
+    'admin': hashlib.sha256('1010'.encode()).hexdigest()
 }
 
 LOG_DIR = "logs"
@@ -253,20 +252,90 @@ def login():
     <!DOCTYPE html>
     <html>
     <head>
-        <title>E-Trike Login</title>
+        <title>E-Trike Dashboard Login</title>
         <style>
-            body { font-family: Arial; background: linear-gradient(135deg, #667eea, #764ba2); 
-                   display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-            .login-box { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-            input { width: 100%; padding: 0.5rem; margin: 0.5rem 0; border: 1px solid #ddd; border-radius: 5px; }
-            button { width: 100%; padding: 0.75rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; }
-            button:hover { background: #5a6fd8; }
-            .error { color: red; margin: 0.5rem 0; }
+            body { 
+                font-family: 'Segoe UI', Arial, sans-serif; 
+                background: linear-gradient(135deg, #059669, #0d9488, #0891b2); 
+                display: flex; justify-content: center; align-items: center; 
+                height: 100vh; margin: 0; 
+            }
+            .login-box { 
+                background: rgba(255, 255, 255, 0.95); 
+                padding: 3rem 2.5rem; 
+                border-radius: 20px; 
+                box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                min-width: 350px;
+            }
+            .logo {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+            .logo h1 {
+                color: #059669;
+                font-size: 2rem;
+                font-weight: 700;
+                margin: 0;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .logo p {
+                color: #0d9488;
+                font-size: 0.9rem;
+                margin: 0.5rem 0 0 0;
+                font-weight: 500;
+            }
+            input { 
+                width: 100%; 
+                padding: 1rem; 
+                margin: 0.75rem 0; 
+                border: 2px solid #e5e7eb; 
+                border-radius: 10px; 
+                font-size: 1rem;
+                transition: border-color 0.3s ease;
+                box-sizing: border-box;
+            }
+            input:focus {
+                outline: none;
+                border-color: #059669;
+                box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+            }
+            button { 
+                width: 100%; 
+                padding: 1rem; 
+                background: linear-gradient(135deg, #059669, #0d9488); 
+                color: white; 
+                border: none; 
+                border-radius: 10px; 
+                cursor: pointer; 
+                font-size: 1rem;
+                font-weight: 600;
+                margin-top: 1rem;
+                transition: all 0.3s ease;
+            }
+            button:hover { 
+                background: linear-gradient(135deg, #047857, #0f766e); 
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(5, 150, 105, 0.3);
+            }
+            .error { 
+                color: #dc2626; 
+                margin: 1rem 0; 
+                padding: 0.75rem;
+                background: rgba(220, 38, 38, 0.1);
+                border-radius: 8px;
+                text-align: center;
+                font-weight: 500;
+            }
         </style>
     </head>
     <body>
         <div class="login-box">
-            <h2>E-Trike Dashboard Login</h2>
+            <div class="logo">
+                <h1>🚐 E-Trike</h1>
+                <p>Passenger Dashboard</p>
+            </div>
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
                     {% for message in messages %}
@@ -277,9 +346,8 @@ def login():
             <form method="POST">
                 <input type="text" name="username" placeholder="Username" required>
                 <input type="password" name="password" placeholder="Password" required>
-                <button type="submit">Login</button>
+                <button type="submit">Access Dashboard</button>
             </form>
-            <p><small>Default: admin/password123 or user/etrike2025</small></p>
         </div>
     </body>
     </html>

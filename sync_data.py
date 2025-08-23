@@ -52,12 +52,16 @@ def upload_data_package(zip_path):
             if API_KEY:
                 headers['Authorization'] = f'Bearer {API_KEY}'
             
+            # Add debug info and longer timeout
+            print(f"🔍 Attempting upload to: {SERVER_URL}/upload-data")
             response = requests.post(
                 f"{SERVER_URL}/upload-data",
                 files=files,
                 headers=headers,
-                timeout=30
+                timeout=60,
+                verify=False  # Temporarily disable SSL verification
             )
+            print(f"📡 Response status: {response.status_code}")
             
             if response.status_code == 200:
                 print(f"✅ Data uploaded successfully at {datetime.now()}")

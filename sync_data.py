@@ -59,7 +59,7 @@ def upload_data_package(zip_path):
                 files=files,
                 headers=headers,
                 timeout=60,
-                verify=False  # Temporarily disable SSL verification
+                verify=True  # Enable SSL verification for security
             )
             print(f"📡 Response status: {response.status_code}")
             

@@ -333,16 +333,9 @@ def login():
     <body>
         <div class="login-box">
             <div class="logo">
-                <h1>🚐 E-Trike</h1>
+                <h1>E-Trike</h1>
                 <p>Passenger Dashboard</p>
             </div>
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="error">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
             <form method="POST">
                 <input type="text" name="username" placeholder="Username" required>
                 <input type="password" name="password" placeholder="Password" required>

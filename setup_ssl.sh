@@ -26,7 +26,7 @@ echo "⚙️  Configuring Nginx..."
 sudo tee /etc/nginx/sites-available/etrike > /dev/null <<EOF
 server {
     listen 80;
-    server_name etrikegerweiss.duckdns.org;
+    server_name etrikedashboard.com;
     
     location / {
         proxy_pass http://localhost:5001;
@@ -45,7 +45,7 @@ sudo systemctl restart nginx
 
 # Get SSL certificate
 echo "🔐 Getting SSL certificate..."
-sudo certbot --nginx -d etrikegerweiss.duckdns.org --non-interactive --agree-tos --email admin@etrikegerweiss.duckdns.org
+sudo certbot --nginx -d etrikedashboard.com --non-interactive --agree-tos --email admin@etrikedashboard.com
 
 # Open firewall for HTTPS
 echo "🔥 Opening firewall for HTTPS..."
@@ -54,7 +54,7 @@ gcloud compute firewall-rules create allow-https --allow tcp:443 --source-ranges
 echo "✅ SSL setup complete!"
 echo ""
 echo "🌐 Your dashboard is now available at:"
-echo "   https://etrikegerweiss.duckdns.org"
+echo "   https://etrikedashboard.com"
 echo ""
 echo "📝 Next steps:"
 echo "1. Start your dashboard: python3 dashboard.py"

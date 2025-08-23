@@ -15,7 +15,7 @@ from datetime import datetime
 # Configuration
 SERVER_URL = "http://34.142.248.146:5001"  # Replace with your server URL
 API_KEY = None  # Optional: for authentication
-SYNC_INTERVAL = 300  # 5 minutes
+SYNC_INTERVAL = 60   # 1 minute
 LOG_DIR = "logs"
 HISTORICAL_FILE = "historical_summary.json"
 

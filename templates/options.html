@@ -55,6 +55,7 @@
             .sidebar {
                 transform: translateX(-100%);
                 width: 280px;
+                z-index: 1001;
             }
             
             .sidebar.show {
@@ -70,10 +71,24 @@
             .account-header {
                 left: 0;
                 padding: 0.75rem 1rem;
+                z-index: 1002;
             }
             
             .account-header.sidebar-collapsed {
                 left: 0;
+            }
+
+            .sidebar-toggle-main {
+                display: block;
+                margin-left: 10px;
+            }
+
+            .options-content {
+                padding: 2rem 1rem;
+            }
+
+            .mobile-backdrop {
+                z-index: 1000;
             }
         }
 
@@ -171,6 +186,7 @@
             transition: all 0.3s ease;
             font-size: 1rem;
             margin-left: 10px;
+            display: none;
         }
 
         .sidebar-toggle-main:hover {

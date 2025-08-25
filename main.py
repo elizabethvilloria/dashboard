@@ -6,12 +6,7 @@ import os
 import json
 from collections import defaultdict
 
-# Optional: Picamera2 for Raspberry Pi camera support
-try:
-    from picamera2 import Picamera2
-    PICAMERA2_AVAILABLE = True
-except Exception:
-    PICAMERA2_AVAILABLE = False
+
 
 CONFIG_FILE = "config.json"
 LOG_DIR = "logs"
@@ -228,8 +223,6 @@ def run_detection(model):
 
     # Initialize video capture (try OpenCV indices, then fall back to Picamera2 on Raspberry Pi)
     cap = None
-    picam2 = None
-    use_picamera2 = False
 
     def try_opencv_indices(indices):
         for idx in indices:
@@ -248,31 +241,9 @@ def run_detection(model):
     cap, frame, used_index = try_opencv_indices([preferred_index])
 
     if cap is None or frame is None:
-        # Fallback to Picamera2 if available (Raspberry Pi)
-        if PICAMERA2_AVAILABLE:
-            try:
-                picam2 = Picamera2()
-                # Use a modest resolution for performance on Pi
-                video_config = picam2.create_video_configuration(main={"size": (640, 480)})
-                picam2.configure(video_config)
-                picam2.start()
-                time.sleep(0.5)  # warm-up
-                frame = picam2.capture_array()
-                # Picamera2 returns RGB; convert to BGR for OpenCV drawing consistency
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                if frame is None:
-                    print("Error: Picamera2 started but returned an empty frame.")
-                    return
-                use_picamera2 = True
-                # Using Picamera2 backend for frames
-            except Exception as e:
-                print(f"Error: Could not initialize Picamera2. {e}")
-                print("Hint: On Raspberry Pi OS, install Picamera2: sudo apt update && sudo apt install -y python3-picamera2 libcamera-apps")
-                return
-        else:
-            print("Error: Could not read frame from any OpenCV camera index (0-3).")
-            print("If you're on Raspberry Pi, install Picamera2 (sudo apt install -y python3-picamera2 libcamera-apps) or check camera connections.")
-            return
+        print("Error: Could not read frame from camera index", preferred_index)
+        print("Please check camera connection and config.json camera_index setting")
+        return
     else:
         # Using OpenCV VideoCapture index
         pass

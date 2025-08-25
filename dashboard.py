@@ -361,6 +361,15 @@ def index():
     update_historical_summary()
     return render_template('index.html')
 
+@app.route('/options')
+@login_required
+def options():
+    # Check if user has completed selection
+    if 'selection_completed' not in session:
+        return redirect(url_for('selection'))
+    
+    return render_template('options.html')
+
 @app.route('/selection')
 @login_required
 def selection():

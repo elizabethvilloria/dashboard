@@ -58,7 +58,7 @@
         }
 
         .sidebar-logo {
-            color: var(--primary-color);
+            color: white;
             font-size: 1.4rem;
             font-weight: 400;
             margin-bottom: 0.5rem;
@@ -124,6 +124,8 @@
             padding-left: 0;
         }
 
+
+
         .main-header {
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(10px);
@@ -176,10 +178,16 @@
             transition: all 0.3s ease;
         }
 
-        .selection-badge:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+        .selection-badge {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         }
 
         .selection-badge.city {
@@ -364,20 +372,16 @@
             position: relative;
         }
 
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--card-hover-shadow);
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
         }
 
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-        }
+
 
         .card-body {
             padding: 2rem 1.5rem;
@@ -533,6 +537,7 @@
             margin-top: 3rem;
             padding: 2rem;
             font-size: 0.9rem;
+            margin-left: 220px;
         }
 
         .detail-btn {
@@ -622,10 +627,7 @@
             z-index: 10000;
         }
 
-        .profile-circle:hover {
-            transform: scale(1.1);
-            box-shadow: 0 8px 25px rgba(5, 150, 105, 0.4);
-        }
+
 
         .profile-dropdown {
             position: absolute;
@@ -786,13 +788,13 @@
         </div>
         <nav class="sidebar-nav">
             <div class="nav-item">
-                <a href="#dashboard" class="nav-link active" onclick="switchTab('dashboard')">
+                <a href="/" class="nav-link active">
                     <i class="fas fa-tachometer-alt"></i>
                     Dashboard
                 </a>
             </div>
             <div class="nav-item">
-                <a href="#options" class="nav-link" onclick="switchTab('options')">
+                <a href="/options" class="nav-link">
                     <i class="fas fa-cog"></i>
                     Options
                 </a>
@@ -811,14 +813,6 @@
                             <div class="profile-role">Dashboard Administrator</div>
                 </div>
                         <div class="profile-actions">
-                            <button class="profile-action" onclick="changeSelection()">
-                                <i class="fas fa-edit"></i>
-                                Change Selection
-                            </button>
-                            <a href="{{ url_for('pi_registration') }}" class="profile-action">
-                                <i class="fas fa-microchip"></i>
-                                Pi Registration
-                            </a>
                             <button class="profile-action" onclick="editProfile()">
                                 <i class="fas fa-user-edit"></i>
                                 Edit Profile
@@ -848,6 +842,11 @@
                 </div>
                 
                 <!-- Filter Controls Panel - Now separate from main header -->
+                <div class="section-title">
+                    <i class="fas fa-filter"></i>
+                    Filter & Registration Controls
+                </div>
+                
                 <div class="filter-controls-panel">
                     <!-- Selection badges moved here -->
                     <div class="row mb-3">
@@ -1501,29 +1500,7 @@
                 });
         }
 
-        // Tab switching functionality
-        function switchTab(tabName) {
-            // Remove active class from all nav links
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-            
-            // Add active class to clicked nav link
-            event.target.classList.add('active');
-            
-            // For now, just show a placeholder message
-            // In the future, this can load different content based on the tab
-            console.log('Switched to tab:', tabName);
-            
-            // You can add content loading logic here later
-            if (tabName === 'options') {
-                // Load options content
-                console.log('Options tab clicked');
-            } else {
-                // Dashboard tab (default)
-                console.log('Dashboard tab clicked');
-            }
-        }
+
 
         // Initial update
         updateCounts();

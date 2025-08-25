@@ -43,6 +43,11 @@
             z-index: 1000;
             padding: 1.5rem 0;
             overflow-y: auto;
+            transition: width 0.3s ease, transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
         }
 
         .sidebar-header {
@@ -50,7 +55,10 @@
             padding: 0 1.2rem 1.5rem 1.2rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.15);
             margin-bottom: 1.5rem;
+            position: relative;
         }
+
+
 
         .sidebar-logo {
             color: white;
@@ -111,15 +119,35 @@
             right: 0;
             left: 220px;
             z-index: 9998;
+            transition: left 0.3s ease;
+        }
+
+        .account-header.sidebar-collapsed {
+            left: 0;
         }
 
         .account-section {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             align-items: center;
             gap: 1rem;
             width: 100%;
             max-width: none;
+        }
+
+        .sidebar-toggle-main {
+            background: none;
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            margin-left: 10px;
+        }
+
+        .sidebar-toggle-main:hover {
+            background: none;
         }
 
         .profile-circle {
@@ -221,6 +249,11 @@
             margin-left: 220px;
             padding: 2rem;
             padding-top: 3rem;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content-wrapper.sidebar-collapsed {
+            margin-left: 0;
         }
 
         .main-header {
@@ -286,6 +319,11 @@
             padding: 2rem;
             font-size: 0.9rem;
             margin-left: 220px;
+            transition: margin-left 0.3s ease;
+        }
+
+        .footer.sidebar-collapsed {
+            margin-left: 0;
         }
 
         .status-indicator {
@@ -307,9 +345,9 @@
 </head>
 <body>
     <!-- Sidebar Navigation -->
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="sidebar-logo">Navigation Panel</div>
+            <div class="sidebar-logo">Dashboard Menu</div>
         </div>
         <nav class="sidebar-nav">
             <div class="nav-item">
@@ -330,6 +368,9 @@
     <!-- Account Header -->
     <div class="account-header">
         <div class="account-section">
+            <button class="sidebar-toggle-main" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-left"></i>
+            </button>
             <div class="profile-circle" onclick="toggleProfileDropdown()">
                 A
                 <div class="profile-dropdown" id="profileDropdown">
@@ -414,6 +455,30 @@
                 dropdown.classList.remove('show');
             }
         });
+
+        // Sidebar toggle function
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.main-content-wrapper');
+            const footer = document.querySelector('.footer');
+            const accountHeader = document.querySelector('.account-header');
+            
+            // Toggle collapsed state
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('sidebar-collapsed');
+            footer.classList.toggle('sidebar-collapsed');
+            accountHeader.classList.toggle('sidebar-collapsed');
+            
+            // Update toggle button icon
+            const toggleBtn = document.querySelector('.sidebar-toggle-main i');
+            if (sidebar.classList.contains('collapsed')) {
+                toggleBtn.className = 'fas fa-chevron-right';
+            } else {
+                toggleBtn.className = 'fas fa-chevron-left';
+            }
+            
+
+        }
     </script>
 </body>
 </html>

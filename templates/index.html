@@ -49,6 +49,11 @@
             z-index: 1000;
             padding: 1.5rem 0;
             overflow-y: auto;
+            transition: width 0.3s ease, transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
         }
 
         .sidebar-header {
@@ -56,7 +61,10 @@
             padding: 0 1.2rem 1.5rem 1.2rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.15);
             margin-bottom: 1.5rem;
+            position: relative;
         }
+
+
 
         .sidebar-logo {
             color: white;
@@ -118,6 +126,11 @@
             margin-left: 220px;
             padding: 2rem;
             padding-top: 3rem;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content-wrapper.sidebar-collapsed {
+            margin-left: 0;
         }
 
         .container-fluid {
@@ -539,6 +552,11 @@
             padding: 2rem;
             font-size: 0.9rem;
             margin-left: 220px;
+            transition: margin-left 0.3s ease, transform 0.3s ease;
+        }
+
+        .footer.sidebar-collapsed {
+            margin-left: 0;
         }
 
         .detail-btn {
@@ -597,15 +615,35 @@
             right: 0;
             left: 220px;
             z-index: 9998;
+            transition: left 0.3s ease;
+        }
+
+        .account-header.sidebar-collapsed {
+            left: 0;
         }
 
         .account-section {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             align-items: center;
             gap: 1rem;
             width: 100%;
             max-width: none;
+        }
+
+        .sidebar-toggle-main {
+            background: none;
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            margin-left: 10px;
+        }
+
+        .sidebar-toggle-main:hover {
+            background: none;
         }
 
         .profile-circle {
@@ -936,9 +974,9 @@
     <div class="mobile-backdrop" onclick="toggleSidebar()"></div>
 
     <!-- Sidebar Navigation -->
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="sidebar-logo">Navigation Panel</div>
+            <div class="sidebar-logo">Dashboard Menu</div>
         </div>
         <nav class="sidebar-nav">
             <div class="nav-item">
@@ -959,6 +997,9 @@
     <!-- Account Header -->
     <div class="account-header">
             <div class="account-section">
+            <button class="sidebar-toggle-main" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-left"></i>
+            </button>
                 <div class="profile-circle" onclick="toggleProfileDropdown()">
                     A
                     <div class="profile-dropdown" id="profileDropdown">
@@ -986,14 +1027,14 @@
     </div>
 
         <div class="main-content-wrapper">
-            <div class="container-fluid py-5">
+        <div class="container-fluid py-5">
                 <!-- Main Header - Separated from filter controls -->
                 <div class="main-header">
                     <div class="text-center">
-                        <h1>E-Trike Passenger Dashboard</h1>
-                        <p class="subtitle">Real-time passenger monitoring and analytics</p>
-                    </div>
-                </div>
+                                <h1>E-Trike Passenger Dashboard</h1>
+                                <p class="subtitle">Real-time passenger monitoring and analytics</p>
+                            </div>
+                        </div>
                 
                 <!-- Filter Controls Panel - Now separate from main header -->
                 <div class="section-title">
@@ -1016,42 +1057,42 @@
                         </div>
                     </div>
                     
-                    <div class="row align-items-center">
-                        <div class="col-md-3">
-                            <label class="filter-label-small">
-                                <i class="fas fa-users me-2"></i>TODA
-                            </label>
-                            <select class="filter-select-small" id="toda-select">
-                                <option value="">All TODAs (City-wide)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="filter-label-small">
-                                <i class="fas fa-motorcycle me-2"></i>E-Trike
-                            </label>
-                            <select class="filter-select-small" id="etrike-select" disabled>
-                                <option value="">Select TODA first</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="filter-label-small">
-                                <i class="fas fa-microchip me-2"></i>Pi Device
-                            </label>
-                            <select class="filter-select-small" id="pi-select">
-                                <option value="">All Pi Devices</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="filter-actions-small">
-                                <button class="filter-btn-small btn-apply" id="apply-filter" disabled>
-                                    <i class="fas fa-check me-2"></i>Apply
-                                </button>
-                                <button class="filter-btn-small btn-clear" id="clear-filter">
-                                    <i class="fas fa-times me-2"></i>Clear
-                                </button>
-                                <a href="{{ url_for('pi_registration') }}" class="filter-btn-small btn-register">
-                                    <i class="fas fa-plus me-2"></i>Add Pi
-                                </a>
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <label class="filter-label-small">
+                                    <i class="fas fa-users me-2"></i>TODA
+                                </label>
+                                <select class="filter-select-small" id="toda-select">
+                                    <option value="">All TODAs (City-wide)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="filter-label-small">
+                                    <i class="fas fa-motorcycle me-2"></i>E-Trike
+                                </label>
+                                <select class="filter-select-small" id="etrike-select" disabled>
+                                    <option value="">Select TODA first</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="filter-label-small">
+                                    <i class="fas fa-microchip me-2"></i>Pi Device
+                                </label>
+                                <select class="filter-select-small" id="pi-select">
+                                    <option value="">All Pi Devices</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="filter-actions-small">
+                                    <button class="filter-btn-small btn-apply" id="apply-filter" disabled>
+                                        <i class="fas fa-check me-2"></i>Apply
+                                    </button>
+                                    <button class="filter-btn-small btn-clear" id="clear-filter">
+                                        <i class="fas fa-times me-2"></i>Clear
+                                    </button>
+                                    <a href="{{ url_for('pi_registration') }}" class="filter-btn-small btn-register">
+                                        <i class="fas fa-plus me-2"></i>Add Pi
+                                    </a>
                             </div>
                         </div>
                     </div>
@@ -1656,14 +1697,34 @@
 
 
 
-        // Mobile sidebar toggle
+        // Sidebar toggle function
         function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.main-content-wrapper');
+            const footer = document.querySelector('.footer');
+            const accountHeader = document.querySelector('.account-header');
             const backdrop = document.querySelector('.mobile-backdrop');
             
-            sidebar.classList.toggle('show');
+            // Toggle collapsed state
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('sidebar-collapsed');
+            footer.classList.toggle('sidebar-collapsed');
+            accountHeader.classList.toggle('sidebar-collapsed');
             
+            // Update toggle button icon
+            const toggleBtn = document.querySelector('.sidebar-toggle-main i');
+            if (sidebar.classList.contains('collapsed')) {
+                toggleBtn.className = 'fas fa-chevron-right';
+            } else {
+                toggleBtn.className = 'fas fa-chevron-left';
+            }
+            
+
+            
+            // Handle mobile overlay
             if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('show');
+                
                 if (sidebar.classList.contains('show')) {
                     backdrop.style.display = 'block';
                     setTimeout(() => backdrop.classList.add('show'), 10);

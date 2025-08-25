@@ -105,6 +105,11 @@
             border-color: var(--secondary-color);
         }
 
+        .form-select option:disabled {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
         .submit-btn {
             width: 100%;
             padding: 1.25rem;
@@ -172,7 +177,7 @@
     <div class="selection-container">
         <div class="selection-card">
             <div class="logo-section">
-                <h1><i class="fas fa-motorcycle me-3"></i>E-Trike</h1>
+                <h1>E-Trike</h1>
                 <p>Select Your Configuration</p>
             </div>
             
@@ -182,7 +187,7 @@
                         <i class="fas fa-city me-2"></i>City
                     </label>
                     <select class="form-select" id="city" name="city" required>
-                        <option value="">Choose a city...</option>
+                        <option value="" disabled>Choose a city...</option>
                         <option value="manila">Manila</option>
                     </select>
                     <div class="info-text">Select the city where you want to view e-trike data</div>
@@ -203,28 +208,24 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Add some interactivity
-        document.querySelectorAll('.form-select').forEach(select => {
-            select.addEventListener('change', function() {
-                if (this.value) {
-                    this.style.borderColor = 'var(--success-color)';
-                    this.style.backgroundColor = '#f0fdfa';
-                } else {
-                    this.style.borderColor = '#e5e7eb';
-                    this.style.backgroundColor = 'white';
-                }
-            });
+        // Add interactivity for city selection
+        document.getElementById('city').addEventListener('change', function() {
+            if (this.value) {
+                this.style.borderColor = 'var(--success-color)';
+                this.style.backgroundColor = '#f0fdfa';
+            } else {
+                this.style.borderColor = '#e5e7eb';
+                this.style.backgroundColor = 'white';
+            }
         });
 
-        // Form validation
+        // Form validation - only city is required
         document.querySelector('form').addEventListener('submit', function(e) {
             const city = document.getElementById('city').value;
-            const toda = document.getElementById('toda').value;
-            const etrike = document.getElementById('etrike').value;
             
-            if (!city || !toda || !etrike) {
+            if (!city) {
                 e.preventDefault();
-                alert('Please select all options before continuing.');
+                alert('Please select a city before continuing.');
                 return false;
             }
         });

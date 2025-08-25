@@ -904,10 +904,12 @@
             z-index: 9999;
             opacity: 0;
             transition: opacity 0.3s ease;
+            pointer-events: none;
         }
 
         .mobile-backdrop.show {
             opacity: 1;
+            pointer-events: auto;
         }
 
         /* Hide mobile elements on desktop */
@@ -950,11 +952,20 @@
             .nav-link {
                 padding: 1rem;
                 min-height: 48px;
+                touch-action: manipulation;
+                cursor: pointer;
             }
 
             .filter-btn-small {
                 min-height: 44px;
                 touch-action: manipulation;
+                cursor: pointer;
+            }
+
+            /* Ensure all clickable elements are touch-friendly */
+            button, a, select, .nav-link {
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
             }
 
             /* Better spacing for mobile */
@@ -1717,8 +1728,6 @@
                 toggleBtn.className = 'fas fa-chevron-left';
             }
             
-
-            
             // Handle mobile overlay
             if (window.innerWidth <= 768) {
                 sidebar.classList.toggle('show');
@@ -1736,10 +1745,14 @@
         // Close sidebar when clicking outside on mobile
         document.addEventListener('click', function(event) {
             const sidebar = document.querySelector('.sidebar');
+            const backdrop = document.querySelector('.mobile-backdrop');
             
             if (window.innerWidth <= 768) {
-                if (!sidebar.contains(event.target)) {
+                // Only close if clicking on backdrop, not on buttons or other elements
+                if (event.target === backdrop) {
                     sidebar.classList.remove('show');
+                    backdrop.classList.remove('show');
+                    setTimeout(() => backdrop.style.display = 'none', 300);
                 }
             }
         });

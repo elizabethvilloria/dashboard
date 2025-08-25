@@ -244,8 +244,8 @@ def run_detection(model):
         return None, None, None
 
     preferred_index = int(config.get("camera_index", 0))
-    scan_order = [preferred_index] + [i for i in range(4) if i != preferred_index]
-    cap, frame, used_index = try_opencv_indices(scan_order)
+    # Only try the specified camera index, don't scan others
+    cap, frame, used_index = try_opencv_indices([preferred_index])
 
     if cap is None or frame is None:
         # Fallback to Picamera2 if available (Raspberry Pi)

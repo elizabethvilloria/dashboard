@@ -489,13 +489,13 @@ if __name__ == '__main__':
         if os.path.exists(cert_path) and os.path.exists(key_path):
             context = ssl.SSLContext(ssl.PROTOCOL_TLS)  # Use TLS instead of TLSv1_2
             context.load_cert_chain(cert_path, key_path)
-            print("Dashboard is running on https://etrikedashboard.com:5001/")
-            app.run(debug=True, host='0.0.0.0', port=5001, ssl_context=context)
+            print("Dashboard is running on https://etrikedashboard.com/")
+            app.run(debug=True, host='0.0.0.0', port=443, ssl_context=context)
         else:
             # Fall back to HTTP
-            print("Dashboard is running on http://0.0.0.0:5001/")
-            app.run(debug=True, host='0.0.0.0', port=5001)
+            print("Dashboard is running on http://etrikedashboard.com/")
+            app.run(debug=True, host='0.0.0.0', port=80)
     except Exception as e:
         print(f"SSL Error: {e}")
         print("Falling back to HTTP mode...")
-        app.run(debug=True, host='0.0.0.0', port=5001) 
+        app.run(debug=True, host='0.0.0.0', port=80) 

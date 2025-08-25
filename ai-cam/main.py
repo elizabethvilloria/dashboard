@@ -16,6 +16,15 @@ except Exception:
 CONFIG_FILE = "config.json"
 LOG_DIR = "logs"
 
+def load_config():
+    """Load configuration from config.json file."""
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        print(f"Warning: Could not load {CONFIG_FILE}, using defaults")
+        return {}
+
 def log_passenger_entry(person_id, passenger_type):
     """Logs a passenger entry event with a timestamp and type."""
     now = datetime.datetime.now()
@@ -24,12 +33,20 @@ def log_passenger_entry(person_id, passenger_type):
     
     log_file = os.path.join(log_dir, f"{now.day}.json")
     
+    # Load config to get Pi identification
+    config = load_config()
+    
     new_entry = {
         "person_id": person_id, 
         "type": passenger_type, 
         "entry_timestamp": now.timestamp(),
         "exit_timestamp": None,
-        "dwell_time_minutes": None
+        "dwell_time_minutes": None,
+        "pi_id": config.get("pi_id", "unknown"),
+        "city": config.get("city", "unknown"),
+        "toda_id": config.get("toda_id", "unknown"),
+        "etrike_id": config.get("etrike_id", "unknown"),
+        "location": config.get("location", "unknown")
     }
     
     # Read existing data and append the new entry

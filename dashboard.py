@@ -354,8 +354,211 @@ def logout():
 @app.route('/')
 @login_required
 def index():
+    # Check if user has completed selection
+    if 'selection_completed' not in session:
+        return redirect(url_for('selection'))
+    
     update_historical_summary()
     return render_template('index.html')
+
+@app.route('/selection')
+@login_required
+def selection():
+    # If selection is already completed, redirect to dashboard
+    if 'selection_completed' in session:
+        return redirect(url_for('index'))
+    return render_template('selection.html')
+
+@app.route('/process-selection', methods=['POST'])
+@login_required
+def process_selection():
+    city = request.form.get('city')
+    
+    if not city:
+        flash('Please select a city')
+        return redirect(url_for('selection'))
+    
+    # Store city selection in session
+    session['city'] = city
+    session['selection_completed'] = True
+    
+    return redirect(url_for('index'))
+
+@app.route('/clear-selection', methods=['POST'])
+@login_required
+def clear_selection():
+    # Clear selection from session
+    session.pop('city', None)
+    session.pop('selection_completed', None)
+    return jsonify({'success': True})
+
+@app.route('/get-todas')
+@login_required
+def get_todas():
+    """Get available TODAs for the selected city"""
+    city = session.get('city', 'manila')
+    
+    # Mock data - in real implementation, this would come from a database
+    if city == 'manila':
+        todas = [
+            {'id': 'bltmpc', 'name': 'BLTMPC', 'full_name': 'Barangay Laging Tapat Motorcycle and Pedicab Cooperative'},
+            {'id': 'mtmpc', 'name': 'MTMPC', 'full_name': 'Manila Tricycle and Motorcycle Operators Cooperative'},
+            {'id': 'stmpc', 'name': 'STMPC', 'full_name': 'San Miguel Tricycle and Motorcycle Operators Cooperative'}
+        ]
+    else:
+        todas = []
+    
+    return jsonify({'todas': todas})
+
+@app.route('/get-etrikes')
+@login_required
+def get_etrikes():
+    """Get available e-trikes for the selected TODA"""
+    toda = request.args.get('toda', '')
+    city = session.get('city', 'manila')
+    
+    if not toda:
+        return jsonify({'etikes': []})
+    
+    # Mock data - in real implementation, this would come from a database
+    if toda == 'bltmpc':
+        etikes = [
+            {'id': '00001', 'name': 'E-Trike 00001', 'status': 'active'},
+            {'id': '00002', 'name': 'E-Trike 00002', 'status': 'active'},
+            {'id': '00003', 'name': 'E-Trike 00003', 'status': 'maintenance'}
+        ]
+    elif toda == 'mtmpc':
+        etikes = [
+            {'id': '00004', 'name': 'E-Trike 00004', 'status': 'active'},
+            {'id': '00005', 'name': 'E-Trike 00005', 'status': 'active'}
+        ]
+    else:
+        etikes = []
+    
+    return jsonify({'etikes': etikes})
+
+# Pi Registration System
+@app.route('/pi-registration')
+@login_required
+def pi_registration():
+    """Pi registration page"""
+    return render_template('pi_registration.html')
+
+@app.route('/register-pi', methods=['POST'])
+@login_required
+def register_pi():
+    """Register a new Pi device"""
+    pi_id = request.form.get('pi_id')
+    toda_id = request.form.get('toda_id')
+    etrike_id = request.form.get('etrike_id')
+    city = request.form.get('city')
+    location = request.form.get('location', '')
+    
+    if not all([pi_id, toda_id, etrike_id, city]):
+        return jsonify({'success': False, 'message': 'All fields are required'})
+    
+    # Store Pi registration in a simple JSON file
+    pi_assignments = load_pi_assignments()
+    pi_assignments[pi_id] = {
+        'toda_id': toda_id,
+        'etrike_id': etrike_id,
+        'city': city,
+        'location': location,
+        'status': 'active',
+        'registered_at': datetime.datetime.now().isoformat(),
+        'last_seen': None
+    }
+    save_pi_assignments(pi_assignments)
+    
+    return jsonify({
+        'success': True, 
+        'message': f'Pi {pi_id} registered successfully for {toda_id.upper()} - {etrike_id}'
+    })
+
+@app.route('/get-pi-assignments')
+@login_required
+def get_pi_assignments():
+    """Get all Pi device assignments"""
+    return jsonify(load_pi_assignments())
+
+@app.route('/get-filtered-data')
+@login_required
+def get_filtered_data_route():
+    """Get filtered passenger data based on selection"""
+    toda_id = request.args.get('toda_id', '')
+    etrike_id = request.args.get('etrike_id', '')
+    pi_id = request.args.get('pi_id', '')
+    
+    # Convert empty strings to None for filtering
+    if not toda_id:
+        toda_id = None
+    if not etrike_id:
+        etrike_id = None
+    if not pi_id:
+        pi_id = None
+    
+    filtered_data = get_filtered_data(toda_id, etrike_id, pi_id)
+    
+    # Count by type
+    adult_count = len([entry for entry in filtered_data if entry.get('type') == 'Adult'])
+    child_count = len([entry for entry in filtered_data if entry.get('type') == 'Child'])
+    total_count = len(filtered_data)
+    
+    return jsonify({
+        'total': total_count,
+        'adults': adult_count,
+        'children': child_count,
+        'filtered_data': filtered_data
+    })
+
+def load_pi_assignments():
+    """Load Pi assignments from JSON file"""
+    try:
+        if os.path.exists('pi_assignments.json'):
+            with open('pi_assignments.json', 'r') as f:
+                return json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        pass
+    return {}
+
+def save_pi_assignments(assignments):
+    """Save Pi assignments to JSON file"""
+    with open('pi_assignments.json', 'w') as f:
+        json.dump(assignments, f, indent=4)
+
+def get_filtered_data(toda_id=None, etrike_id=None, pi_id=None):
+    """
+    Get filtered passenger data based on TODA, E-Trike, or Pi device selection.
+    Returns data that matches the filter criteria.
+    """
+    today = datetime.datetime.now()
+    filtered_data = []
+    
+    # Get data for the last 7 days
+    for i in range(7):
+        check_date = today.date() - datetime.timedelta(days=i)
+        log_path = os.path.join(LOG_DIR, str(check_date.year), str(check_date.month), f"{check_date.day}.json")
+        if os.path.exists(log_path):
+            try:
+                with open(log_path, 'r') as f:
+                    log_data = json.load(f)
+                    for entry in log_data:
+                        # Check if entry matches filter criteria
+                        matches_filter = True
+                        
+                        if toda_id and entry.get('toda_id') != toda_id:
+                            matches_filter = False
+                        if etrike_id and entry.get('etrike_id') != etrike_id:
+                            matches_filter = False
+                        if pi_id and entry.get('pi_id') != pi_id:
+                            matches_filter = False
+                        
+                        if matches_filter:
+                            filtered_data.append(entry)
+            except (json.JSONDecodeError, FileNotFoundError):
+                continue
+    
+    return filtered_data
 
 @app.route('/data')
 @login_required

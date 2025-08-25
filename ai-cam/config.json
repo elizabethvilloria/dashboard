@@ -2,6 +2,11 @@
     "camera_index": 0,
     "line_thickness": 2,
     "saved_confirmation_duration_sec": 2,
+    "pi_id": "PI001",
+    "city": "manila",
+    "toda_id": "bltmpc",
+    "etrike_id": "00001",
+    "location": "Main Terminal",
     "colors": {
         "exit_red": [
             0,

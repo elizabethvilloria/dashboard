@@ -256,40 +256,55 @@ def login():
         <style>
             body { 
                 font-family: 'Segoe UI', Arial, sans-serif; 
-                background: linear-gradient(135deg, #059669, #0d9488, #0891b2); 
-                display: flex; justify-content: center; align-items: center; 
-                height: 100vh; margin: 0; 
+                background-image: url('/static/etrike-background.png');
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+                display: flex; 
+                justify-content: flex-end; 
+                align-items: center; 
+                height: 100vh; 
+                margin: 0; 
+                position: relative;
             }
+            
+
+            
             .login-box { 
                 background: rgba(255, 255, 255, 0.95); 
-                padding: 3rem 2.5rem; 
-                border-radius: 20px; 
-                box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
+                padding: 2rem 2rem; 
+                border-radius: 10px; 
+                box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
                 backdrop-filter: blur(10px);
                 border: 1px solid rgba(255, 255, 255, 0.3);
-                min-width: 350px;
+                min-width: 300px;
+                max-width: 350px;
+                position: relative;
+                z-index: 2;
+                margin-right: 15rem;
             }
             .logo {
                 text-align: center;
-                margin-bottom: 2rem;
+                margin-bottom: 1.5rem;
             }
             .logo h1 {
                 color: #059669;
-                font-size: 2rem;
+                font-size: 1.6rem;
                 font-weight: 700;
                 margin: 0;
                 text-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
             .logo p {
                 color: #0d9488;
-                font-size: 0.9rem;
-                margin: 0.5rem 0 0 0;
+                font-size: 0.85rem;
+                margin: 0.3rem 0 0 0;
                 font-weight: 500;
             }
             input { 
                 width: 100%; 
-                padding: 1rem; 
-                margin: 0.75rem 0; 
+                padding: 0.8rem; 
+                margin: 0.6rem 0; 
                 border: 2px solid #e5e7eb; 
                 border-radius: 10px; 
                 font-size: 1rem;
@@ -303,7 +318,7 @@ def login():
             }
             button { 
                 width: 100%; 
-                padding: 1rem; 
+                padding: 0.8rem; 
                 background: linear-gradient(135deg, #059669, #0d9488); 
                 color: white; 
                 border: none; 
@@ -311,7 +326,7 @@ def login():
                 cursor: pointer; 
                 font-size: 1rem;
                 font-weight: 600;
-                margin-top: 1rem;
+                margin-top: 0.8rem;
                 transition: all 0.3s ease;
             }
             button:hover { 
@@ -336,12 +351,51 @@ def login():
                 <h1>E-Trike</h1>
                 <p>Passenger Dashboard</p>
             </div>
-            <form method="POST">
+            <form method="POST" id="loginForm">
                 <input type="text" name="username" placeholder="Username" required>
                 <input type="password" name="password" placeholder="Password" required>
-                <button type="submit">Access Dashboard</button>
+                <button type="submit">Log In</button>
+                <div class="error" id="errorMessage" style="display: none;"></div>
             </form>
         </div>
+        
+        <script>
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Clear any previous error messages
+                document.getElementById('errorMessage').style.display = 'none';
+                
+                // Get form data
+                const formData = new FormData(this);
+                
+                // Submit form via fetch to handle errors
+                fetch('/login', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.redirected) {
+                        // Successful login, redirect
+                        window.location.href = response.url;
+                    } else {
+                        // Check if there's an error response
+                        return response.text();
+                    }
+                })
+                .then(html => {
+                    if (html && html.includes('Invalid credentials')) {
+                        // Show error message
+                        const errorDiv = document.getElementById('errorMessage');
+                        errorDiv.textContent = 'Invalid username or password. Please try again.';
+                        errorDiv.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+        </script>
     </body>
     </html>
     '''

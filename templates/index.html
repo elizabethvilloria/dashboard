@@ -36,7 +36,7 @@
             z-index: 1;
         }
 
-        /* Sidebar Navigation */
+        /* E-Trike Dashboard Sidebar Navigation Styles */
         .sidebar {
             position: fixed;
             left: 0;
@@ -121,7 +121,7 @@
             text-align: center;
         }
 
-        /* Adjust main content for sidebar */
+        /* Main content area positioning to accommodate sidebar */
         .main-content-wrapper {
             margin-left: 220px;
             padding: 2rem;
@@ -220,7 +220,7 @@
             background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(168, 85, 247, 0.8));
         }
 
-        /* Top Filter Controls Panel */
+        /* TODA/E-Trike/Pi Device Filter Controls Panel */
         .filter-controls-panel {
             background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.8));
             backdrop-filter: blur(15px);
@@ -603,7 +603,7 @@
             box-shadow: 0 2px 10px rgba(16, 185, 129, 0.1);
         }
 
-        /* Account Manager Styles */
+        /* User Profile and Account Management Header Styles */
         .account-header {
             background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.8));
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -873,7 +873,7 @@
             }
         }
 
-        /* Extra small devices */
+        /* Responsive design for extra small mobile devices */
         @media (max-width: 576px) {
             .main-header {
                 padding: 1.5rem 1rem;
@@ -892,7 +892,7 @@
             }
         }
 
-        /* Mobile backdrop overlay */
+        /* Mobile sidebar overlay backdrop for touch devices */
         .mobile-backdrop {
             display: none;
             position: fixed;
@@ -912,7 +912,7 @@
             pointer-events: auto;
         }
 
-        /* Hide mobile elements on desktop */
+        /* Responsive design: Hide mobile-only elements on desktop */
         .mobile-only {
             display: none;
         }
@@ -979,10 +979,10 @@
 <body>
 
 
-    <!-- Mobile Backdrop Overlay -->
+    <!-- Mobile Touch Device Sidebar Backdrop Overlay -->
     <div class="mobile-backdrop" onclick="toggleSidebar()"></div>
 
-    <!-- Sidebar Navigation -->
+    <!-- E-Trike Dashboard Left Sidebar Navigation Menu -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">Dashboard Menu</div>
@@ -1003,7 +1003,7 @@
         </nav>
     </div>
 
-    <!-- Account Header -->
+    <!-- Top Account Management and Profile Header Bar -->
     <div class="account-header">
             <div class="account-section">
             <button class="sidebar-toggle-main" onclick="toggleSidebar()">
@@ -1037,22 +1037,15 @@
 
         <div class="main-content-wrapper">
         <div class="container-fluid py-5">
-                <!-- Main Header - Separated from filter controls -->
-                <div class="main-header">
-                    <div class="text-center">
-                                <h1>E-Trike Passenger Dashboard</h1>
-                                <p class="subtitle">Real-time passenger monitoring and analytics</p>
-                            </div>
-                        </div>
-                
-                <!-- Filter Controls Panel - Now separate from main header -->
+
+                <!-- TODA/E-Trike/Pi Device Filter and Registration Controls -->
                 <div class="section-title">
                     <i class="fas fa-sliders-h"></i>
                     Filter & Registration Controls
                 </div>
                 
                 <div class="filter-controls-panel">
-                    <!-- Selection badges moved here -->
+                    <!-- City and Filter Status Display Badges -->
                     <div class="row mb-3">
                         <div class="col-12 text-center">
                             <div class="selection-badges">
@@ -1107,7 +1100,7 @@
                     </div>
                 </div>
                 
-                <!-- Main Dashboard Content -->
+                <!-- E-Trike Passenger Counter Dashboard Main Content Area -->
                 <div class="main-content">
             
                 <div class="section-title">
@@ -1185,7 +1178,7 @@
                                             </tr>
                                         </thead>
                                         <tbody id="daily-history-body">
-                                <!-- Data will be populated by JavaScript -->
+                                <!-- Daily passenger history data populated dynamically via AJAX -->
                                         </tbody>
                                     </table>
                                 </div>
@@ -1204,7 +1197,7 @@
                                             </tr>
                                         </thead>
                                         <tbody id="weekly-history-body">
-                                <!-- Data will be populated by JavaScript -->
+                                <!-- Weekly passenger history data populated dynamically via AJAX -->
                                         </tbody>
                                     </table>
                                 </div>
@@ -1223,7 +1216,7 @@
                                             </tr>
                                         </thead>
                                         <tbody id="monthly-history-body">
-                                <!-- Data will be populated by JavaScript -->
+                                <!-- Monthly passenger history data populated dynamically via AJAX -->
                                         </tbody>
                                     </table>
                         </div>
@@ -1231,9 +1224,9 @@
                 </div>
             </div>
 
-                </div> <!-- End of main-content -->
-            </div> <!-- End of container-fluid -->
-        </div> <!-- End of main-content-wrapper -->
+                </div> <!-- End of dashboard main content area -->
+            </div> <!-- End of Bootstrap fluid container -->
+        </div> <!-- End of main content wrapper with sidebar spacing -->
 
         <div class="footer">
             <p><i class="fas fa-heart text-danger"></i> E-Trike AI Camera System - Powered by Raspberry Pi 5</p>
@@ -1241,7 +1234,7 @@
         </div>
     </div>
 
-    <!-- Detailed Information Modal -->
+    <!-- Passenger Details Information Modal Dialog -->
     <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -1252,7 +1245,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="detailModalBody">
-                    <!-- Passenger details will be populated here -->
+                    <!-- Individual passenger entry/exit details populated dynamically -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -1263,6 +1256,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Update live passenger counter displays (hourly, daily, weekly, monthly)
         function updateCounts() {
             fetch('/data')
                 .then(response => response.json())
@@ -1281,6 +1275,7 @@
                 });
         }
 
+        // Load and display historical passenger data tables
         function updateHistoricalData() {
             fetch('/historical-data')
                 .then(response => response.json())
@@ -1292,7 +1287,7 @@
                     weeklyBody.innerHTML = '';
                     monthlyBody.innerHTML = '';
 
-                    // Populate daily history
+                    // Build daily passenger history table rows
                     data.daily.forEach(record => {
                         const row = `<tr>
                             <td>${record.date}</td>
@@ -1304,7 +1299,7 @@
                         dailyBody.innerHTML += row;
                     });
 
-                    // Populate weekly history
+                    // Build weekly passenger history table rows
                     data.weekly.forEach(record => {
                         const row = `<tr>
                             <td>${record.week_of}</td>
@@ -1316,7 +1311,7 @@
                         weeklyBody.innerHTML += row;
                     });
 
-                    // Populate monthly history
+                    // Build monthly passenger history table rows
                     data.monthly.forEach(record => {
                         const row = `<tr>
                             <td>${record.month_of}</td>
@@ -1330,15 +1325,16 @@
                 });
         }
 
+        // Display detailed passenger information in modal dialog
         function showPassengerDetails(period, date, total) {
-            // Show loading message
+            // Display loading spinner while fetching passenger details
             document.getElementById('detailModalBody').innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading passenger details...</div>';
             document.getElementById('detailModalLabel').innerHTML = `<i class="fas fa-info-circle me-2"></i>Passenger Details - ${date}`;
             
             const modal = new bootstrap.Modal(document.getElementById('detailModal'));
             modal.show();
 
-            // Fetch real passenger data from backend
+            // Retrieve individual passenger records from server
             fetch(`/passenger-details?date=${date}&period=${period}`)
                 .then(response => response.json())
                 .then(data => {
@@ -1383,28 +1379,29 @@
                 });
         }
 
-        // Update every 5 seconds
+        // Auto-refresh live passenger counts every 5 seconds
         setInterval(updateCounts, 5000);
         
-        // Update historical data every 30 seconds
+        // Auto-refresh historical data tables every 30 seconds
         setInterval(updateHistoricalData, 30000);
 
-        // Account Manager Functions
+        // User Profile and Account Management Functions
         function toggleProfileDropdown() {
             const dropdown = document.getElementById('profileDropdown');
             dropdown.classList.toggle('show');
         }
 
+        // Allow user to change city/TODA/e-trike selection
         function changeSelection() {
             if (confirm('Do you want to change your city, TODA, or e-trike selection?')) {
-                // Clear selection from session and redirect to selection page
+                // Clear current selection and return to city/TODA selection page
                 fetch('/clear-selection', { method: 'POST' })
                     .then(() => {
                         window.location.href = '/selection';
                     })
                     .catch(error => {
                         console.error('Error clearing selection:', error);
-                        // Fallback: redirect anyway
+                        // Fallback navigation if server request fails
                         window.location.href = '/selection';
                     });
             }
@@ -1423,15 +1420,13 @@
 
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
-                // Add logout logic here
-                // For now, just redirect or show message
-                alert('Logout functionality - to be implemented');
-                // window.location.href = '/login';
+                // Redirect to login page
+                window.location.href = '/login';
             }
             toggleProfileDropdown();
         }
 
-        // Close dropdown when clicking outside
+        // Close profile dropdown when user clicks elsewhere on page
         document.addEventListener('click', function(event) {
             const dropdown = document.getElementById('profileDropdown');
             const profileCircle = document.querySelector('.profile-circle');
@@ -1441,16 +1436,16 @@
             }
         });
 
-        // Filter Panel Functionality
+        // TODA/E-Trike/Pi Device Filter Panel Management
         let currentToda = '';
         let currentEtrike = '';
 
-        // Load TODAs on page load
+        // Initialize filter dropdowns and load available TODAs on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadTodas();
             setupFilterEventListeners();
-            loadPiStatus(); // Load Pi device status
-            loadPiDevices(); // Load Pi devices for dropdown
+            loadPiStatus(); // Load Raspberry Pi device status for monitoring
+            loadPiDevices(); // Populate Pi device filter dropdown options
         });
 
         function loadTodas() {
@@ -1473,7 +1468,7 @@
             const applyBtn = document.getElementById('apply-filter');
             const clearBtn = document.getElementById('clear-filter');
 
-            // TODA selection change
+            // Handle TODA (Tricycle Operators and Drivers Association) selection changes
             todaSelect.addEventListener('change', function() {
                 currentToda = this.value;
                 if (currentToda) {
@@ -1488,18 +1483,18 @@
                 updateApplyButton();
             });
 
-            // E-Trike selection change
+            // Handle individual E-Trike vehicle selection changes
             etrikeSelect.addEventListener('change', function() {
                 currentEtrike = this.value;
                 updateApplyButton();
             });
 
-            // Apply filter
+            // Apply selected filter criteria to dashboard data
             applyBtn.addEventListener('click', function() {
                 applyFilter();
             });
 
-            // Clear filter
+            // Reset all filters to show city-wide data
             clearBtn.addEventListener('click', function() {
                 clearFilter();
             });
@@ -1532,9 +1527,9 @@
             const piId = document.getElementById('pi-select').value;
             
             if (!todaId && !etrikeId && !piId) {
-                // City-wide view
+                // No filters selected - show all city data
                 document.getElementById('filter-status').innerHTML = '<i class="fas fa-sliders-h me-2"></i>City-wide View';
-                loadDashboardData(); // Load all data
+                loadDashboardData(); // Load unfiltered city-wide passenger data
                 return;
             }
             
@@ -1551,7 +1546,7 @@
             
             document.getElementById('filter-status').innerHTML = `<i class="fas fa-sliders-h me-2"></i>${filterText}`;
             
-            // Load filtered data
+            // Apply filters and update dashboard with filtered passenger data
             loadFilteredData(todaId, etrikeId, piId);
         }
 
@@ -1571,16 +1566,16 @@
         }
 
         function showFilterMessage(message, type) {
-            // Create a temporary message
+            // Display temporary filter status message to user
             const messageDiv = document.createElement('div');
             messageDiv.className = `filter-message ${type}`;
             messageDiv.innerHTML = `<i class="fas fa-info-circle me-2"></i>${message}`;
             
-            // Add to the filter panel
+            // Insert message into filter control panel
             const filterPanel = document.querySelector('.filter-panel');
             filterPanel.appendChild(messageDiv);
             
-            // Remove after 3 seconds
+            // Auto-hide filter message after 3 seconds
             setTimeout(() => {
                 messageDiv.remove();
             }, 3000);
@@ -1633,7 +1628,7 @@
                 });
         }
 
-        // Load Pi devices for dropdown
+        // Populate Pi device dropdown with registered Raspberry Pi devices
         function loadPiDevices() {
             fetch('/get-pi-assignments')
                 .then(response => response.json())
@@ -1659,7 +1654,7 @@
         }
 
         function loadFilteredData(todaId, etrikeId, piId) {
-            // Build query parameters
+            // Construct API query parameters for filtered data request
             const params = new URLSearchParams();
             if (todaId) params.append('toda_id', todaId);
             if (etrikeId) params.append('etrike_id', etrikeId);
@@ -1668,7 +1663,7 @@
             fetch(`/get-filtered-data?${params.toString()}`)
                 .then(response => response.json())
                 .then(data => {
-                    // Update dashboard with filtered data
+                    // Refresh dashboard displays with filtered passenger data
                     updateDashboardWithFilteredData(data);
                     showFilterMessage(`Filter applied! Showing ${data.total} passengers`, 'success');
                 })
@@ -1679,17 +1674,17 @@
         }
 
         function updateDashboardWithFilteredData(data) {
-            // Update the main count cards
+            // Update passenger counter display cards with filtered totals
             document.getElementById('total-passengers').textContent = data.total;
             document.getElementById('adult-passengers').textContent = data.adults;
             document.getElementById('child-passengers').textContent = data.children;
             
-            // You can also update charts and other dashboard elements here
+            // Additional dashboard elements (charts, graphs) can be updated here
             console.log('Dashboard updated with filtered data:', data);
         }
 
         function loadDashboardData() {
-            // Load all data (city-wide view)
+            // Load unfiltered passenger data for entire city
             fetch('/data')
                 .then(response => response.json())
                 .then(data => {
@@ -1706,7 +1701,7 @@
 
 
 
-        // Sidebar toggle function
+        // Toggle sidebar visibility for mobile and desktop layouts
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.querySelector('.main-content-wrapper');
@@ -1714,13 +1709,13 @@
             const accountHeader = document.querySelector('.account-header');
             const backdrop = document.querySelector('.mobile-backdrop');
             
-            // Toggle collapsed state
+            // Toggle sidebar expanded/collapsed state and adjust content layout
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('sidebar-collapsed');
             footer.classList.toggle('sidebar-collapsed');
             accountHeader.classList.toggle('sidebar-collapsed');
             
-            // Update toggle button icon
+            // Change chevron icon direction based on sidebar state
             const toggleBtn = document.querySelector('.sidebar-toggle-main i');
             if (sidebar.classList.contains('collapsed')) {
                 toggleBtn.className = 'fas fa-chevron-right';
@@ -1728,7 +1723,7 @@
                 toggleBtn.className = 'fas fa-chevron-left';
             }
             
-            // Handle mobile overlay
+            // Show/hide mobile backdrop overlay for touch devices
             if (window.innerWidth <= 768) {
                 sidebar.classList.toggle('show');
                 
@@ -1742,13 +1737,13 @@
             }
         }
 
-        // Close sidebar when clicking outside on mobile
+        // Auto-close sidebar when user taps outside on mobile devices
         document.addEventListener('click', function(event) {
             const sidebar = document.querySelector('.sidebar');
             const backdrop = document.querySelector('.mobile-backdrop');
             
             if (window.innerWidth <= 768) {
-                // Only close if clicking on backdrop, not on buttons or other elements
+                // Close sidebar only when tapping backdrop, not other UI elements
                 if (event.target === backdrop) {
                     sidebar.classList.remove('show');
                     backdrop.classList.remove('show');
@@ -1757,7 +1752,7 @@
             }
         });
 
-        // Make sidebar header clickable on mobile
+        // Enable sidebar header tap-to-toggle functionality on mobile
         document.addEventListener('DOMContentLoaded', function() {
             const sidebarHeader = document.querySelector('.sidebar-header');
             
@@ -1768,7 +1763,7 @@
             }
         });
 
-        // Handle window resize
+        // Adjust sidebar behavior when browser window is resized
         window.addEventListener('resize', function() {
             const sidebar = document.querySelector('.sidebar');
             if (window.innerWidth > 768) {
@@ -1776,7 +1771,7 @@
             }
         });
 
-        // Initial update
+        // Initialize dashboard with initial data load on page ready
         updateCounts();
         updateHistoricalData();
     </script>

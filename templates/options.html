@@ -9,6 +9,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
+            /* E-Trike Dashboard Color Scheme Variables */
             --primary-color: #059669;
             --secondary-color: #0d9488;
             --accent-color: #0891b2;
@@ -25,12 +26,19 @@
         }
 
         body {
+            /* E-Trike Dashboard Gradient Background */
             background: linear-gradient(135deg, var(--light-green) 0%, var(--light-blue) 50%, var(--teal) 100%);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* Sidebar Navigation */
+        .container {
+            max-width: 1400px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* E-Trike Dashboard Options Page Sidebar Navigation Styles */
         .sidebar {
             position: fixed;
             left: 0;
@@ -50,48 +58,6 @@
             transform: translateX(-100%);
         }
 
-        /* Mobile sidebar behavior */
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                width: 280px;
-                z-index: 1001;
-            }
-            
-            .sidebar.show {
-                transform: translateX(0);
-            }
-            
-            .main-content-wrapper {
-                margin-left: 0;
-                padding: 1rem;
-                padding-top: 2rem;
-            }
-            
-            .account-header {
-                left: 0;
-                padding: 0.75rem 1rem;
-                z-index: 1002;
-            }
-            
-            .account-header.sidebar-collapsed {
-                left: 0;
-            }
-
-            .sidebar-toggle-main {
-                display: block;
-                margin-left: 10px;
-            }
-
-            .options-content {
-                padding: 2rem 1rem;
-            }
-
-            .mobile-backdrop {
-                z-index: 1000;
-            }
-        }
-
         .sidebar-header {
             text-align: center;
             padding: 0 1.2rem 1.5rem 1.2rem;
@@ -99,8 +65,6 @@
             margin-bottom: 1.5rem;
             position: relative;
         }
-
-
 
         .sidebar-logo {
             color: white;
@@ -110,6 +74,12 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             letter-spacing: 0.5px;
             text-transform: uppercase;
+        }
+
+        .sidebar-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+            font-weight: 500;
         }
 
         .sidebar-nav {
@@ -151,7 +121,110 @@
             text-align: center;
         }
 
-        /* Account Manager Styles */
+        /* Options page main content area positioning to accommodate sidebar */
+        .main-content-wrapper {
+            margin-left: 220px;
+            padding: 2rem;
+            padding-top: 3rem;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content-wrapper.sidebar-collapsed {
+            margin-left: 0;
+        }
+
+        .container-fluid {
+            margin-left: 0;
+            padding-left: 0;
+        }
+
+        .main-header {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .main-header h1 {
+            color: white;
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin: 0;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .main-header .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 1.1rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .section-title {
+            color: white;
+            font-weight: 600;
+            font-size: 1.8rem;
+            margin-bottom: 2rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .card-body {
+            padding: 2rem 1.5rem;
+            text-align: center;
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* E-Trike Options Configuration Cards Styling */
+        .options-card {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .options-card .card-icon {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .options-card .card-title {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .options-card .card-text {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* User Profile and Account Management Header Styles for Options Page */
         .account-header {
             background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.8));
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -186,13 +259,13 @@
             transition: all 0.3s ease;
             font-size: 1rem;
             margin-left: 10px;
-            display: none;
         }
 
         .sidebar-toggle-main:hover {
             background: none;
         }
 
+        /* User Profile Circle Button in Top Right Corner */
         .profile-circle {
             width: 35px;
             height: 35px;
@@ -213,6 +286,7 @@
             z-index: 10000;
         }
 
+        /* User Profile Dropdown Menu Styling */
         .profile-dropdown {
             position: absolute;
             top: 45px;
@@ -287,114 +361,7 @@
             background: rgba(239, 68, 68, 0.1);
         }
 
-        /* Mobile backdrop */
-        .mobile-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            display: none;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-        }
-
-        .mobile-backdrop.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        /* Touch-friendly elements */
-        .nav-link {
-            padding: 1rem;
-            min-height: 48px;
-            touch-action: manipulation;
-            cursor: pointer;
-        }
-
-        .profile-action {
-            min-height: 44px;
-            touch-action: manipulation;
-            cursor: pointer;
-        }
-
-        /* Ensure all clickable elements are touch-friendly */
-        button, a, select, .nav-link {
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
-        }
-
-        /* Main Content */
-        .main-content-wrapper {
-            margin-left: 220px;
-            padding: 2rem;
-            padding-top: 3rem;
-            transition: margin-left 0.3s ease;
-        }
-
-        .main-content-wrapper.sidebar-collapsed {
-            margin-left: 0;
-        }
-
-        .main-header {
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: var(--card-shadow);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .main-header h1 {
-            color: white;
-            font-weight: 700;
-            font-size: 2.5rem;
-            margin: 0;
-            text-align: center;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .main-header .subtitle {
-            color: rgba(255, 255, 255, 0.9);
-            text-align: center;
-            margin-top: 0.5rem;
-            font-size: 1.1rem;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-        }
-
-        .options-content {
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 3rem 2rem;
-            margin-bottom: 2rem;
-            box-shadow: var(--card-shadow);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            text-align: center;
-        }
-
-        .options-content i {
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 4rem;
-            margin-bottom: 2rem;
-        }
-
-        .options-content h3 {
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 1rem;
-            font-size: 1.8rem;
-        }
-
-        .options-content p {
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 1.1rem;
-            margin-bottom: 0;
-        }
-
+        /* Options Page Footer Styling */
         .footer {
             text-align: center;
             color: rgba(255, 255, 255, 0.8);
@@ -402,13 +369,14 @@
             padding: 2rem;
             font-size: 0.9rem;
             margin-left: 220px;
-            transition: margin-left 0.3s ease;
+            transition: margin-left 0.3s ease, transform 0.3s ease;
         }
 
         .footer.sidebar-collapsed {
             margin-left: 0;
         }
 
+        /* E-Trike System Status Indicator Animation */
         .status-indicator {
             display: inline-block;
             width: 12px;
@@ -424,11 +392,115 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
+
+        /* Mobile Touch Device Options Page Backdrop Overlay */
+        .mobile-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .mobile-backdrop.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Responsive Design: Mobile Device Adaptations for Options Page */
+        @media (max-width: 768px) {
+            /* Sidebar becomes full-width overlay on mobile devices */
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100vh;
+                z-index: 10000;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            /* Adjust options page main content for mobile layout */
+            .main-content-wrapper {
+                margin-left: 0;
+                padding: 1rem;
+                padding-top: 4rem;
+            }
+
+            .account-header {
+                left: 0;
+                padding: 0.5rem 0;
+            }
+
+            /* Mobile-friendly options page header styling */
+            .main-header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .main-header .subtitle {
+                font-size: 1rem;
+            }
+
+            .section-title {
+                font-size: 1.3rem;
+            }
+
+            /* Options page footer adjustment for mobile */
+            .footer {
+                margin-left: 0;
+                padding: 1rem;
+                font-size: 0.8rem;
+            }
+
+            /* Show mobile backdrop overlay on touch devices */
+            .mobile-backdrop {
+                display: block;
+            }
+
+            /* Mobile-friendly options card layouts */
+            .card {
+                margin-bottom: 1rem;
+            }
+
+            /* Improve touch targets for mobile options interface */
+            .nav-link {
+                padding: 1rem;
+                min-height: 48px;
+                touch-action: manipulation;
+                cursor: pointer;
+            }
+
+            /* Ensure all clickable elements are touch-friendly on options page */
+            button, a, select, .nav-link {
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            }
+
+            /* Better spacing for mobile options page */
+            .container-fluid {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Sidebar Navigation -->
-    <div class="mobile-backdrop" id="mobileBackdrop"></div>
+
+    <!-- Mobile Touch Device Options Page Sidebar Backdrop Overlay -->
+    <div class="mobile-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- E-Trike Dashboard Options Page Left Sidebar Navigation Menu -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">Dashboard Menu</div>
@@ -449,7 +521,7 @@
         </nav>
     </div>
 
-    <!-- Account Header -->
+    <!-- Top Account Management and Profile Header Bar for Options Page -->
     <div class="account-header">
         <div class="account-section">
             <button class="sidebar-toggle-main" onclick="toggleSidebar()">
@@ -483,15 +555,19 @@
 
     <div class="main-content-wrapper">
         <div class="container-fluid py-5">
-            <!-- Options Content -->
-            <div class="options-content">
-                <i class="fas fa-cog"></i>
-                <h3>Empty for now</h3>
-                <p>Options panel content will be added here in the future.</p>
-            </div>
-        </div>
-    </div>
 
+            
+            <!-- E-Trike System Configuration Options Content -->
+            <div class="section-title">
+                <i class="fas fa-cog"></i>
+                System Options
+            </div>
+            
+
+        </div> <!-- End of Bootstrap fluid container for options page -->
+    </div> <!-- End of main content wrapper with sidebar spacing for options -->
+
+    <!-- E-Trike Dashboard Options Page Footer -->
     <div class="footer">
         <p><i class="fas fa-heart text-danger"></i> E-Trike AI Camera System - Powered by Raspberry Pi 5</p>
         <p><span class="status-indicator"></span>System Status: Active</p>
@@ -499,30 +575,34 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Profile dropdown functionality
+        // User Profile and Account Management Functions for Options Page
         function toggleProfileDropdown() {
             const dropdown = document.getElementById('profileDropdown');
             dropdown.classList.toggle('show');
         }
 
+        // Edit user profile functionality (to be implemented)
         function editProfile() {
             alert('Edit Profile functionality - to be implemented');
             toggleProfileDropdown();
         }
 
+        // View system settings functionality (to be implemented)
         function viewSettings() {
             alert('Settings functionality - to be implemented');
             toggleProfileDropdown();
         }
 
+        // User logout functionality (to be implemented)
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
-                alert('Logout functionality - to be implemented');
+                // Redirect to login page
+                window.location.href = '/login';
             }
             toggleProfileDropdown();
         }
 
-        // Close dropdown when clicking outside
+        // Close profile dropdown when user clicks elsewhere on options page
         document.addEventListener('click', function(event) {
             const dropdown = document.getElementById('profileDropdown');
             const profileCircle = document.querySelector('.profile-circle');
@@ -532,13 +612,49 @@
             }
         });
 
-        // Mobile sidebar backdrop click handler
+        // Toggle sidebar visibility for mobile and desktop layouts on options page
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.main-content-wrapper');
+            const footer = document.querySelector('.footer');
+            const accountHeader = document.querySelector('.account-header');
+            const backdrop = document.querySelector('.mobile-backdrop');
+            
+            // Toggle sidebar expanded/collapsed state and adjust options page content layout
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('sidebar-collapsed');
+            footer.classList.toggle('sidebar-collapsed');
+            accountHeader.classList.toggle('sidebar-collapsed');
+            
+            // Change chevron icon direction based on sidebar state
+            const toggleBtn = document.querySelector('.sidebar-toggle-main i');
+            if (sidebar.classList.contains('collapsed')) {
+                toggleBtn.className = 'fas fa-chevron-right';
+            } else {
+                toggleBtn.className = 'fas fa-chevron-left';
+            }
+            
+            // Show/hide mobile backdrop overlay for touch devices
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('show');
+                
+                if (sidebar.classList.contains('show')) {
+                    backdrop.style.display = 'block';
+                    setTimeout(() => backdrop.classList.add('show'), 10);
+                } else {
+                    backdrop.classList.remove('show');
+                    setTimeout(() => backdrop.style.display = 'none', 300);
+                }
+            }
+        }
+
+        // Auto-close sidebar when user taps outside on mobile devices
         document.addEventListener('click', function(event) {
             const sidebar = document.querySelector('.sidebar');
             const backdrop = document.querySelector('.mobile-backdrop');
             
             if (window.innerWidth <= 768) {
-                // Only close if clicking on backdrop, not on buttons or other elements
+                // Close sidebar only when tapping backdrop, not other UI elements
                 if (event.target === backdrop) {
                     sidebar.classList.remove('show');
                     backdrop.classList.remove('show');
@@ -547,35 +663,24 @@
             }
         });
 
-        // Sidebar toggle function
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.querySelector('.main-content-wrapper');
-            const footer = document.querySelector('.footer');
-            const accountHeader = document.querySelector('.account-header');
-            const backdrop = document.getElementById('mobileBackdrop');
+        // Enable sidebar header tap-to-toggle functionality on mobile for options page
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarHeader = document.querySelector('.sidebar-header');
             
             if (window.innerWidth <= 768) {
-                // Mobile behavior
-                sidebar.classList.toggle('show');
-                backdrop.classList.toggle('show');
-                backdrop.style.display = backdrop.classList.contains('show') ? 'block' : 'none';
-            } else {
-                // Desktop behavior
-                sidebar.classList.toggle('collapsed');
-                mainContent.classList.toggle('sidebar-collapsed');
-                footer.classList.toggle('sidebar-collapsed');
-                accountHeader.classList.toggle('sidebar-collapsed');
+                sidebarHeader.addEventListener('click', function() {
+                    toggleSidebar();
+                });
             }
-            
-            // Update toggle button icon
-            const toggleBtn = document.querySelector('.sidebar-toggle-main i');
-            if (sidebar.classList.contains('collapsed') || sidebar.classList.contains('show')) {
-                toggleBtn.className = 'fas fa-chevron-right';
-            } else {
-                toggleBtn.className = 'fas fa-chevron-left';
+        });
+
+        // Adjust sidebar behavior when browser window is resized on options page
+        window.addEventListener('resize', function() {
+            const sidebar = document.querySelector('.sidebar');
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('show');
             }
-        }
+        });
     </script>
 </body>
 </html>

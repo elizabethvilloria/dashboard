@@ -671,7 +671,7 @@ def upload_data():
                 # Clean up temp file
                 os.remove(temp_file.name)
             
-            print(f"✅ Data package received and extracted at {datetime.datetime.now()}")
+            print(f"✅ Data package received and extracted")
             return jsonify({'message': 'Data uploaded successfully'}), 200
         
         return jsonify({'error': 'Invalid file format'}), 400
@@ -701,13 +701,13 @@ if __name__ == '__main__':
         if os.path.exists(cert_path) and os.path.exists(key_path):
             context = ssl.SSLContext(ssl.PROTOCOL_TLS)  # Use TLS instead of TLSv1_2
             context.load_cert_chain(cert_path, key_path)
-            print("Dashboard is running on https://etrikedashboard.com:5001/")
-            app.run(debug=True, host='0.0.0.0', port=5001, ssl_context=context)
+            print("🚀 Dashboard running on https://etrikedashboard.com:5001/")
+            app.run(debug=False, host='0.0.0.0', port=5001, ssl_context=context)
         else:
             # Fall back to HTTP
-            print("Dashboard is running on http://0.0.0.0:5001/")
-            app.run(debug=True, host='0.0.0.0', port=5001)
+            print("🚀 Dashboard running on http://localhost:5001/")
+            app.run(debug=False, host='0.0.0.0', port=5001)
     except Exception as e:
-        print(f"SSL Error: {e}")
-        print("Falling back to HTTP mode...")
-        app.run(debug=True, host='0.0.0.0', port=5001) 
+        print(f"⚠️  SSL Error: {e}")
+        print("🔄 Falling back to HTTP mode...")
+        app.run(debug=False, host='0.0.0.0', port=5001) 

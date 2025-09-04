@@ -1197,7 +1197,7 @@
                         <table class="table">
                                         <thead>
                                             <tr>
-                                    <th>WEEK<br>OF</th>
+                                    <th>WEEK OF</th>
                                     <th>Total Passengers</th>
                                     <th>Details</th>
                                             </tr>
@@ -1299,8 +1299,9 @@
 
                     // Build daily passenger history table rows
                     data.daily.forEach(record => {
+                        const formattedDate = formatDate(record.date);
                         const row = `<tr>
-                            <td>${record.date}</td>
+                            <td>${formattedDate}</td>
                             <td class="text-center"><span class="badge bg-primary fs-6">${record.total || 0}</span></td>
                             <td><button class="detail-btn" onclick="showPassengerDetails('daily', '${record.date}', ${record.total})">
                                 <i class="fas fa-info-circle me-1"></i>Info
@@ -1311,8 +1312,9 @@
 
                     // Build weekly passenger history table rows
                     data.weekly.forEach(record => {
+                        const formattedDate = formatDate(record.week_of);
                         const row = `<tr>
-                            <td>${record.week_of}</td>
+                            <td>${formattedDate}</td>
                             <td class="text-center"><span class="badge bg-info fs-6">${record.total || 0}</span></td>
                             <td><button class="detail-btn" onclick="showPassengerDetails('weekly', '${record.week_of}', ${record.total})">
                                 <i class="fas fa-info-circle me-1"></i>Info
@@ -1323,8 +1325,9 @@
 
                     // Build monthly passenger history table rows
                     data.monthly.forEach(record => {
+                        const formattedMonth = formatMonth(record.month_of);
                         const row = `<tr>
-                            <td>${record.month_of}</td>
+                            <td>${formattedMonth}</td>
                             <td class="text-center"><span class="badge bg-warning fs-6">${record.total || 0}</span></td>
                             <td><button class="detail-btn" onclick="showPassengerDetails('monthly', '${record.month_of}', ${record.total})">
                                 <i class="fas fa-info-circle me-1"></i>Info
@@ -1797,6 +1800,21 @@
             return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
         }
 
+        // Helper function to format date from YYYY-MM-DD to MM/DD/YYYY
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const year = date.getFullYear();
+            return `${month}/${day}/${year}`;
+        }
+
+        // Helper function to format month from YYYY-MM to MM/YYYY
+        function formatMonth(monthString) {
+            const [year, month] = monthString.split('-');
+            return `${month}/${year}`;
+        }
+
 
         function filterSection(period) {
             const datePicker = document.getElementById(`${period}DatePicker`);
@@ -1882,8 +1900,9 @@
                 // Show only the selected day's data
                 if (data.daily && data.daily.length > 0) {
                     data.daily.forEach(record => {
+                        const formattedDate = formatDate(record.date);
                         const row = `<tr>
-                            <td>${record.date}</td>
+                            <td>${formattedDate}</td>
                             <td class="text-center"><span class="badge bg-primary fs-6">${record.total || 0}</span></td>
                             <td><button class="detail-btn" onclick="showPassengerDetails('daily', '${record.date}', ${record.total})">
                                 <i class="fas fa-info-circle me-1"></i>Info
@@ -1901,8 +1920,9 @@
                 // Show only the selected week's data
                 if (data.weekly && data.weekly.length > 0) {
                     data.weekly.forEach(record => {
+                        const formattedDate = formatDate(record.week_of);
                         const row = `<tr>
-                            <td>${record.week_of}</td>
+                            <td>${formattedDate}</td>
                             <td class="text-center"><span class="badge bg-info fs-6">${record.total || 0}</span></td>
                             <td><button class="detail-btn" onclick="showPassengerDetails('weekly', '${record.week_of}', ${record.total})">
                                 <i class="fas fa-info-circle me-1"></i>Info
@@ -1920,8 +1940,9 @@
                 // Show only the selected month's data
                 if (data.monthly && data.monthly.length > 0) {
                     data.monthly.forEach(record => {
+                        const formattedMonth = formatMonth(record.month_of);
                         const row = `<tr>
-                            <td>${record.month_of}</td>
+                            <td>${formattedMonth}</td>
                             <td class="text-center"><span class="badge bg-warning fs-6">${record.total || 0}</span></td>
                             <td><button class="detail-btn" onclick="showPassengerDetails('monthly', '${record.month_of}', ${record.total})">
                                 <i class="fas fa-info-circle me-1"></i>Info

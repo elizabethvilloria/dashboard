@@ -1049,9 +1049,9 @@
                     <div class="row mb-3">
                         <div class="col-12 text-center">
                             <div class="selection-badges">
-                                <span class="selection-badge city">
+                                <button class="selection-badge city" onclick="changeSelection()" style="border: none; cursor: pointer;">
                                     <i class="fas fa-city me-2"></i>{{ session.city|title }}
-                                </span>
+                                </button>
                                 <span class="selection-badge filter-status" id="filter-status">
                                     <i class="fas fa-sliders-h me-2"></i>City-wide View
                                 </span>
@@ -1406,18 +1406,16 @@
 
         // Allow user to change city/TODA/e-trike selection
         function changeSelection() {
-            if (confirm('Do you want to change your city, TODA, or e-trike selection?')) {
-                // Clear current selection and return to city/TODA selection page
-                fetch('/clear-selection', { method: 'POST' })
-                    .then(() => {
-                        window.location.href = '/selection';
-                    })
-                    .catch(error => {
-                        console.error('Error clearing selection:', error);
-                        // Fallback navigation if server request fails
-                        window.location.href = '/selection';
-                    });
-            }
+            // Clear current selection and return to city/TODA selection page
+            fetch('/clear-selection', { method: 'POST' })
+                .then(() => {
+                    window.location.href = '/selection';
+                })
+                .catch(error => {
+                    console.error('Error clearing selection:', error);
+                    // Fallback navigation if server request fails
+                    window.location.href = '/selection';
+                });
             toggleProfileDropdown();
         }
 
@@ -1958,7 +1956,6 @@
 
         // Initialize dashboard with initial data load on page ready
         updateCounts();
-        updateHistoricalData();
         
         // Set default date to today for daily picker
         const today = new Date().toISOString().split('T')[0];
@@ -1971,6 +1968,11 @@
         // Set default month to current month for monthly picker
         const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM format
         document.getElementById('monthlyDatePicker').value = currentMonth;
+        
+        // Load filtered data for all sections with default dates
+        filterSection('daily');
+        filterSection('weekly');
+        filterSection('monthly');
     </script>
 </body>
 </html> 

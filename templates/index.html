@@ -28,6 +28,13 @@
             background: linear-gradient(135deg, var(--light-green) 0%, var(--light-blue) 50%, var(--teal) 100%);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+            overscroll-behavior-y: none;
+        }
+
+        html {
+            background: linear-gradient(135deg, var(--light-green) 0%, var(--light-blue) 50%, var(--teal) 100%);
+            overscroll-behavior-y: none;
         }
 
         .container {
@@ -206,6 +213,12 @@
 
         .selection-badge.city {
             background: linear-gradient(135deg, rgba(16, 185, 129, 0.8), rgba(5, 150, 105, 0.8));
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .selection-badge.city:hover {
+            transform: translateY(-2px);
+            color: white;
         }
 
         .selection-badge.toda {
@@ -1049,7 +1062,7 @@
                     <div class="row mb-3">
                         <div class="col-12 text-center">
                             <div class="selection-badges">
-                                <button class="selection-badge city" onclick="changeSelection()" style="border: none; cursor: pointer;">
+                                <button class="selection-badge city" onclick="changeSelection()" style="cursor: pointer;">
                                     <i class="fas fa-city me-2"></i>{{ session.city|title }}
                                 </button>
                                 <span class="selection-badge filter-status" id="filter-status">
@@ -1909,7 +1922,7 @@
                         dailyBody.innerHTML += row;
                     });
                 } else {
-                    dailyBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data available for selected date</td></tr>';
+                    dailyBody.innerHTML = '<tr><td colspan="3" class="text-center text-white-50">No data available for selected date</td></tr>';
                 }
             } else if (period === 'weekly') {
                 const weeklyBody = document.getElementById('weekly-history-body');
@@ -1929,7 +1942,7 @@
                         weeklyBody.innerHTML += row;
                     });
                 } else {
-                    weeklyBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data available for selected week</td></tr>';
+                    weeklyBody.innerHTML = '<tr><td colspan="3" class="text-center text-white-50">No data available for selected week</td></tr>';
                 }
             } else if (period === 'monthly') {
                 const monthlyBody = document.getElementById('monthly-history-body');
@@ -1949,7 +1962,7 @@
                         monthlyBody.innerHTML += row;
                     });
                 } else {
-                    monthlyBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data available for selected month</td></tr>';
+                    monthlyBody.innerHTML = '<tr><td colspan="3" class="text-center text-white-50">No data available for selected month</td></tr>';
                 }
             }
         }

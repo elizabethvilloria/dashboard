@@ -638,6 +638,91 @@ def historical_data():
     with open(HISTORICAL_FILE, 'r') as f:
         return jsonify(json.load(f))
 
+@app.route('/historical-data-filtered')
+@login_required
+def historical_data_filtered():
+    """Get filtered historical data based on selected date and period"""
+    date_str = request.args.get('date')
+    period = request.args.get('period', 'daily')
+    
+    if not date_str:
+        return jsonify({"error": "Date parameter required"}), 400
+    
+    try:
+        # Parse the selected date
+        selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Initialize result structure
+        result = {"daily": [], "weekly": [], "monthly": []}
+        
+        if period == 'daily':
+            # Get data for the specific day
+            log_path = os.path.join(LOG_DIR, str(selected_date.year), str(selected_date.month), f"{selected_date.day}.json")
+            if os.path.exists(log_path):
+                try:
+                    with open(log_path, 'r') as f:
+                        log_data = json.load(f)
+                        daily_total = len(log_data)
+                        if daily_total > 0:
+                            result["daily"].append({
+                                "date": selected_date.strftime("%Y-%m-%d"),
+                                "total": daily_total
+                            })
+                except (json.JSONDecodeError, FileNotFoundError):
+                    pass
+                    
+        elif period == 'weekly':
+            # Get data for the week containing the selected date
+            start_of_week = selected_date - datetime.timedelta(days=selected_date.weekday())
+            weekly_total = 0
+            
+            for i in range(7):
+                check_date = start_of_week + datetime.timedelta(days=i)
+                log_path = os.path.join(LOG_DIR, str(check_date.year), str(check_date.month), f"{check_date.day}.json")
+                if os.path.exists(log_path):
+                    try:
+                        with open(log_path, 'r') as f:
+                            log_data = json.load(f)
+                            weekly_total += len(log_data)
+                    except (json.JSONDecodeError, FileNotFoundError):
+                        continue
+            
+            if weekly_total > 0:
+                result["weekly"].append({
+                    "week_of": start_of_week.strftime("%Y-%m-%d"),
+                    "total": weekly_total
+                })
+                
+        elif period == 'monthly':
+            # Get data for the month containing the selected date
+            month_start = selected_date.replace(day=1)
+            month_total = 0
+            current_day = month_start
+            
+            while current_day.month == month_start.month:
+                log_path = os.path.join(LOG_DIR, str(current_day.year), str(current_day.month), f"{current_day.day}.json")
+                if os.path.exists(log_path):
+                    try:
+                        with open(log_path, 'r') as f:
+                            log_data = json.load(f)
+                            month_total += len(log_data)
+                    except (json.JSONDecodeError, FileNotFoundError):
+                        pass
+                current_day += datetime.timedelta(days=1)
+            
+            if month_total > 0:
+                result["monthly"].append({
+                    "month_of": month_start.strftime("%Y-%m"),
+                    "total": month_total
+                })
+        
+        return jsonify(result)
+        
+    except ValueError:
+        return jsonify({"error": "Invalid date format"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/passenger-details')
 @login_required
 def passenger_details():
@@ -756,7 +841,7 @@ if __name__ == '__main__':
             context = ssl.SSLContext(ssl.PROTOCOL_TLS)  # Use TLS instead of TLSv1_2
             context.load_cert_chain(cert_path, key_path)
             print("🚀 Dashboard running on https://etrikedashboard.com:5001/")
-            app.run(debug=False, host='0.0.0.0', port=5001, ssl_context=context)
+            app.run(debug=False, host='0.0.0.0', port=443, ssl_context=context)
         else:
             # Fall back to HTTP
             print("🚀 Dashboard running on http://localhost:5001/")

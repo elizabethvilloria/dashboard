@@ -409,9 +409,9 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    # Check if user has completed selection
-    if 'selection_completed' not in session:
-        return redirect(url_for('selection'))
+    # Set default city if not already set
+    if 'city' not in session:
+        session['city'] = 'manila'
     
     update_historical_summary()
     return render_template('index.html')
@@ -419,41 +419,20 @@ def index():
 @app.route('/options')
 @login_required
 def options():
-    # Check if user has completed selection
-    if 'selection_completed' not in session:
-        return redirect(url_for('selection'))
+    # Set default city if not already set
+    if 'city' not in session:
+        session['city'] = 'manila'
     
     return render_template('options.html')
 
-@app.route('/selection')
-@login_required
-def selection():
-    # If selection is already completed, redirect to dashboard
-    if 'selection_completed' in session:
-        return redirect(url_for('index'))
-    return render_template('selection.html')
-
-@app.route('/process-selection', methods=['POST'])
-@login_required
-def process_selection():
-    city = request.form.get('city')
-    
-    if not city:
-        flash('Please select a city')
-        return redirect(url_for('selection'))
-    
-    # Store city selection in session
-    session['city'] = city
-    session['selection_completed'] = True
-    
-    return redirect(url_for('index'))
 
 @app.route('/clear-selection', methods=['POST'])
 @login_required
 def clear_selection():
     # Clear selection from session
     session.pop('city', None)
-    session.pop('selection_completed', None)
+    session.pop('toda', None)
+    session.pop('etrike', None)
     return jsonify({'success': True})
 
 @app.route('/change-city', methods=['POST'])

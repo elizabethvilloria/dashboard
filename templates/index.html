@@ -247,7 +247,7 @@
         }
 
         .city-select:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(73, 56, 231, 0.8);
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
             background-repeat: no-repeat;
             background-position: right 0.75rem center;
@@ -293,7 +293,7 @@
         }
 
         .currency-select:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(7, 207, 97, 0.7);
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
             background-repeat: no-repeat;
             background-position: right 0.75rem center;
@@ -1566,10 +1566,10 @@
             const weeklyCount = parseInt(document.getElementById('weekly-count').textContent) || 0;
             const monthlyCount = parseInt(document.getElementById('monthly-count').textContent) || 0;
 
-            document.getElementById('hourly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(hourlyCount * 15)}`;
-            document.getElementById('daily-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(dailyCount * 15)}`;
-            document.getElementById('weekly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(weeklyCount * 15)}`;
-            document.getElementById('monthly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(monthlyCount * 15)}`;
+            document.getElementById('hourly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(hourlyCount * 20)}`;
+            document.getElementById('daily-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(dailyCount * 20)}`;
+            document.getElementById('weekly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(weeklyCount * 20)}`;
+            document.getElementById('monthly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(monthlyCount * 20)}`;
         }
 
         // Create floating revenue animation
@@ -1600,40 +1600,40 @@
                     const hourlyCount = data.hourly || 0;
                     if (hourlyCount > previousCounts.hourly) {
                         const increase = hourlyCount - previousCounts.hourly;
-                        createFloatingRevenue(document.getElementById('hourly-revenue'), increase * 15);
+                        createFloatingRevenue(document.getElementById('hourly-revenue'), increase * 20);
                     }
                     document.getElementById('hourly-count').textContent = hourlyCount;
-                    document.getElementById('hourly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(hourlyCount * 15).toLocaleString()}`;
+                    document.getElementById('hourly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(hourlyCount * 20).toLocaleString()}`;
                     previousCounts.hourly = hourlyCount;
                     
                     // Daily
                     const dailyCount = data.daily || 0;
                     if (dailyCount > previousCounts.daily) {
                         const increase = dailyCount - previousCounts.daily;
-                        createFloatingRevenue(document.getElementById('daily-revenue'), increase * 15);
+                        createFloatingRevenue(document.getElementById('daily-revenue'), increase * 20);
                     }
                     document.getElementById('daily-count').textContent = dailyCount;
-                    document.getElementById('daily-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(dailyCount * 15).toLocaleString()}`;
+                    document.getElementById('daily-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(dailyCount * 20).toLocaleString()}`;
                     previousCounts.daily = dailyCount;
 
                     // Weekly
                     const weeklyCount = data.weekly || 0;
                     if (weeklyCount > previousCounts.weekly) {
                         const increase = weeklyCount - previousCounts.weekly;
-                        createFloatingRevenue(document.getElementById('weekly-revenue'), increase * 15);
+                        createFloatingRevenue(document.getElementById('weekly-revenue'), increase * 20);
                     }
                     document.getElementById('weekly-count').textContent = weeklyCount;
-                    document.getElementById('weekly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(weeklyCount * 15).toLocaleString()}`;
+                    document.getElementById('weekly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(weeklyCount * 20).toLocaleString()}`;
                     previousCounts.weekly = weeklyCount;
 
                     // Monthly
                     const monthlyCount = data.monthly || 0;
                     if (monthlyCount > previousCounts.monthly) {
                         const increase = monthlyCount - previousCounts.monthly;
-                        createFloatingRevenue(document.getElementById('monthly-revenue'), increase * 15);
+                        createFloatingRevenue(document.getElementById('monthly-revenue'), increase * 20);
                     }
                     document.getElementById('monthly-count').textContent = monthlyCount;
-                    document.getElementById('monthly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(monthlyCount * 15).toLocaleString()}`;
+                    document.getElementById('monthly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(monthlyCount * 20).toLocaleString()}`;
                     previousCounts.monthly = monthlyCount;
                 });
         }

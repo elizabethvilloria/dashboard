@@ -759,6 +759,20 @@
             margin-bottom: 0.5rem;
         }
 
+        /* Modal z-index fixes */
+        .modal {
+            z-index: 10000 !important;
+        }
+
+        .modal-backdrop {
+            z-index: 9999 !important;
+        }
+
+        .modal-header .btn-close {
+            z-index: 10001 !important;
+            position: relative;
+        }
+
         .passenger-detail-card p {
             margin-bottom: 0.25rem;
             color: var(--secondary-color);
@@ -1257,14 +1271,14 @@
     </div>
 
     <!-- Passenger Details Information Modal Dialog -->
-    <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+    <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true" style="z-index: 10000;">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="detailModalLabel">
                         <i class="fas fa-info-circle me-2"></i>Passenger Details
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="z-index: 10001;"></button>
                 </div>
                 <div class="modal-body" id="detailModalBody">
                     <!-- Individual passenger entry/exit details populated dynamically -->
@@ -1300,55 +1314,74 @@
 
         // Load and display historical passenger data tables
         function updateHistoricalData() {
-            fetch('/historical-data')
-                .then(response => response.json())
-                .then(data => {
-                    const dailyBody = document.getElementById('daily-history-body');
-                    const weeklyBody = document.getElementById('weekly-history-body');
-                    const monthlyBody = document.getElementById('monthly-history-body');
-                    dailyBody.innerHTML = '';
-                    weeklyBody.innerHTML = '';
-                    monthlyBody.innerHTML = '';
+            // Check if any filters are active before updating
+            const dailyPicker = document.getElementById('dailyDatePicker');
+            const weeklyPicker = document.getElementById('weeklyDatePicker');
+            const monthlyPicker = document.getElementById('monthlyDatePicker');
+            
+            // If any filter is active, refresh only that section instead of all data
+            if (dailyPicker.value) {
+                filterSection('daily');
+            }
+            if (weeklyPicker.value) {
+                filterSection('weekly');
+            }
+            if (monthlyPicker.value) {
+                filterSection('monthly');
+            }
+            
+            // Only load full historical data if no filters are active
+            if (!dailyPicker.value && !weeklyPicker.value && !monthlyPicker.value) {
+                fetch('/historical-data')
+                    .then(response => response.json())
+                    .then(data => {
+                        const dailyBody = document.getElementById('daily-history-body');
+                        const weeklyBody = document.getElementById('weekly-history-body');
+                        const monthlyBody = document.getElementById('monthly-history-body');
+                        dailyBody.innerHTML = '';
+                        weeklyBody.innerHTML = '';
+                        monthlyBody.innerHTML = '';
 
-                    // Build daily passenger history table rows
-                    data.daily.forEach(record => {
-                        const formattedDate = formatDate(record.date);
-                        const row = `<tr>
-                            <td>${formattedDate}</td>
-                            <td class="text-center"><span class="badge bg-primary fs-6">${record.total || 0}</span></td>
-                            <td><button class="detail-btn" onclick="showPassengerDetails('daily', '${record.date}', ${record.total})">
-                                <i class="fas fa-info-circle me-1"></i>Info
-                            </button></td>
-                        </tr>`;
-                        dailyBody.innerHTML += row;
-                    });
+                        // Build daily passenger history table rows
+                        data.daily.forEach(record => {
+                            const formattedDate = formatDate(record.date);
+                            const row = `<tr>
+                                <td>${formattedDate}</td>
+                                <td class="text-center"><span class="badge bg-primary fs-6">${record.total || 0}</span></td>
+                                <td><button class="detail-btn" onclick="showPassengerDetails('daily', '${record.date}', ${record.total})">
+                                    <i class="fas fa-info-circle me-1"></i>Info
+                                </button></td>
+                            </tr>`;
+                            dailyBody.innerHTML += row;
+                        });
 
-                    // Build weekly passenger history table rows
-                    data.weekly.forEach(record => {
-                        const formattedDate = formatDate(record.week_of);
-                        const row = `<tr>
-                            <td>${formattedDate}</td>
-                            <td class="text-center"><span class="badge bg-info fs-6">${record.total || 0}</span></td>
-                            <td><button class="detail-btn" onclick="showPassengerDetails('weekly', '${record.week_of}', ${record.total})">
-                                <i class="fas fa-info-circle me-1"></i>Info
-                            </button></td>
-                        </tr>`;
-                        weeklyBody.innerHTML += row;
-                    });
+                        // Build weekly passenger history table rows
+                        data.weekly.forEach(record => {
+                            const formattedDate = formatDate(record.week_of);
+                            const row = `<tr>
+                                <td>${formattedDate}</td>
+                                <td class="text-center"><span class="badge bg-info fs-6">${record.total || 0}</span></td>
+                                <td><button class="detail-btn" onclick="showPassengerDetails('weekly', '${record.week_of}', ${record.total})">
+                                    <i class="fas fa-info-circle me-1"></i>Info
+                                </button></td>
+                            </tr>`;
+                            weeklyBody.innerHTML += row;
+                        });
 
-                    // Build monthly passenger history table rows
-                    data.monthly.forEach(record => {
-                        const formattedMonth = formatMonth(record.month_of);
-                        const row = `<tr>
-                            <td>${formattedMonth}</td>
-                            <td class="text-center"><span class="badge bg-warning fs-6">${record.total || 0}</span></td>
-                            <td><button class="detail-btn" onclick="showPassengerDetails('monthly', '${record.month_of}', ${record.total})">
-                                <i class="fas fa-info-circle me-1"></i>Info
-                            </button></td>
-                        </tr>`;
-                        monthlyBody.innerHTML += row;
+                        // Build monthly passenger history table rows
+                        data.monthly.forEach(record => {
+                            const formattedMonth = formatMonth(record.month_of);
+                            const row = `<tr>
+                                <td>${formattedMonth}</td>
+                                <td class="text-center"><span class="badge bg-warning fs-6">${record.total || 0}</span></td>
+                                <td><button class="detail-btn" onclick="showPassengerDetails('monthly', '${record.month_of}', ${record.total})">
+                                    <i class="fas fa-info-circle me-1"></i>Info
+                                </button></td>
+                            </tr>`;
+                            monthlyBody.innerHTML += row;
+                        });
                     });
-                });
+            }
         }
 
         // Display detailed passenger information in modal dialog

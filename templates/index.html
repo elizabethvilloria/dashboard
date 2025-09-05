@@ -778,6 +778,43 @@
             color: var(--secondary-color);
         }
 
+
+        /* Revenue Text Styling */
+        .revenue-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: white;
+            margin-top: 0.5rem;
+            margin-bottom: 0;
+        }
+
+        /* Floating Revenue Animation */
+        .revenue-float {
+            position: absolute;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #10b981;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            z-index: 1000;
+            animation: floatUp 2s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: translateY(-20px) scale(1.1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-40px) scale(0.8);
+            }
+        }
+
         .dwell-time {
             background: var(--success-color);
             color: white;
@@ -1145,6 +1182,7 @@
                                 <h5 class="card-title">Hourly</h5>
                                 <p class="card-text-total" id="hourly-count">0</p>
                                 <p class="card-text-detail">Passengers This Hour</p>
+                                <p class="revenue-text" id="hourly-revenue">₱0</p>
                             </div>
                         </div>
                     </div>
@@ -1157,6 +1195,7 @@
                                 <h5 class="card-title">Daily</h5>
                                 <p class="card-text-total" id="daily-count">0</p>
                                 <p class="card-text-detail">Passengers Today</p>
+                                <p class="revenue-text" id="daily-revenue">₱0</p>
                             </div>
                         </div>
                     </div>
@@ -1169,6 +1208,7 @@
                                 <h5 class="card-title">Weekly</h5>
                                 <p class="card-text-total" id="weekly-count">0</p>
                                 <p class="card-text-detail">Passengers This Week</p>
+                                <p class="revenue-text" id="weekly-revenue">₱0</p>
                             </div>
                         </div>
                     </div>
@@ -1181,6 +1221,7 @@
                                 <h5 class="card-title">Monthly</h5>
                                 <p class="card-text-total" id="monthly-count">0</p>
                                 <p class="card-text-detail">Passengers This Month</p>
+                                <p class="revenue-text" id="monthly-revenue">₱0</p>
                             </div>
                         </div>
                     </div>
@@ -1293,22 +1334,77 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Store previous counts to detect increases
+        let previousCounts = {
+            hourly: 0,
+            daily: 0,
+            weekly: 0,
+            monthly: 0
+        };
+
+        // Create floating revenue animation
+        function createFloatingRevenue(element, amount) {
+            const rect = element.getBoundingClientRect();
+            const floatingText = document.createElement('div');
+            floatingText.className = 'revenue-float';
+            floatingText.textContent = `+₱${amount}`;
+            floatingText.style.left = rect.left + rect.width / 2 + 'px';
+            floatingText.style.top = rect.top + 'px';
+            
+            document.body.appendChild(floatingText);
+            
+            // Remove the element after animation
+            setTimeout(() => {
+                if (floatingText.parentNode) {
+                    floatingText.parentNode.removeChild(floatingText);
+                }
+            }, 2000);
+        }
+
         // Update live passenger counter displays (hourly, daily, weekly, monthly)
         function updateCounts() {
             fetch('/data')
                 .then(response => response.json())
                 .then(data => {
                     // Hourly
-                    document.getElementById('hourly-count').textContent = data.hourly || 0;
+                    const hourlyCount = data.hourly || 0;
+                    if (hourlyCount > previousCounts.hourly) {
+                        const increase = hourlyCount - previousCounts.hourly;
+                        createFloatingRevenue(document.getElementById('hourly-revenue'), increase * 15);
+                    }
+                    document.getElementById('hourly-count').textContent = hourlyCount;
+                    document.getElementById('hourly-revenue').textContent = `₱${(hourlyCount * 15).toLocaleString()}`;
+                    previousCounts.hourly = hourlyCount;
                     
                     // Daily
-                    document.getElementById('daily-count').textContent = data.daily || 0;
+                    const dailyCount = data.daily || 0;
+                    if (dailyCount > previousCounts.daily) {
+                        const increase = dailyCount - previousCounts.daily;
+                        createFloatingRevenue(document.getElementById('daily-revenue'), increase * 15);
+                    }
+                    document.getElementById('daily-count').textContent = dailyCount;
+                    document.getElementById('daily-revenue').textContent = `₱${(dailyCount * 15).toLocaleString()}`;
+                    previousCounts.daily = dailyCount;
 
                     // Weekly
-                    document.getElementById('weekly-count').textContent = data.weekly || 0;
+                    const weeklyCount = data.weekly || 0;
+                    if (weeklyCount > previousCounts.weekly) {
+                        const increase = weeklyCount - previousCounts.weekly;
+                        createFloatingRevenue(document.getElementById('weekly-revenue'), increase * 15);
+                    }
+                    document.getElementById('weekly-count').textContent = weeklyCount;
+                    document.getElementById('weekly-revenue').textContent = `₱${(weeklyCount * 15).toLocaleString()}`;
+                    previousCounts.weekly = weeklyCount;
 
                     // Monthly
-                    document.getElementById('monthly-count').textContent = data.monthly || 0;
+                    const monthlyCount = data.monthly || 0;
+                    if (monthlyCount > previousCounts.monthly) {
+                        const increase = monthlyCount - previousCounts.monthly;
+                        createFloatingRevenue(document.getElementById('monthly-revenue'), increase * 15);
+                    }
+                    document.getElementById('monthly-count').textContent = monthlyCount;
+                    document.getElementById('monthly-revenue').textContent = `₱${(monthlyCount * 15).toLocaleString()}`;
+                    previousCounts.monthly = monthlyCount;
                 });
         }
 
@@ -1441,8 +1537,8 @@
         // Auto-refresh live passenger counts every 5 seconds
         setInterval(updateCounts, 5000);
         
-        // Auto-refresh historical data tables every 30 seconds
-        setInterval(updateHistoricalData, 30000);
+        // Auto-refresh historical data tables every 1 minute
+        setInterval(updateHistoricalData, 60000);
 
         // User Profile and Account Management Functions
         function toggleProfileDropdown() {
@@ -1905,19 +2001,15 @@
         }
 
         function loadFilteredHistoricalData(date, period) {
-            // Show loading state for the specific section only
+            // Get target body for seamless updates
             let targetBody;
-            const loadingHtml = '<tr><td colspan="3" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
             
             if (period === 'daily') {
                 targetBody = document.getElementById('daily-history-body');
-                targetBody.innerHTML = loadingHtml;
             } else if (period === 'weekly') {
                 targetBody = document.getElementById('weekly-history-body');
-                targetBody.innerHTML = loadingHtml;
             } else if (period === 'monthly') {
                 targetBody = document.getElementById('monthly-history-body');
-                targetBody.innerHTML = loadingHtml;
             }
             
             // Fetch filtered data from server

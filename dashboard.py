@@ -456,6 +456,22 @@ def clear_selection():
     session.pop('selection_completed', None)
     return jsonify({'success': True})
 
+@app.route('/change-city', methods=['POST'])
+@login_required
+def change_city():
+    """Change the selected city"""
+    data = request.get_json()
+    city = data.get('city')
+    
+    if city:
+        session['city'] = city
+        # Clear TODA and e-trike when city changes
+        session.pop('toda', None)
+        session.pop('etrike', None)
+        return jsonify({'success': True})
+    
+    return jsonify({'success': False, 'error': 'No city provided'})
+
 @app.route('/get-todas')
 @login_required
 def get_todas():
@@ -468,6 +484,30 @@ def get_todas():
             {'id': 'bltmpc', 'name': 'BLTMPC', 'full_name': 'Barangay Laging Tapat Motorcycle and Pedicab Cooperative'},
             {'id': 'mtmpc', 'name': 'MTMPC', 'full_name': 'Manila Tricycle and Motorcycle Operators Cooperative'},
             {'id': 'stmpc', 'name': 'STMPC', 'full_name': 'San Miguel Tricycle and Motorcycle Operators Cooperative'}
+        ]
+    elif city == 'quezon_city':
+        todas = [
+            {'id': 'qctmpc', 'name': 'QCTMPC', 'full_name': 'Quezon City Tricycle and Motorcycle Operators Cooperative'},
+            {'id': 'qctoda', 'name': 'QCTODA', 'full_name': 'Quezon City TODA Association'},
+            {'id': 'qctrans', 'name': 'QCTRANS', 'full_name': 'Quezon City Transport Cooperative'}
+        ]
+    elif city == 'muntinlupa':
+        todas = [
+            {'id': 'mntmpc', 'name': 'MNTMPC', 'full_name': 'Muntinlupa Tricycle and Motorcycle Operators Cooperative'},
+            {'id': 'mntoda', 'name': 'MNTODA', 'full_name': 'Muntinlupa TODA Association'},
+            {'id': 'mntrans', 'name': 'MNTRANS', 'full_name': 'Muntinlupa Transport Cooperative'}
+        ]
+    elif city == 'pasay':
+        todas = [
+            {'id': 'pstmpc', 'name': 'PSTMPC', 'full_name': 'Pasay Tricycle and Motorcycle Operators Cooperative'},
+            {'id': 'pstoda', 'name': 'PSTODA', 'full_name': 'Pasay TODA Association'},
+            {'id': 'pstrans', 'name': 'PSTRANS', 'full_name': 'Pasay Transport Cooperative'}
+        ]
+    elif city == 'lipa':
+        todas = [
+            {'id': 'lptmpc', 'name': 'LPTMPC', 'full_name': 'Lipa Tricycle and Motorcycle Operators Cooperative'},
+            {'id': 'lptoda', 'name': 'LPTODA', 'full_name': 'Lipa TODA Association'},
+            {'id': 'lptrans', 'name': 'LPTRANS', 'full_name': 'Lipa Transport Cooperative'}
         ]
     else:
         todas = []

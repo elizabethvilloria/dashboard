@@ -221,6 +221,136 @@
             color: white;
         }
 
+        /* City Dropdown Styling */
+        .city-dropdown {
+            display: inline-block;
+        }
+
+        .city-select {
+            background: rgba(73, 56, 231, 0.678);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+        }
+
+        .city-select:hover {
+            background: rgba(255, 255, 255, 0.3);
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+            transform: translateY(-2px);
+        }
+
+        .city-select:focus {
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: none;
+            outline: none;
+        }
+
+        .city-select option {
+            background: white;
+            color: black;
+            padding: 0.5rem;
+        }
+
+        /* Currency Dropdown Styling */
+        .currency-dropdown {
+            display: inline-block;
+        }
+
+        .currency-select {
+            background: rgba(7, 207, 97, 0.548);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+        }
+
+        .currency-select:hover {
+            background: rgba(255, 255, 255, 0.3);
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+            transform: translateY(-2px);
+        }
+
+        .currency-select:focus {
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: none;
+            outline: none;
+        }
+
+        .currency-select option {
+            background: white;
+            color: black;
+            padding: 0.5rem;
+        }
+
+        /* Inline Currency Dropdown Styling */
+        .currency-dropdown-inline {
+            margin: 0.5rem 0;
+        }
+
+        .currency-select-inline {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 0.5rem 1rem;
+            color: white;
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            outline: none;
+            width: 100%;
+            text-align: center;
+        }
+
+        .currency-select-inline:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .currency-select-inline:focus {
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+        }
+
+        .currency-select-inline option {
+            background: #1f2937;
+            color: white;
+            padding: 0.5rem;
+        }
+
         .selection-badge.toda {
             background: linear-gradient(135deg, rgba(13, 148, 136, 0.8), rgba(8, 145, 178, 0.8));
         }
@@ -1105,7 +1235,7 @@
                 <!-- TODA/E-Trike/Pi Device Filter and Registration Controls -->
                 <div class="section-title">
                     <i class="fas fa-sliders-h"></i>
-                    Filter & Registration Controls
+                    Filters & Registration Controls
                 </div>
                 
                 <div class="filter-controls-panel">
@@ -1113,9 +1243,22 @@
                     <div class="row mb-3">
                         <div class="col-12 text-center">
                             <div class="selection-badges">
-                                <button class="selection-badge city" onclick="changeSelection()" style="cursor: pointer;">
-                                    <i class="fas fa-city me-2"></i>{{ session.city|title }}
-                                </button>
+                                <div class="city-dropdown">
+                                    <select id="citySelect" class="city-select" onchange="selectCity()">
+                                        <option value="manila">Manila</option>
+                                        <option value="quezon_city">Quezon City</option>
+                                        <option value="muntinlupa">Muntinlupa</option>
+                                        <option value="pasay">Pasay</option>
+                                        <option value="lipa">Lipa</option>
+                                    </select>
+                                </div>
+                                <div class="currency-dropdown">
+                                    <select id="currencySelect" class="currency-select" onchange="changeCurrency()">
+                                        <option value="PHP">₱ PHP</option>
+                                        <option value="USD">$ USD</option>
+                                        <option value="EUR">€ EUR</option>
+                                    </select>
+                                </div>
                                 <span class="selection-badge filter-status" id="filter-status">
                                     <i class="fas fa-sliders-h me-2"></i>City-wide View
                                 </span>
@@ -1342,12 +1485,99 @@
             monthly: 0
         };
 
+        // Currency conversion system
+        let exchangeRates = {
+            PHP: 1.0,
+            USD: 0.018, // Default rate, will be updated
+            EUR: 0.016  // Default rate, will be updated
+        };
+        let currentCurrency = 'PHP';
+        let lastRateUpdate = null;
+
+        // Load exchange rates (once per day)
+        async function loadExchangeRates() {
+            const today = new Date().toDateString();
+            
+            // Check if we already have today's rates
+            if (lastRateUpdate === today) {
+                return;
+            }
+
+            try {
+                // Try to fetch real-time rates
+                const response = await fetch('https://api.exchangerate-api.com/v4/latest/PHP');
+                const data = await response.json();
+                
+                exchangeRates.USD = data.rates.USD;
+                exchangeRates.EUR = data.rates.EUR;
+                lastRateUpdate = today;
+                
+                // Store in localStorage for offline use
+                localStorage.setItem('exchangeRates', JSON.stringify(exchangeRates));
+                localStorage.setItem('lastRateUpdate', today);
+                
+                console.log('Exchange rates updated:', exchangeRates);
+            } catch (error) {
+                console.log('Using cached exchange rates');
+                // Use cached rates if API fails
+                const cachedRates = localStorage.getItem('exchangeRates');
+                const cachedDate = localStorage.getItem('lastRateUpdate');
+                
+                if (cachedRates && cachedDate) {
+                    exchangeRates = JSON.parse(cachedRates);
+                    lastRateUpdate = cachedDate;
+                }
+            }
+        }
+
+        // Convert PHP amount to selected currency
+        function convertCurrency(phpAmount) {
+            const convertedAmount = phpAmount * exchangeRates[currentCurrency];
+            return convertedAmount.toFixed(2);
+        }
+
+        // Get currency symbol
+        function getCurrencySymbol() {
+            const symbols = {
+                'PHP': '₱',
+                'USD': '$',
+                'EUR': '€'
+            };
+            return symbols[currentCurrency] || '₱';
+        }
+
+        // Change currency and update all displays
+        function changeCurrency() {
+            const select = document.getElementById('currencySelect');
+            currentCurrency = select.value;
+            
+            // Update all revenue displays
+            updateAllRevenueDisplays();
+            
+            // Store preference
+            localStorage.setItem('selectedCurrency', currentCurrency);
+        }
+
+        // Update all revenue displays with current currency
+        function updateAllRevenueDisplays() {
+            // Update live counters
+            const hourlyCount = parseInt(document.getElementById('hourly-count').textContent) || 0;
+            const dailyCount = parseInt(document.getElementById('daily-count').textContent) || 0;
+            const weeklyCount = parseInt(document.getElementById('weekly-count').textContent) || 0;
+            const monthlyCount = parseInt(document.getElementById('monthly-count').textContent) || 0;
+
+            document.getElementById('hourly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(hourlyCount * 15)}`;
+            document.getElementById('daily-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(dailyCount * 15)}`;
+            document.getElementById('weekly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(weeklyCount * 15)}`;
+            document.getElementById('monthly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(monthlyCount * 15)}`;
+        }
+
         // Create floating revenue animation
         function createFloatingRevenue(element, amount) {
             const rect = element.getBoundingClientRect();
             const floatingText = document.createElement('div');
             floatingText.className = 'revenue-float';
-            floatingText.textContent = `+₱${amount}`;
+            floatingText.textContent = `+${getCurrencySymbol()}${convertCurrency(amount)}`;
             floatingText.style.left = rect.left + rect.width / 2 + 'px';
             floatingText.style.top = rect.top + 'px';
             
@@ -1373,7 +1603,7 @@
                         createFloatingRevenue(document.getElementById('hourly-revenue'), increase * 15);
                     }
                     document.getElementById('hourly-count').textContent = hourlyCount;
-                    document.getElementById('hourly-revenue').textContent = `₱${(hourlyCount * 15).toLocaleString()}`;
+                    document.getElementById('hourly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(hourlyCount * 15).toLocaleString()}`;
                     previousCounts.hourly = hourlyCount;
                     
                     // Daily
@@ -1383,7 +1613,7 @@
                         createFloatingRevenue(document.getElementById('daily-revenue'), increase * 15);
                     }
                     document.getElementById('daily-count').textContent = dailyCount;
-                    document.getElementById('daily-revenue').textContent = `₱${(dailyCount * 15).toLocaleString()}`;
+                    document.getElementById('daily-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(dailyCount * 15).toLocaleString()}`;
                     previousCounts.daily = dailyCount;
 
                     // Weekly
@@ -1393,7 +1623,7 @@
                         createFloatingRevenue(document.getElementById('weekly-revenue'), increase * 15);
                     }
                     document.getElementById('weekly-count').textContent = weeklyCount;
-                    document.getElementById('weekly-revenue').textContent = `₱${(weeklyCount * 15).toLocaleString()}`;
+                    document.getElementById('weekly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(weeklyCount * 15).toLocaleString()}`;
                     previousCounts.weekly = weeklyCount;
 
                     // Monthly
@@ -1403,7 +1633,7 @@
                         createFloatingRevenue(document.getElementById('monthly-revenue'), increase * 15);
                     }
                     document.getElementById('monthly-count').textContent = monthlyCount;
-                    document.getElementById('monthly-revenue').textContent = `₱${(monthlyCount * 15).toLocaleString()}`;
+                    document.getElementById('monthly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(monthlyCount * 15).toLocaleString()}`;
                     previousCounts.monthly = monthlyCount;
                 });
         }
@@ -1540,6 +1770,27 @@
                 });
         }
 
+        // Initialize currency system
+        async function initializeCurrency() {
+            // Load exchange rates
+            await loadExchangeRates();
+            
+            // Restore user's currency preference
+            const savedCurrency = localStorage.getItem('selectedCurrency');
+            if (savedCurrency && ['PHP', 'USD', 'EUR'].includes(savedCurrency)) {
+                currentCurrency = savedCurrency;
+                document.getElementById('currencySelect').value = savedCurrency;
+            }
+            
+            // Update all revenue displays with current currency
+            updateAllRevenueDisplays();
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCurrency();
+        });
+
         // Auto-refresh live passenger counts every 5 seconds
         setInterval(updateCounts, 5000);
         
@@ -1553,18 +1804,47 @@
         }
 
         // Allow user to change city/TODA/e-trike selection
-        function changeSelection() {
-            // Clear current selection and return to city/TODA selection page
-            fetch('/clear-selection', { method: 'POST' })
-                .then(() => {
-                    window.location.href = '/selection';
-                })
-                .catch(error => {
-                    console.error('Error clearing selection:', error);
-                    // Fallback navigation if server request fails
-                    window.location.href = '/selection';
-                });
-            toggleProfileDropdown();
+        // Select city from dropdown
+        function selectCity() {
+            const select = document.getElementById('citySelect');
+            const cityName = select.value;
+            
+            // Update session and reload data
+            fetch('/change-city', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ city: cityName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Clear and reload TODAs for the new city
+                    clearTodaDropdown();
+                    loadTodas();
+                    
+                    // Clear e-trike dropdown
+                    const etrikeSelect = document.getElementById('etrike-select');
+                    etrikeSelect.innerHTML = '<option value="">Select TODA first</option>';
+                    etrikeSelect.disabled = true;
+                    
+                    // Clear filters
+                    clearFilter();
+                    
+                    // Reload the page to update all data
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error changing city:', error);
+            });
+        }
+
+        // Clear TODA dropdown
+        function clearTodaDropdown() {
+            const todaSelect = document.getElementById('toda-select');
+            todaSelect.innerHTML = '<option value="">All TODAs (City-wide)</option>';
         }
 
         function editProfile() {

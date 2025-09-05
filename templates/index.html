@@ -1179,9 +1179,9 @@
                                 <div class="card-icon">
                                     <i class="fas fa-clock"></i>
                                 </div>
-                                <h5 class="card-title">Hourly</h5>
-                                <p class="card-text-total" id="hourly-count">0</p>
                                 <p class="card-text-detail">Passengers This Hour</p>
+                                <p class="card-text-total" id="hourly-count">0</p>
+                                <p class="card-text-detail">Revenue</p>
                                 <p class="revenue-text" id="hourly-revenue">₱0</p>
                             </div>
                         </div>
@@ -1192,9 +1192,9 @@
                                 <div class="card-icon">
                                     <i class="fas fa-calendar-day"></i>
                                 </div>
-                                <h5 class="card-title">Daily</h5>
-                                <p class="card-text-total" id="daily-count">0</p>
                                 <p class="card-text-detail">Passengers Today</p>
+                                <p class="card-text-total" id="daily-count">0</p>
+                                <p class="card-text-detail">Revenue</p>
                                 <p class="revenue-text" id="daily-revenue">₱0</p>
                             </div>
                         </div>
@@ -1205,9 +1205,9 @@
                                 <div class="card-icon">
                                     <i class="fas fa-calendar-week"></i>
                                 </div>
-                                <h5 class="card-title">Weekly</h5>
-                                <p class="card-text-total" id="weekly-count">0</p>
                                 <p class="card-text-detail">Passengers This Week</p>
+                                <p class="card-text-total" id="weekly-count">0</p>
+                                <p class="card-text-detail">Revenue</p>
                                 <p class="revenue-text" id="weekly-revenue">₱0</p>
                             </div>
                         </div>
@@ -1218,9 +1218,9 @@
                                 <div class="card-icon">
                                     <i class="fas fa-calendar-alt"></i>
                                 </div>
-                                <h5 class="card-title">Monthly</h5>
-                                <p class="card-text-total" id="monthly-count">0</p>
                                 <p class="card-text-detail">Passengers This Month</p>
+                                <p class="card-text-total" id="monthly-count">0</p>
+                                <p class="card-text-detail">Revenue</p>
                                 <p class="revenue-text" id="monthly-revenue">₱0</p>
                             </div>
                         </div>
@@ -1456,7 +1456,7 @@
                             const formattedDate = formatDate(record.week_of);
                             const row = `<tr>
                                 <td>${formattedDate}</td>
-                                <td class="text-center"><span class="badge bg-info fs-6">${record.total || 0}</span></td>
+                                <td class="text-center"><span class="badge bg-primary fs-6">${record.total || 0}</span></td>
                                 <td><button class="detail-btn" onclick="showPassengerDetails('weekly', '${record.week_of}', ${record.total})">
                                     <i class="fas fa-info-circle me-1"></i>Info
                                 </button></td>
@@ -1469,7 +1469,7 @@
                             const formattedMonth = formatMonth(record.month_of);
                             const row = `<tr>
                                 <td>${formattedMonth}</td>
-                                <td class="text-center"><span class="badge bg-warning fs-6">${record.total || 0}</span></td>
+                                <td class="text-center"><span class="badge bg-primary fs-6">${record.total || 0}</span></td>
                                 <td><button class="detail-btn" onclick="showPassengerDetails('monthly', '${record.month_of}', ${record.total})">
                                     <i class="fas fa-info-circle me-1"></i>Info
                                 </button></td>
@@ -1501,11 +1501,17 @@
                         `;
 
                     if (data.passengers && data.passengers.length > 0) {
-                        data.passengers.forEach((passenger, index) => {
+                        // Sort passengers by entry timestamp (most recent first)
+                        const sortedPassengers = data.passengers.sort((a, b) => {
+                            const timeA = a.entry_timestamp || 0;
+                            const timeB = b.entry_timestamp || 0;
+                            return timeB - timeA; // Descending order (newest first)
+                        });
+                        
+                        sortedPassengers.forEach((passenger, index) => {
                             const entryTime = passenger.entry_timestamp ? new Date(passenger.entry_timestamp * 1000).toLocaleString() : 'N/A';
-                            const exitTime = passenger.exit_timestamp ? new Date(passenger.exit_timestamp * 1000).toLocaleString() : 'Still inside';
+                            const exitTime = passenger.exit_timestamp ? new Date(passenger.exit_timestamp * 1000).toLocaleString() : 'N/A';
                             const dwellTime = passenger.dwell_time_minutes ? `${passenger.dwell_time_minutes} minutes` : 'N/A';
-                            const passengerType = passenger.type || 'Unknown';
                             const personId = passenger.person_id || (index + 1);
                             
                                 detailsHtml += `
@@ -2059,7 +2065,7 @@
                         const formattedDate = formatDate(record.week_of);
                         const row = `<tr>
                             <td>${formattedDate}</td>
-                            <td class="text-center"><span class="badge bg-info fs-6">${record.total || 0}</span></td>
+                            <td class="text-center"><span class="badge bg-primary fs-6">${record.total || 0}</span></td>
                             <td><button class="detail-btn" onclick="showPassengerDetails('weekly', '${record.week_of}', ${record.total})">
                                 <i class="fas fa-info-circle me-1"></i>Info
                             </button></td>
@@ -2079,7 +2085,7 @@
                         const formattedMonth = formatMonth(record.month_of);
                         const row = `<tr>
                             <td>${formattedMonth}</td>
-                            <td class="text-center"><span class="badge bg-warning fs-6">${record.total || 0}</span></td>
+                            <td class="text-center"><span class="badge bg-primary fs-6">${record.total || 0}</span></td>
                             <td><button class="detail-btn" onclick="showPassengerDetails('monthly', '${record.month_of}', ${record.total})">
                                 <i class="fas fa-info-circle me-1"></i>Info
                             </button></td>

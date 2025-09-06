@@ -1,10 +1,16 @@
 
-from flask import Flask, jsonify, render_template, request, session, redirect, url_for, flash
+from flask import Flask, jsonify, render_template, request, session, redirect, url_for, flash, send_file
 import json
 import datetime
 from collections import defaultdict
 import os
 import hashlib
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+import io
 
 app = Flask(__name__)
 app.secret_key = 'etrike-secret-key-change-this'  # Change this to a random string
@@ -254,6 +260,7 @@ def login():
     <html>
     <head>
         <title>E-Trike Dashboard Login</title>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
         <style>
             body { 
                 font-family: 'Segoe UI', Arial, sans-serif; 
@@ -302,10 +309,15 @@ def login():
                 margin: 0.3rem 0 0 0;
                 font-weight: 500;
             }
+            .input-group {
+                position: relative;
+                margin: 0.6rem 0;
+            }
+            
             input { 
                 width: 100%; 
                 padding: 0.8rem; 
-                margin: 0.6rem 0; 
+                padding-right: 3.5rem;
                 border: 2px solid #e5e7eb; 
                 border-radius: 10px; 
                 font-size: 1rem;
@@ -316,6 +328,39 @@ def login():
                 outline: none;
                 border-color: #059669;
                 box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+            }
+            
+            .password-toggle {
+                position: absolute;
+                right: 0.8rem;
+                top: 50%;
+                transform: translateY(-50%);
+                background: none;
+                border: none;
+                cursor: pointer;
+                color: #374151;
+                font-size: 1rem;
+                padding: 0.2rem;
+                z-index: 10;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                width: 20px;
+                height: 20px;
+                margin-top: -1px;
+            }
+            
+            .password-toggle.show {
+                display: flex;
+            }
+            
+            .password-toggle:hover,
+            .password-toggle:focus,
+            .password-toggle:active {
+                outline: none;
+                color: #374151;
+                background: none;
+                transform: translateY(-50%);
             }
             button { 
                 width: 100%; 
@@ -354,13 +399,55 @@ def login():
             </div>
             <form method="POST" id="loginForm">
                 <input type="text" name="username" placeholder="Username" required>
-                <input type="password" name="password" placeholder="Password" required>
+                <div class="input-group">
+                    <input type="password" name="password" id="password" placeholder="Password" required>
+                    <button type="button" class="password-toggle" id="passwordToggle" onclick="togglePassword()">
+                        <i class="fas fa-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
                 <button type="submit">Log In</button>
                 <div class="error" id="errorMessage" style="display: none;"></div>
             </form>
         </div>
         
         <script>
+            // Password visibility toggle function
+            function togglePassword() {
+                const passwordInput = document.getElementById('password');
+                const eyeIcon = document.getElementById('eyeIcon');
+                
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    eyeIcon.className = 'fas fa-eye-slash';
+                } else {
+                    passwordInput.type = 'password';
+                    eyeIcon.className = 'fas fa-eye';
+                }
+            }
+            
+            // Show/hide password toggle based on input content
+            function togglePasswordVisibility() {
+                const passwordInput = document.getElementById('password');
+                const passwordToggle = document.getElementById('passwordToggle');
+                
+                if (passwordInput.value.length > 0) {
+                    passwordToggle.classList.add('show');
+                } else {
+                    passwordToggle.classList.remove('show');
+                }
+            }
+            
+            // Add event listeners when page loads
+            document.addEventListener('DOMContentLoaded', function() {
+                const passwordInput = document.getElementById('password');
+                passwordInput.addEventListener('input', togglePasswordVisibility);
+                passwordInput.addEventListener('keyup', togglePasswordVisibility);
+                passwordInput.addEventListener('paste', function() {
+                    // Small delay to allow paste content to be processed
+                    setTimeout(togglePasswordVisibility, 10);
+                });
+            });
+            
             document.getElementById('loginForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 
@@ -837,6 +924,240 @@ def upload_data():
         
     except Exception as e:
         print(f"❌ Upload error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/export-pdf', methods=['POST'])
+@login_required
+def export_pdf():
+    """Export historical data to PDF"""
+    try:
+        data = request.get_json()
+        period = data.get('period')
+        date_str = data.get('date')
+        city = data.get('city', 'manila')
+        currency = data.get('currency', 'PHP')
+        
+        if not period or not date_str:
+            return jsonify({'error': 'Missing required parameters'}), 400
+        
+        # Get the data based on period and date
+        if period == 'daily':
+            target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+            log_file = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month), f"{target_date.day}.json")
+            if os.path.exists(log_file):
+                with open(log_file, 'r') as f:
+                    passengers = json.load(f)
+            else:
+                passengers = []
+            title = f"Daily Report - {target_date.strftime('%B %d, %Y')}"
+            
+        elif period == 'weekly':
+            # Handle both YYYY-W## format and YYYY-MM-DD format
+            if 'W' in date_str:
+                # Convert YYYY-W## format to first day of week
+                year, week = date_str.split('-W')
+                year = int(year)
+                week = int(week)
+                # Calculate first day of the week
+                first_day_of_year = datetime.datetime(year, 1, 1)
+                # Find the first Monday of the year
+                days_to_first_monday = (7 - first_day_of_year.weekday()) % 7
+                if days_to_first_monday == 0:
+                    days_to_first_monday = 7
+                first_monday = first_day_of_year + datetime.timedelta(days=days_to_first_monday)
+                # Calculate start of the requested week
+                start_of_week = first_monday + datetime.timedelta(weeks=week-1)
+            else:
+                # Regular date format
+                target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+                start_of_week = target_date - datetime.timedelta(days=target_date.weekday())
+            
+            passengers = []
+            for i in range(7):
+                day = start_of_week + datetime.timedelta(days=i)
+                log_file = os.path.join(LOG_DIR, str(day.year), str(day.month), f"{day.day}.json")
+                if os.path.exists(log_file):
+                    with open(log_file, 'r') as f:
+                        day_passengers = json.load(f)
+                        passengers.extend(day_passengers)
+            
+            # Calculate end of week (6 days after start)
+            end_of_week = start_of_week + datetime.timedelta(days=6)
+            title = f"Weekly Report - {start_of_week.strftime('%B %d, %Y')} to {end_of_week.strftime('%B %d, %Y')}"
+            
+        elif period == 'monthly':
+            target_date = datetime.datetime.strptime(date_str, '%Y-%m')
+            month_dir = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month))
+            passengers = []
+            if os.path.exists(month_dir):
+                for day_file in os.listdir(month_dir):
+                    if day_file.endswith('.json'):
+                        day_path = os.path.join(month_dir, day_file)
+                        with open(day_path, 'r') as f:
+                            day_passengers = json.load(f)
+                            passengers.extend(day_passengers)
+            
+            # Calculate first and last day of month
+            first_day_of_month = target_date.replace(day=1)
+            if target_date.month == 12:
+                last_day_of_month = target_date.replace(year=target_date.year + 1, month=1, day=1) - datetime.timedelta(days=1)
+            else:
+                last_day_of_month = target_date.replace(month=target_date.month + 1, day=1) - datetime.timedelta(days=1)
+            
+            title = f"Monthly Report - {first_day_of_month.strftime('%B %d, %Y')} to {last_day_of_month.strftime('%B %d, %Y')}"
+        
+        # Create PDF
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72)
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            alignment=1,  # Center alignment
+            textColor=colors.HexColor('#059669')
+        )
+        
+        # Content
+        story = []
+        
+        # Title
+        story.append(Paragraph("E-Trike Passenger Dashboard", title_style))
+        story.append(Paragraph(title, styles['Heading2']))
+        story.append(Spacer(1, 20))
+        
+        # Summary
+        total_passengers = len(passengers)
+        revenue = total_passengers * 20  # Assuming 20 PHP per passenger
+        
+        # Calculate average passengers per day for weekly and monthly reports
+        avg_passengers_per_day = 0
+        if period == 'weekly':
+            avg_passengers_per_day = total_passengers / 7
+        elif period == 'monthly':
+            # Calculate number of days in the month
+            if target_date.month == 12:
+                next_month = target_date.replace(year=target_date.year + 1, month=1, day=1)
+            else:
+                next_month = target_date.replace(month=target_date.month + 1, day=1)
+            days_in_month = (next_month - target_date.replace(day=1)).days
+            avg_passengers_per_day = total_passengers / days_in_month
+        
+        # Currency conversion
+        currency_symbols = {'PHP': 'PHP', 'USD': 'USD', 'EUR': 'EUR'}
+        currency_rates = {'PHP': 1.0, 'USD': 0.018, 'EUR': 0.016}
+        converted_revenue = revenue * currency_rates.get(currency, 1.0)
+        symbol = currency_symbols.get(currency, 'PHP')
+        
+        summary_data = [
+            ['Total Passengers:', str(total_passengers)]
+        ]
+        
+        # Add average passengers per day for weekly and monthly reports
+        if period in ['weekly', 'monthly']:
+            summary_data.append(['Average Passengers/Day:', f"{int(avg_passengers_per_day)}"])
+        
+        summary_data.extend([
+            ['Revenue:', f"{symbol} {converted_revenue:.2f}"],
+            ['City:', city.replace('_', ' ').title()]
+        ])
+        
+        summary_table = Table(summary_data, colWidths=[2.2*inch, 2.2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8f9fa')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        story.append(summary_table)
+        story.append(Spacer(1, 30))
+        
+        # Passenger details table (if not too many)
+        if len(passengers) <= 50:  # Only show details if reasonable number
+            story.append(Paragraph("Passenger Details", styles['Heading3']))
+            story.append(Spacer(1, 12))
+            
+            # Prepare table data
+            table_data = [['#', 'Entry Time', 'Exit Time', 'Dwell Time (min)']]
+            for i, passenger in enumerate(passengers[:50], 1):  # Limit to 50 entries
+                entry_time = passenger.get('entry_timestamp', 0)
+                exit_time = passenger.get('exit_timestamp', 0)
+                dwell_time = passenger.get('dwell_time_minutes', 0)
+                
+                entry_str = datetime.datetime.fromtimestamp(entry_time).strftime('%H:%M:%S') if entry_time else 'N/A'
+                exit_str = datetime.datetime.fromtimestamp(exit_time).strftime('%H:%M:%S') if exit_time else 'N/A'
+                dwell_str = f"{dwell_time:.1f}" if dwell_time else 'N/A'
+                
+                table_data.append([str(i), entry_str, exit_str, dwell_str])
+            
+            passenger_table = Table(table_data, colWidths=[0.6*inch, 1.4*inch, 1.4*inch, 1.4*inch])
+            passenger_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#059669')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            
+            story.append(passenger_table)
+        else:
+            story.append(Paragraph(f"Note: {len(passengers)} passengers recorded. Detailed list not included due to size.", styles['Normal']))
+        
+        # Build PDF with footer
+        def add_footer(canvas, doc):
+            canvas.saveState()
+            canvas.setFont('Helvetica', 8)
+            canvas.setFillColor(colors.grey)
+            
+            # Footer text
+            footer_text = "Generated by E-Trike Passenger Dashboard"
+            page_text = f"Page {doc.page}"
+            
+            # Get page dimensions
+            page_width = doc.pagesize[0]
+            page_height = doc.pagesize[1]
+            
+            # Draw footer line
+            canvas.setStrokeColor(colors.grey)
+            canvas.line(72, 50, page_width - 72, 50)
+            
+            # Add footer text (left side)
+            canvas.drawString(72, 35, footer_text)
+            
+            # Add page number (right side)
+            canvas.drawRightString(page_width - 72, 35, page_text)
+            
+            canvas.restoreState()
+        
+        doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
+        buffer.seek(0)
+        
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"E-Trike-{period}-Report-{date_str}.pdf",
+            mimetype='application/pdf'
+        )
+        
+    except Exception as e:
+        print(f"PDF export error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/shutdown', methods=['POST'])

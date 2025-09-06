@@ -955,6 +955,38 @@
             font-weight: 600;
         }
 
+        /* Export Button Styling */
+        .export-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.4rem 0.6rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            min-width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .export-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .export-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+        }
+
+        .export-btn i {
+            font-size: 0.9rem;
+        }
+
         @media (max-width: 768px) {
             /* Sidebar becomes full-width overlay on mobile */
             .sidebar {
@@ -1381,7 +1413,12 @@
                 <div class="history-section">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4 class="mb-0">Daily Totals</h4>
-                        <input type="date" class="form-control form-control-sm" id="dailyDatePicker" onchange="filterSection('daily')" style="width: 150px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="date" class="form-control form-control-sm" id="dailyDatePicker" onchange="filterSection('daily')" style="width: 150px;">
+                            <button class="btn btn-sm btn-outline-light export-btn" onclick="exportToPDF('daily')" title="Export to PDF">
+                                <i class="fas fa-file-pdf"></i>
+                            </button>
+                        </div>
                     </div>
                                 <div class="table-responsive">
                         <table class="table">
@@ -1403,7 +1440,12 @@
                 <div class="history-section">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4 class="mb-0">Weekly Totals</h4>
-                        <input type="week" class="form-control form-control-sm" id="weeklyDatePicker" onchange="filterSection('weekly')" style="width: 150px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="week" class="form-control form-control-sm" id="weeklyDatePicker" onchange="filterSection('weekly')" style="width: 150px;">
+                            <button class="btn btn-sm btn-outline-light export-btn" onclick="exportToPDF('weekly')" title="Export to PDF">
+                                <i class="fas fa-file-pdf"></i>
+                            </button>
+                        </div>
                     </div>
                                 <div class="table-responsive">
                         <table class="table">
@@ -1425,7 +1467,12 @@
                 <div class="history-section">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4 class="mb-0">Monthly Totals</h4>
-                        <input type="month" class="form-control form-control-sm" id="monthlyDatePicker" onchange="filterSection('monthly')" style="width: 150px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="month" class="form-control form-control-sm" id="monthlyDatePicker" onchange="filterSection('monthly')" style="width: 150px;">
+                            <button class="btn btn-sm btn-outline-light export-btn" onclick="exportToPDF('monthly')" title="Export to PDF">
+                                <i class="fas fa-file-pdf"></i>
+                            </button>
+                        </div>
                     </div>
                                 <div class="table-responsive">
                         <table class="table">
@@ -2377,6 +2424,66 @@
                     monthlyBody.innerHTML = '<tr><td colspan="3" class="text-center text-white-50">No data available for selected month</td></tr>';
                 }
             }
+        }
+
+        // PDF Export Function
+        function exportToPDF(period) {
+            const datePicker = document.getElementById(`${period}DatePicker`);
+            const selectedDate = datePicker.value;
+            
+            if (!selectedDate) {
+                alert('Please select a date first');
+                return;
+            }
+            
+            // Show loading state
+            const exportBtn = event.target.closest('.export-btn');
+            const originalContent = exportBtn.innerHTML;
+            exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            exportBtn.disabled = true;
+            
+            // Prepare export data
+            const exportData = {
+                period: period,
+                date: selectedDate,
+                city: document.getElementById('citySelect').value,
+                currency: document.getElementById('currencySelect').value
+            };
+            
+            // Make request to export endpoint
+            fetch('/export-pdf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(exportData)
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                }
+                throw new Error('Export failed');
+            })
+            .then(blob => {
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `E-Trike-${period}-Report-${selectedDate}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            })
+            .catch(error => {
+                console.error('Export error:', error);
+                alert('Failed to export PDF. Please try again.');
+            })
+            .finally(() => {
+                // Restore button state
+                exportBtn.innerHTML = originalContent;
+                exportBtn.disabled = false;
+            });
         }
 
         // Initialize dashboard with initial data load on page ready

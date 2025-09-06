@@ -97,7 +97,7 @@ def update_historical_summary():
     
     # Get weekly data (current week and last week)
     for week_offset in range(2):
-        week_start = today.date() - datetime.timedelta(days=today.weekday() + (week_offset * 7))
+        week_start = today.date() - datetime.timedelta(days=today.weekday()) - datetime.timedelta(days=week_offset * 7)
         weekly_total = 0
         for i in range(7):
             check_date = week_start + datetime.timedelta(days=i)

@@ -66,12 +66,12 @@ def update_historical_summary():
     Updates the historical summary with current data.
     This function now runs every time and provides real-time historical data.
     """
-    today = datetime.datetime.now()
+    today = datetime.datetime.now().date()
     
     # Ensure historical file exists
     if not os.path.exists(HISTORICAL_FILE):
         with open(HISTORICAL_FILE, 'w') as f:
-            json.dump({"daily": [], "weekly": [], "monthly": [], "last_run": today.isoformat()}, f, indent=4)
+            json.dump({"daily": [], "weekly": [], "monthly": [], "last_run": datetime.datetime.now().isoformat()}, f, indent=4)
 
     # Always update with current data
     daily_data = []
@@ -167,7 +167,7 @@ def update_historical_summary():
         "daily": daily_data,
         "weekly": weekly_data,
         "monthly": monthly_data,
-        "last_run": today.isoformat()
+        "last_run": datetime.datetime.now().isoformat()
     }
     
     with open(HISTORICAL_FILE, 'w') as f:

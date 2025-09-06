@@ -1083,14 +1083,14 @@ def export_pdf():
         story.append(summary_table)
         story.append(Spacer(1, 30))
         
-        # Passenger details table (if not too many)
-        if len(passengers) <= 50:  # Only show details if reasonable number
+        # Passenger details table (show all passengers)
+        if len(passengers) > 0:  # Show details if there are any passengers
             story.append(Paragraph("Passenger Details", styles['Heading3']))
             story.append(Spacer(1, 12))
             
             # Prepare table data
             table_data = [['#', 'Entry Time', 'Exit Time', 'Dwell Time (min)']]
-            for i, passenger in enumerate(passengers[:50], 1):  # Limit to 50 entries
+            for i, passenger in enumerate(passengers, 1):  # Show all passengers
                 entry_time = passenger.get('entry_timestamp', 0)
                 exit_time = passenger.get('exit_timestamp', 0)
                 dwell_time = passenger.get('dwell_time_minutes', 0)
@@ -1118,7 +1118,7 @@ def export_pdf():
             
             story.append(passenger_table)
         else:
-            story.append(Paragraph(f"Note: {len(passengers)} passengers recorded. Detailed list not included due to size.", styles['Normal']))
+            story.append(Paragraph("No passenger data available for the selected period.", styles['Normal']))
         
         # Build PDF with footer
         def add_footer(canvas, doc):

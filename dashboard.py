@@ -97,7 +97,7 @@ def update_historical_summary():
     
     # Get weekly data (current week and last week)
     for week_offset in range(2):
-        week_start = today.date() - datetime.timedelta(days=today.weekday()) - datetime.timedelta(days=week_offset * 7)
+        week_start = today.date() - datetime.timedelta(days=today.weekday() + (week_offset * 7))
         weekly_total = 0
         for i in range(7):
             check_date = week_start + datetime.timedelta(days=i)
@@ -1065,7 +1065,7 @@ def export_pdf():
             ['City:', city.replace('_', ' ').title()]
         ])
         
-        summary_table = Table(summary_data, colWidths=[3.5*inch, 3.5*inch])
+        summary_table = Table(summary_data, colWidths=[2.2*inch, 2.2*inch])
         summary_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8f9fa')),
             ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
@@ -1101,7 +1101,7 @@ def export_pdf():
                 
                 table_data.append([str(i), entry_str, exit_str, dwell_str])
             
-            passenger_table = Table(table_data, colWidths=[0.8*inch, 2.0*inch, 2.0*inch, 2.0*inch])
+            passenger_table = Table(table_data, colWidths=[0.6*inch, 1.4*inch, 1.4*inch, 1.4*inch])
             passenger_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#059669')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),

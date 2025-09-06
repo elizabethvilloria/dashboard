@@ -2267,16 +2267,10 @@
 
         // Helper function to get week string in YYYY-W## format
         function getWeekString(date) {
-            // Get ISO week number
             const year = date.getFullYear();
             const firstDayOfYear = new Date(year, 0, 1);
-            const daysToFirstMonday = (7 - firstDayOfYear.getDay()) % 7;
-            const firstMonday = new Date(firstDayOfYear.getTime() + daysToFirstMonday * 24 * 60 * 60 * 1000);
-            
-            // Calculate week number
-            const pastDaysOfYear = (date - firstMonday) / (24 * 60 * 60 * 1000);
-            const weekNumber = Math.floor(pastDaysOfYear / 7) + 1;
-            
+            const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+            const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
             return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
         }
 
@@ -2309,16 +2303,9 @@
             if (period === 'weekly' && selectedDate.includes('W')) {
                 // Convert "YYYY-W##" format to a date (first day of the week)
                 const [year, week] = selectedDate.split('-W');
-                const yearNum = parseInt(year);
-                const weekNum = parseInt(week);
-                
-                // Get first day of year
-                const firstDayOfYear = new Date(yearNum, 0, 1);
-                // Find first Monday of the year
-                const daysToFirstMonday = (7 - firstDayOfYear.getDay()) % 7;
-                const firstMonday = new Date(firstDayOfYear.getTime() + daysToFirstMonday * 24 * 60 * 60 * 1000);
-                // Calculate start of the requested week
-                const firstDayOfWeek = new Date(firstMonday.getTime() + (weekNum - 1) * 7 * 24 * 60 * 60 * 1000);
+                const firstDayOfYear = new Date(year, 0, 1);
+                const daysToAdd = (week - 1) * 7;
+                const firstDayOfWeek = new Date(firstDayOfYear.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
                 selectedDate = firstDayOfWeek.toISOString().split('T')[0];
             }
             

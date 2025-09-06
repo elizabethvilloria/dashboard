@@ -2303,9 +2303,16 @@
             if (period === 'weekly' && selectedDate.includes('W')) {
                 // Convert "YYYY-W##" format to a date (first day of the week)
                 const [year, week] = selectedDate.split('-W');
-                const firstDayOfYear = new Date(year, 0, 1);
-                const daysToAdd = (week - 1) * 7;
-                const firstDayOfWeek = new Date(firstDayOfYear.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+                const yearNum = parseInt(year);
+                const weekNum = parseInt(week);
+                
+                // Get first day of year
+                const firstDayOfYear = new Date(yearNum, 0, 1);
+                // Find first Monday of the year
+                const daysToFirstMonday = (7 - firstDayOfYear.getDay()) % 7;
+                const firstMonday = new Date(firstDayOfYear.getTime() + daysToFirstMonday * 24 * 60 * 60 * 1000);
+                // Calculate start of the requested week
+                const firstDayOfWeek = new Date(firstMonday.getTime() + (weekNum - 1) * 7 * 24 * 60 * 60 * 1000);
                 selectedDate = firstDayOfWeek.toISOString().split('T')[0];
             }
             

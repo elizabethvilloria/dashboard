@@ -1,4 +1,4 @@
-do it<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -1527,11 +1527,12 @@ do it<!doctype html>
     <script>
         // Store previous counts to detect increases
         let previousCounts = {
-            hourly: 0,
-            daily: 0,
-            weekly: 0,
-            monthly: 0
+            hourly: null,
+            daily: null,
+            weekly: null,
+            monthly: null
         };
+        let isInitialLoad = true;
 
         // Currency conversion system
         let exchangeRates = {
@@ -1646,7 +1647,7 @@ do it<!doctype html>
                 .then(data => {
                     // Hourly
                     const hourlyCount = data.hourly || 0;
-                    if (hourlyCount > previousCounts.hourly) {
+                    if (!isInitialLoad && previousCounts.hourly !== null && hourlyCount > previousCounts.hourly) {
                         const increase = hourlyCount - previousCounts.hourly;
                         createFloatingRevenue(document.getElementById('hourly-revenue'), increase * 20);
                     }
@@ -1656,7 +1657,7 @@ do it<!doctype html>
                     
                     // Daily
                     const dailyCount = data.daily || 0;
-                    if (dailyCount > previousCounts.daily) {
+                    if (!isInitialLoad && previousCounts.daily !== null && dailyCount > previousCounts.daily) {
                         const increase = dailyCount - previousCounts.daily;
                         createFloatingRevenue(document.getElementById('daily-revenue'), increase * 20);
                     }
@@ -1666,7 +1667,7 @@ do it<!doctype html>
 
                     // Weekly
                     const weeklyCount = data.weekly || 0;
-                    if (weeklyCount > previousCounts.weekly) {
+                    if (!isInitialLoad && previousCounts.weekly !== null && weeklyCount > previousCounts.weekly) {
                         const increase = weeklyCount - previousCounts.weekly;
                         createFloatingRevenue(document.getElementById('weekly-revenue'), increase * 20);
                     }
@@ -1676,13 +1677,16 @@ do it<!doctype html>
 
                     // Monthly
                     const monthlyCount = data.monthly || 0;
-                    if (monthlyCount > previousCounts.monthly) {
+                    if (!isInitialLoad && previousCounts.monthly !== null && monthlyCount > previousCounts.monthly) {
                         const increase = monthlyCount - previousCounts.monthly;
                         createFloatingRevenue(document.getElementById('monthly-revenue'), increase * 20);
                     }
                     document.getElementById('monthly-count').textContent = monthlyCount;
                     document.getElementById('monthly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(monthlyCount * 20).toLocaleString()}`;
                     previousCounts.monthly = monthlyCount;
+                    
+                    // Mark that initial load is complete
+                    isInitialLoad = false;
                 });
         }
 
@@ -2294,6 +2298,8 @@ do it<!doctype html>
             const datePicker = document.getElementById(`${period}DatePicker`);
             let selectedDate = datePicker.value;
             
+            console.log(`Filtering ${period}:`, selectedDate);
+            
             if (!selectedDate) {
                 clearSectionFilter(period);
                 return;
@@ -2311,10 +2317,21 @@ do it<!doctype html>
             
             // For monthly period with month input, we need to filter by month
             if (period === 'monthly' && selectedDate.includes('-') && !selectedDate.includes('W')) {
-                // selectedDate is in "YYYY-MM" format, convert to first day of month
-                const [year, month] = selectedDate.split('-');
-                const firstDayOfMonth = new Date(year, month - 1, 1);
-                selectedDate = firstDayOfMonth.toISOString().split('T')[0];
+                // Handle both "YYYY-MM" and "YYYY-MM-DD" formats
+                let year, month;
+                if (selectedDate.length === 7) {
+                    // "YYYY-MM" format
+                    [year, month] = selectedDate.split('-');
+                } else if (selectedDate.length === 10) {
+                    // "YYYY-MM-DD" format - extract year and month
+                    const parts = selectedDate.split('-');
+                    year = parts[0];
+                    month = parts[1];
+                }
+                
+                // Always use the first day of the month
+                selectedDate = `${year}-${month.padStart(2, '0')}-01`;
+                console.log(`Monthly conversion: ${datePicker.value} -> ${selectedDate}`);
             }
             
             isDateFiltered[period] = true;
@@ -2429,11 +2446,21 @@ do it<!doctype html>
         // PDF Export Function
         function exportToPDF(period) {
             const datePicker = document.getElementById(`${period}DatePicker`);
-            const selectedDate = datePicker.value;
+            let selectedDate = datePicker.value;
             
             if (!selectedDate) {
                 alert('Please select a date first');
                 return;
+            }
+            
+            // Convert week format to date format for PDF export
+            if (period === 'weekly' && selectedDate.includes('W')) {
+                // Convert "YYYY-W##" format to a date (first day of the week)
+                const [year, week] = selectedDate.split('-W');
+                const firstDayOfYear = new Date(year, 0, 1);
+                const daysToAdd = (week - 1) * 7;
+                const firstDayOfWeek = new Date(firstDayOfYear.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+                selectedDate = firstDayOfWeek.toISOString().split('T')[0];
             }
             
             // Show loading state

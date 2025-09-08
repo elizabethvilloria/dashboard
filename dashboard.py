@@ -95,8 +95,8 @@ def update_historical_summary():
             except (json.JSONDecodeError, FileNotFoundError):
                 continue
     
-    # Get weekly data (current week and last week)
-    for week_offset in range(2):
+    # Get weekly data for the last 4 weeks
+    for week_offset in range(4):
         week_start = today.date() - datetime.timedelta(days=today.weekday() + (week_offset * 7))
         weekly_total = 0
         for i in range(7):
@@ -116,51 +116,41 @@ def update_historical_summary():
                 "total": weekly_total
             })
     
-    # Get monthly data (current month and last month)
-    for month_offset in range(2):
-        if month_offset == 0:
-            # Current month
-            month_start = today.replace(day=1)
-            month_total = 0
-            current_day = month_start
-            while current_day.month == month_start.month:
-                log_path = os.path.join(LOG_DIR, str(current_day.year), str(current_day.month), f"{current_day.day}.json")
-                if os.path.exists(log_path):
-                    try:
-                        with open(log_path, 'r') as log_file:
-                            log_data = json.load(log_file)
-                            month_total += len(log_data)
-                    except (json.JSONDecodeError, FileNotFoundError):
-                        pass
-                current_day += datetime.timedelta(days=1)
-            
-            if month_total > 0:
-                monthly_data.append({
-                    "month_of": month_start.strftime("%Y-%m"),
-                    "total": month_total
-                })
-        else:
-            # Last month
-            last_month = today.replace(day=1) - datetime.timedelta(days=1)
-            month_start = last_month.replace(day=1)
-            month_total = 0
-            current_day = month_start
-            while current_day.month == month_start.month:
-                log_path = os.path.join(LOG_DIR, str(current_day.year), str(current_day.month), f"{current_day.day}.json")
-                if os.path.exists(log_path):
-                    try:
-                        with open(log_path, 'r') as log_file:
-                            log_data = json.load(log_file)
-                            month_total += len(log_data)
-                    except (json.JSONDecodeError, FileNotFoundError):
-                        pass
-                current_day += datetime.timedelta(days=1)
-            
-            if month_total > 0:
-                monthly_data.append({
-                    "month_of": month_start.strftime("%Y-%m"),
-                    "total": month_total
-                })
+    # Get monthly data for the last 6 months
+    for month_offset in range(6):
+        # Calculate the month start date for each month offset
+        current_month = today.month
+        current_year = today.year
+        
+        # Calculate target month and year
+        target_month = current_month - month_offset
+        target_year = current_year
+        
+        # Handle year rollover
+        while target_month <= 0:
+            target_month += 12
+            target_year -= 1
+        
+        month_start = datetime.datetime(target_year, target_month, 1)
+        
+        month_total = 0
+        current_day = month_start
+        while current_day.month == month_start.month and current_day.year == month_start.year:
+            log_path = os.path.join(LOG_DIR, str(current_day.year), str(current_day.month), f"{current_day.day}.json")
+            if os.path.exists(log_path):
+                try:
+                    with open(log_path, 'r') as log_file:
+                        log_data = json.load(log_file)
+                        month_total += len(log_data)
+                except (json.JSONDecodeError, FileNotFoundError):
+                    pass
+            current_day += datetime.timedelta(days=1)
+        
+        if month_total > 0:
+            monthly_data.append({
+                "month_of": month_start.strftime("%Y-%m"),
+                "total": month_total
+            })
     
     # Save updated data
     summary_data = {
@@ -806,7 +796,7 @@ def historical_data_filtered():
             month_total = 0
             current_day = month_start
             
-            while current_day.month == month_start.month:
+            while current_day.month == month_start.month and current_day.year == month_start.year:
                 log_path = os.path.join(LOG_DIR, str(current_day.year), str(current_day.month), f"{current_day.day}.json")
                 if os.path.exists(log_path):
                     try:
@@ -1029,9 +1019,19 @@ def export_pdf():
         story.append(Paragraph(title, styles['Heading2']))
         story.append(Spacer(1, 20))
         
+        # City fare information
+        city_fares = {
+            'manila': 20,
+            'quezon_city': 25,
+            'muntinlupa': 15,
+            'pasay': 20,
+            'lipa': 12
+        }
+        
         # Summary
         total_passengers = len(passengers)
-        revenue = total_passengers * 20  # Assuming 20 PHP per passenger
+        fare_per_passenger = city_fares.get(city, 20)  # Default to 20 if city not found
+        revenue = total_passengers * fare_per_passenger
         
         # Calculate average passengers per day for weekly and monthly reports
         avg_passengers_per_day = 0
@@ -1053,19 +1053,20 @@ def export_pdf():
         symbol = currency_symbols.get(currency, 'PHP')
         
         summary_data = [
-            ['Total Passengers:', str(total_passengers)]
+            ['Total Passengers:', str(total_passengers)],
+            ['City:', city.replace('_', ' ').title()],
+            ['City Fare:', f"PHP {fare_per_passenger} per passenger"]
         ]
         
         # Add average passengers per day for weekly and monthly reports
         if period in ['weekly', 'monthly']:
             summary_data.append(['Average Passengers/Day:', f"{int(avg_passengers_per_day)}"])
         
-        summary_data.extend([
-            ['Revenue:', f"{symbol} {converted_revenue:.2f}"],
-            ['City:', city.replace('_', ' ').title()]
-        ])
+        summary_data.append(['Revenue:', f"{symbol} {converted_revenue:.2f}"])
         
-        summary_table = Table(summary_data, colWidths=[2.2*inch, 2.2*inch])
+        # Calculate table width to use full page (A4 width minus margins)
+        page_width = A4[0] - 144  # 72pt margins on each side
+        summary_table = Table(summary_data, colWidths=[page_width * 0.4, page_width * 0.6])
         summary_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8f9fa')),
             ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
@@ -1101,19 +1102,28 @@ def export_pdf():
                 
                 table_data.append([str(i), entry_str, exit_str, dwell_str])
             
-            passenger_table = Table(table_data, colWidths=[0.6*inch, 1.4*inch, 1.4*inch, 1.4*inch])
+            # Calculate column widths for full page usage
+            col_widths = [
+                page_width * 0.1,  # # column
+                page_width * 0.3,  # Entry Time
+                page_width * 0.3,  # Exit Time
+                page_width * 0.3   # Dwell Time
+            ]
+            passenger_table = Table(table_data, colWidths=col_widths)
             passenger_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#059669')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('LEFTPADDING', (0, 0), (-1, -1), 4),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 10),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')])
             ]))
             
             story.append(passenger_table)

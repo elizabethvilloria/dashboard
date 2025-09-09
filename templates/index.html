@@ -375,6 +375,28 @@
             box-shadow: var(--card-shadow);
         }
 
+        /* Thematic Separator Styling */
+        .thematic-separator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+
+        .separator-line {
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(34, 197, 94, 0.2) 10%, 
+                rgba(34, 197, 94, 0.6) 30%, 
+                rgba(34, 197, 94, 0.8) 50%, 
+                rgba(34, 197, 94, 0.6) 70%, 
+                rgba(34, 197, 94, 0.2) 90%, 
+                transparent 100%);
+        }
+
         .filter-label-small {
             color: rgba(255, 255, 255, 0.9);
             font-weight: 600;
@@ -512,10 +534,15 @@
             font-weight: 600;
             font-size: 1.8rem;
             margin-bottom: 2rem;
+            margin-top: 3rem;
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
             display: flex;
             align-items: center;
             gap: 0.5rem;
+        }
+
+        .section-title:first-child {
+            margin-top: 0;
         }
 
         .card {
@@ -1293,7 +1320,7 @@
     </div>
 
         <div class="main-content-wrapper">
-        <div class="container-fluid py-5">
+        <div class="container-fluid py-4">
 
                 <!-- TODA/E-Trike/Pi Device Filter and Registration Controls -->
                 <div class="section-title">
@@ -1308,11 +1335,11 @@
                             <div class="selection-badges">
                                 <div class="city-dropdown">
                                     <select id="citySelect" class="city-select" onchange="selectCity()">
-                                        <option value="manila">Manila</option>
-                                        <option value="quezon_city">Quezon City</option>
-                                        <option value="muntinlupa">Muntinlupa</option>
-                                        <option value="pasay">Pasay</option>
-                                        <option value="lipa">Lipa</option>
+                                        <option value="manila">📍 Manila</option>
+                                        <option value="quezon_city">📍 Quezon City</option>
+                                        <option value="muntinlupa">📍 Muntinlupa</option>
+                                        <option value="pasay">📍 Pasay</option>
+                                        <option value="lipa">📍 Lipa</option>
                                     </select>
                                 </div>
                                 <div class="currency-dropdown">
@@ -1323,7 +1350,7 @@
                                     </select>
                                 </div>
                                 <span class="selection-badge filter-status" id="filter-status">
-                                    <i class="fas fa-sliders-h me-2"></i>City-wide View
+                                    City-wide View
                                 </span>
                             </div>
                         </div>
@@ -1369,7 +1396,16 @@
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Thematic Separator -->
+                <div class="row mb-5">
+                    <div class="col-12">
+                        <div class="thematic-separator">
+                            <div class="separator-line"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- E-Trike Passenger Counter Dashboard Main Content Area -->
                 <div class="main-content">
             
@@ -1378,7 +1414,7 @@
                     Live Passenger Counter
                 </div>
                 
-                <div class="row g-4 mb-5">
+                <div class="row g-4 mb-4">
                     <div class="col-md-3">
                         <div class="card stats-card hourly">
                             <div class="card-body">
@@ -1439,14 +1475,14 @@
                     Real-time Passenger Graph
                 </div>
                 
-                <div class="row g-4 mb-5">
+                <div class="row g-4 mb-4">
                     <div class="col-12">
                         <div class="card stats-card live">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center mb-3" style="position: relative; z-index: 10;">
                                     <div class="d-flex align-items-center text-white" style="pointer-events: none; margin-left: 16px;">
-                                        <span class="status-indicator me-2" style="opacity: 1 !important;"></span>
-                                        <small class="text-white-50" style="opacity: 1 !important;">LIVE</small>
+                                        <span class="status-indicator me-2" style="opacity: 1 !important; display: none;"></span>
+                                        <small class="text-white-50" style="opacity: 1 !important;">OFFLINE</small>
                                     </div>
                             <button class="btn btn-sm btn-outline-light" onclick="showHistoricalPopulationModal()" title="View Historical Graph Data">
                                 <i class="fas fa-archive me-1"></i>Historical Graph Data
@@ -2134,7 +2170,7 @@
             
             if (!todaId && !etrikeId && !piId) {
                 // No filters selected - show all city data
-                document.getElementById('filter-status').innerHTML = '<i class="fas fa-sliders-h me-2"></i>City-wide View';
+                document.getElementById('filter-status').innerHTML = 'City-wide View';
                 loadDashboardData(); // Load unfiltered city-wide passenger data
                 return;
             }
@@ -2150,7 +2186,7 @@
                 filterText += ` - Pi: ${piId}`;
             }
             
-            document.getElementById('filter-status').innerHTML = `<i class="fas fa-sliders-h me-2"></i>${filterText}`;
+            document.getElementById('filter-status').innerHTML = filterText;
             
             // Apply filters and update dashboard with filtered passenger data
             loadFilteredData(todaId, etrikeId, piId);
@@ -2166,7 +2202,7 @@
             document.getElementById('apply-filter').disabled = true;
             
             const filterStatus = document.getElementById('filter-status');
-            filterStatus.innerHTML = `<i class="fas fa-filter me-2"></i>City-wide View`;
+            filterStatus.innerHTML = 'City-wide View';
             
             showFilterMessage('Filter cleared!', 'info');
         }
@@ -2735,10 +2771,11 @@
         function showHistoricalPopulationModal() {
             const modal = new bootstrap.Modal(document.getElementById('historicalPopulationModal'));
             
-            // Set default date to today
+            // Set default date to today and max date to today
             const today = new Date().toISOString().split('T')[0];
             
             document.getElementById('historicalDate').value = today;
+            document.getElementById('historicalDate').max = today; // Prevent future dates
             
             // Initialize historical chart if not already done
             if (!historicalPopulationChart) {
@@ -2995,17 +3032,20 @@
         // Initialize dashboard with initial data load on page ready
         updateCounts();
         
-        // Set default date to today for daily picker
+        // Set default date to today for daily picker and prevent future dates
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('dailyDatePicker').value = today;
+        document.getElementById('dailyDatePicker').max = today; // Prevent future dates
         
-        // Set default week to current week for weekly picker
+        // Set default week to current week for weekly picker and prevent future weeks
         const currentWeek = getWeekString(new Date());
         document.getElementById('weeklyDatePicker').value = currentWeek;
+        document.getElementById('weeklyDatePicker').max = currentWeek; // Prevent future weeks
         
-        // Set default month to current month for monthly picker
+        // Set default month to current month for monthly picker and prevent future months
         const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM format
         document.getElementById('monthlyDatePicker').value = currentMonth;
+        document.getElementById('monthlyDatePicker').max = currentMonth; // Prevent future months
         
         // Initialize population chart
         initPopulationChart();

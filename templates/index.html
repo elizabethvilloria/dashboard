@@ -2012,6 +2012,9 @@
             const select = document.getElementById('citySelect');
             const cityName = select.value;
             
+            // Store preference
+            localStorage.setItem('selectedCity', cityName);
+            
             // Update session and reload data
             fetch('/change-city', {
                 method: 'POST',
@@ -2945,6 +2948,23 @@
             }
         }
 
+        // Load saved filter preferences
+        function loadFilterPreferences() {
+            // Load saved city preference
+            const savedCity = localStorage.getItem('selectedCity');
+            if (savedCity && document.getElementById('citySelect').querySelector(`option[value="${savedCity}"]`)) {
+                document.getElementById('citySelect').value = savedCity;
+            }
+            
+            // Load saved currency preference
+            const savedCurrency = localStorage.getItem('selectedCurrency');
+            if (savedCurrency && document.getElementById('currencySelect').querySelector(`option[value="${savedCurrency}"]`)) {
+                document.getElementById('currencySelect').value = savedCurrency;
+                currentCurrency = savedCurrency;
+                updateAllRevenueDisplays();
+            }
+        }
+
         // Check Pi live status
         function checkPiLiveStatus() {
             fetch('/pi-live-status')
@@ -3059,6 +3079,9 @@
         
         // Check initial Pi live status
         checkPiLiveStatus();
+        
+        // Load saved filter preferences
+        loadFilterPreferences();
         
         // Load filtered data for all sections with default dates
         filterSection('daily');

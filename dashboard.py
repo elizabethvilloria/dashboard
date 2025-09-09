@@ -23,6 +23,9 @@ USERS = {
 LOG_DIR = "logs"
 HISTORICAL_FILE = "historical_summary.json"
 
+# Global variable to track when Pi devices last sent heartbeat
+last_pi_heartbeat_time = 0
+
 def get_latest_log_time():
     """Finds the timestamp of the most recent log entry."""
     latest_time = None
@@ -725,6 +728,105 @@ def get_filtered_data(toda_id=None, etrike_id=None, pi_id=None):
 def data():
     return jsonify(get_passenger_counts())
 
+@app.route('/pi-heartbeat', methods=['POST'])
+def pi_heartbeat():
+    """Pi device heartbeat to maintain connection status"""
+    global last_pi_heartbeat_time
+    last_pi_heartbeat_time = datetime.datetime.now().timestamp()
+    return jsonify({'status': 'ok'})
+
+@app.route('/pi-live-status')
+@login_required
+def pi_live_status():
+    """Check if Pi devices are connected (heartbeat within last 15 seconds)"""
+    global last_pi_heartbeat_time
+    current_time = datetime.datetime.now().timestamp()
+    
+    # Consider live if Pi devices sent heartbeat recently
+    is_live = (current_time - last_pi_heartbeat_time) <= 15  # 15 seconds threshold
+    
+    return jsonify({'is_live': is_live, 'last_heartbeat': last_pi_heartbeat_time})
+
+@app.route('/population-data')
+@login_required
+def population_data():
+    """Get hourly population data for the current day"""
+    today = datetime.datetime.now()
+    hourly_data = []
+    
+    # Initialize 24 hours with 0 counts
+    for hour in range(24):
+        hourly_data.append({
+            'hour': f"{hour:02d}:00",
+            'count': 0,
+            'timestamp': hour
+        })
+    
+    # Get today's log data
+    today_log_path = os.path.join(LOG_DIR, str(today.year), str(today.month), f"{today.day}.json")
+    if os.path.exists(today_log_path):
+        try:
+            with open(today_log_path, 'r') as f:
+                log_data = json.load(f)
+                
+                # Count passengers by hour
+                for entry in log_data:
+                    entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
+                    hour = entry_time.hour
+                    hourly_data[hour]['count'] += 1
+                    
+        except (json.JSONDecodeError, FileNotFoundError):
+            pass
+    
+    return jsonify({
+        'date': today.strftime('%Y-%m-%d'),
+        'hourly_data': hourly_data
+    })
+
+@app.route('/historical-population-data')
+@login_required
+def historical_population_data():
+    """Get historical population data for a specific date"""
+    date_str = request.args.get('date')
+    if not date_str:
+        return jsonify({'error': 'Date parameter required'}), 400
+    
+    try:
+        target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+        hourly_data = []
+        
+        # Initialize 24 hours with 0 counts
+        for hour in range(24):
+            hourly_data.append({
+                'hour': f"{hour:02d}:00",
+                'count': 0,
+                'timestamp': hour
+            })
+        
+        # Get the specific date's log data
+        log_path = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month), f"{target_date.day}.json")
+        if os.path.exists(log_path):
+            try:
+                with open(log_path, 'r') as f:
+                    log_data = json.load(f)
+                    
+                    # Count passengers by hour
+                    for entry in log_data:
+                        entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
+                        hour = entry_time.hour
+                        hourly_data[hour]['count'] += 1
+                        
+            except (json.JSONDecodeError, FileNotFoundError):
+                pass
+        
+        return jsonify({
+            'date': date_str,
+            'hourly_data': hourly_data
+        })
+        
+    except ValueError:
+        return jsonify({'error': 'Invalid date format'}), 400
+
 @app.route('/historical-data')
 @login_required
 def historical_data():
@@ -906,6 +1008,10 @@ def upload_data():
                 
                 # Clean up temp file
                 os.remove(temp_file.name)
+            
+            # Update the last Pi heartbeat time
+            global last_pi_heartbeat_time
+            last_pi_heartbeat_time = datetime.datetime.now().timestamp()
             
             print(f"✅ Data package received and extracted")
             return jsonify({'message': 'Data uploaded successfully'}), 200

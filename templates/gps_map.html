@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Trike GPS Map - Real-time Vehicle Tracking</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #059669;
+            --secondary-color: #0d9488;
+            --accent-color: #0891b2;
+            --success-color: #10b981;
+            --warning-color: #22d3ee;
+            --info-color: #06b6d4;
+            --danger-color: #f43f5e;
+            --light-green: #6ee7b7;
+            --light-blue: #7dd3fc;
+            --teal: #2dd4bf;
+            --light-bg: #f0fdfa;
+            --card-shadow: 0 8px 25px rgba(16, 185, 129, 0.15);
+            --card-hover-shadow: 0 12px 35px rgba(8, 145, 178, 0.2);
+        }
+
+         body {
+             background: linear-gradient(135deg, var(--light-green) 0%, var(--light-blue) 50%, var(--teal) 100%);
+             min-height: 100vh;
+             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+             overflow-x: hidden;
+             overscroll-behavior-y: none;
+         }
+
+         html {
+             background: linear-gradient(135deg, var(--light-green) 0%, var(--light-blue) 50%, var(--teal) 100%);
+             overscroll-behavior-y: none;
+         }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: 220px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.8));
+            backdrop-filter: blur(15px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            padding: 1.5rem 0;
+            overflow-y: auto;
+            transition: width 0.3s ease, transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-header {
+            text-align: center;
+            padding: 0 1.2rem 1.5rem 1.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .sidebar-logo {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .sidebar-nav {
+            padding: 0 0.8rem;
+        }
+
+        .nav-item {
+            margin-bottom: 0.4rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem 1.2rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transform: translateX(3px);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            box-shadow: 0 3px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        .nav-link i {
+            margin-right: 0.8rem;
+            font-size: 1rem;
+            width: 18px;
+            text-align: center;
+        }
+
+        .main-content-wrapper {
+            margin-left: 220px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+            padding-top: 60px;
+        }
+
+        .main-content-wrapper.sidebar-collapsed {
+            margin-left: 0;
+        }
+
+        /* User Profile and Account Management Header Styles */
+        .account-header {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.8));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.4rem 0;
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 220px;
+            z-index: 9998;
+            transition: left 0.3s ease;
+        }
+
+        .account-header.sidebar-collapsed {
+            left: 0;
+        }
+
+        .account-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+            max-width: none;
+        }
+
+        .sidebar-toggle-main {
+            background: none;
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            margin-left: 10px;
+        }
+
+        .sidebar-toggle-main:hover {
+            background: none;
+        }
+
+        .profile-circle {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            margin-right: 10px;
+            transform: translateX(-8px);
+            z-index: 10000;
+        }
+
+        .profile-dropdown {
+            position: absolute;
+            top: 45px;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 1rem;
+            min-width: 200px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 9999;
+        }
+
+        .profile-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .profile-info {
+            text-align: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .profile-name {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .profile-role {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+        }
+
+        .profile-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .profile-action {
+            background: none;
+            border: none;
+            color: white;
+            padding: 0.75rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .profile-action:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .profile-action.logout {
+            color: #ef4444;
+        }
+
+        .profile-action.logout:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .container-fluid {
+            padding: 2rem;
+        }
+
+        .section-title {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-shadow: var(--text-shadow);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .filter-panel {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.8));
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .filter-panel h5 {
+            color: white;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .form-label {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .filter-label-small {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .form-control, .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select-small {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
+        }
+
+        .filter-select-small:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
+        }
+
+        .form-control:disabled, .form-select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .filter-select-small:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-select option {
+            background: rgba(255, 255, 255, 0.9);
+            color: black;
+        }
+
+        .filter-select-small option {
+            background: rgba(255, 255, 255, 0.9);
+            color: black;
+        }
+
+        .filter-actions-small {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn-small {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+        }
+
+        .btn-apply {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+
+        .btn-apply:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .btn-apply:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-clear {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+        }
+
+        .btn-clear:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-center {
+            background: linear-gradient(135deg, var(--accent-color), var(--teal));
+            color: white;
+        }
+
+        .btn-center:hover {
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+        }
+
+        .map-container {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            height: 70vh;
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            border-radius: 15px;
+            z-index: 1;
+        }
+
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            margin-right: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .vehicle-info {
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
+            border-radius: 10px;
+            padding: 1rem;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 200px;
+        }
+
+        .vehicle-info h6 {
+            color: var(--primary-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .vehicle-info p {
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+        }
+
+
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            margin-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mobile-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+         @media (max-width: 768px) {
+             .sidebar {
+                 transform: translateX(-100%);
+             }
+             
+             .sidebar.show {
+                 transform: translateX(0);
+             }
+             
+             .main-content-wrapper {
+                 margin-left: 0;
+             }
+             
+             .mobile-backdrop.show {
+                 display: block;
+             }
+             
+             .container-fluid {
+                 padding: 1rem;
+             }
+             
+             .map-container {
+                 height: 60vh;
+             }
+
+             /* Add mobile navigation trigger */
+             .sidebar-header {
+                 cursor: pointer;
+                 padding: 1rem;
+             }
+
+             .sidebar-header::after {
+                 content: '☰';
+                 position: absolute;
+                 right: 1rem;
+                 top: 50%;
+                 transform: translateY(-50%);
+                 font-size: 1.5rem;
+                 color: white;
+             }
+         }
+    </style>
+</head>
+<body>
+    <!-- Mobile Touch Device Sidebar Backdrop Overlay -->
+    <div class="mobile-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- E-Trike Dashboard Left Sidebar Navigation Menu -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">Dashboard Menu</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-item">
+                <a href="/" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Dashboard
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/gps-map" class="nav-link active">
+                    <i class="fas fa-map-marked-alt"></i>
+                    GPS Map
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/options" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Options
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Top Account Management and Profile Header Bar -->
+    <div class="account-header">
+            <div class="account-section">
+            <button class="sidebar-toggle-main" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+                <div class="profile-circle" onclick="toggleProfileDropdown()">
+                    A
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <div class="profile-info">
+                            <div class="profile-name">Admin User</div>
+                            <div class="profile-role">Dashboard Administrator</div>
+                </div>
+                        <div class="profile-actions">
+                            <button class="profile-action" onclick="editProfile()">
+                                <i class="fas fa-user-edit"></i>
+                                Edit Profile
+                            </button>
+                            <button class="profile-action" onclick="viewSettings()">
+                        <i class="fas fa-cog"></i>
+                                Settings
+                            </button>
+                            <button class="profile-action logout" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-content-wrapper">
+        <div class="container-fluid">
+            <!-- Filter Panel -->
+            <div class="filter-panel">
+                <h5><i class="fas fa-sliders-h me-2"></i>Filter Vehicles</h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="toda-select" class="filter-label-small">TODA</label>
+                        <select class="filter-select-small" id="toda-select">
+                            <option value="">All TODAs</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="etrike-select" class="filter-label-small">E-Trike</label>
+                        <select class="filter-select-small" id="etrike-select" disabled>
+                            <option value="">Select TODA first</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="pi-select" class="filter-label-small">Pi Device</label>
+                        <select class="filter-select-small" id="pi-select">
+                            <option value="">All Pi Devices</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="filter-label-small">&nbsp;</label>
+                        <div class="filter-actions-small">
+                            <button class="filter-btn-small btn-apply" id="apply-filter" onclick="applyFilters()" disabled>
+                                <i class="fas fa-search me-2"></i>Apply
+                            </button>
+                            <button class="filter-btn-small btn-clear" onclick="clearFilters()">
+                                <i class="fas fa-times me-2"></i>Clear
+                            </button>
+                            <button class="filter-btn-small btn-center" onclick="centerMap()">
+                                <i class="fas fa-crosshairs me-2"></i>Center
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+             <!-- Map Container -->
+             <div class="map-container">
+                 <div id="map"></div>
+             </div>
+        </div>
+
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        let map;
+        let vehicleMarkers = {};
+        let routeLayers = {};
+        let heatmapLayer = null;
+        let trafficLayer = null;
+        let currentFilters = {
+            toda: '',
+            etrike: '',
+            pi: ''
+        };
+
+        // Initialize map when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadTodas();
+            loadPiDevices();
+            setupFilterEventListeners();
+            updateApplyButton(); // Set initial button state
+            startRealTimeUpdates();
+        });
+
+        function initMap() {
+            // Initialize map centered on Manila
+            map = L.map('map').setView([14.5995, 120.9842], 13);
+            
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            console.log('Map initialized');
+        }
+
+        function loadTodas() {
+            fetch('/get-todas')
+                .then(response => response.json())
+                .then(data => {
+                    const todaSelect = document.getElementById('toda-select');
+                    data.todas.forEach(toda => {
+                        const option = document.createElement('option');
+                        option.value = toda.id;
+                        option.textContent = `${toda.name} - ${toda.full_name}`;
+                        todaSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading TODAs:', error));
+        }
+
+        function loadPiDevices() {
+            fetch('/get-pi-assignments')
+                .then(response => response.json())
+                .then(data => {
+                    const piSelect = document.getElementById('pi-select');
+                    Object.keys(data).forEach(piId => {
+                        const assignment = data[piId];
+                        const option = document.createElement('option');
+                        option.value = piId;
+                        option.textContent = `Pi ${piId} - ${assignment.etrike_id}`;
+                        piSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading Pi devices:', error));
+        }
+
+        function setupFilterEventListeners() {
+            const todaSelect = document.getElementById('toda-select');
+            const etrikeSelect = document.getElementById('etrike-select');
+            const piSelect = document.getElementById('pi-select');
+
+            todaSelect.addEventListener('change', function() {
+                currentFilters.toda = this.value;
+                if (this.value) {
+                    loadEtrikes(this.value);
+                    etrikeSelect.disabled = false;
+                } else {
+                    etrikeSelect.innerHTML = '<option value="">Select TODA first</option>';
+                    etrikeSelect.disabled = true;
+                    currentFilters.etrike = '';
+                }
+                updateApplyButton();
+            });
+
+            etrikeSelect.addEventListener('change', function() {
+                currentFilters.etrike = this.value;
+                updateApplyButton();
+            });
+
+            piSelect.addEventListener('change', function() {
+                currentFilters.pi = this.value;
+                updateApplyButton();
+            });
+        }
+
+        function updateApplyButton() {
+            const applyBtn = document.getElementById('apply-filter');
+            const todaSelect = document.getElementById('toda-select');
+            applyBtn.disabled = !todaSelect.value;
+        }
+
+        function loadEtrikes(todaId) {
+            fetch(`/get-etrikes?toda=${todaId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const etrikeSelect = document.getElementById('etrike-select');
+                    etrikeSelect.innerHTML = '<option value="">All E-Trikes</option>';
+                    data.etikes.forEach(etrike => {
+                        const option = document.createElement('option');
+                        option.value = etrike.id;
+                        option.textContent = `${etrike.name} - ${etrike.status}`;
+                        etrikeSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading E-Trikes:', error));
+        }
+
+        function applyFilters() {
+            console.log('Applying filters:', currentFilters);
+            loadVehicleData();
+        }
+
+        function clearFilters() {
+            document.getElementById('toda-select').value = '';
+            document.getElementById('etrike-select').value = '';
+            document.getElementById('etrike-select').disabled = true;
+            document.getElementById('pi-select').value = '';
+            
+            currentFilters = { toda: '', etrike: '', pi: '' };
+            loadVehicleData();
+        }
+
+         function loadVehicleData() {
+             fetch('/vehicle-locations')
+                 .then(response => response.json())
+                 .then(data => {
+                     const vehicles = data.vehicles || [];
+                     updateVehicleMarkers(vehicles);
+                 })
+                 .catch(error => {
+                     console.error('Error loading vehicle data:', error);
+                     // Clear markers if API fails
+                     Object.values(vehicleMarkers).forEach(marker => map.removeLayer(marker));
+                     vehicleMarkers = {};
+                 });
+         }
+
+        function updateVehicleMarkers(vehicles) {
+            // Clear existing markers
+            Object.values(vehicleMarkers).forEach(marker => map.removeLayer(marker));
+            vehicleMarkers = {};
+
+            vehicles.forEach(vehicle => {
+                // Apply filters
+                if (currentFilters.toda && vehicle.toda !== currentFilters.toda) return;
+                if (currentFilters.etrike && vehicle.id !== currentFilters.etrike) return;
+                if (currentFilters.pi && vehicle.pi !== currentFilters.pi) return;
+
+                // Create custom icon based on status
+                const iconColor = vehicle.status === 'active' ? '#10b981' : '#ef4444';
+                const icon = L.divIcon({
+                    html: `<div style="
+                        background: ${iconColor};
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        border: 3px solid white;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 10px;
+                        font-weight: bold;
+                    ">${vehicle.name.slice(-2)}</div>`,
+                    className: 'custom-div-icon',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+
+                const marker = L.marker([vehicle.lat, vehicle.lng], { icon })
+                    .addTo(map)
+                    .bindPopup(`
+                        <div class="vehicle-info">
+                            <h6>${vehicle.name}</h6>
+                            <p><strong>Status:</strong> ${vehicle.status}</p>
+                            <p><strong>Speed:</strong> ${vehicle.speed} km/h</p>
+                            <p><strong>Passengers:</strong> ${vehicle.passengers}</p>
+                            <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
+                            <p><strong>Pi Device:</strong> ${vehicle.pi}</p>
+                        </div>
+                    `);
+
+                vehicleMarkers[vehicle.id] = marker;
+            });
+        }
+
+
+         function startRealTimeUpdates() {
+             // Update vehicle positions every 5 seconds
+             setInterval(loadVehicleData, 5000);
+         }
+
+         function centerMap() {
+             console.log('Center map clicked');
+             if (map && Object.keys(vehicleMarkers).length > 0) {
+                 const group = new L.featureGroup(Object.values(vehicleMarkers));
+                 map.fitBounds(group.getBounds().pad(0.1));
+                 console.log('Centered on vehicle markers');
+             } else if (map) {
+                 map.setView([14.5995, 120.9842], 13);
+                 console.log('Centered on default location');
+             } else {
+                 console.log('Map not initialized');
+             }
+         }
+
+
+        // Profile dropdown functions
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function editProfile() {
+            alert('Edit Profile functionality - to be implemented');
+            toggleProfileDropdown();
+        }
+
+        function viewSettings() {
+            alert('Settings functionality - to be implemented');
+            toggleProfileDropdown();
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = '/login';
+            }
+            toggleProfileDropdown();
+        }
+
+         // Toggle sidebar visibility for mobile and desktop layouts
+         function toggleSidebar() {
+             const sidebar = document.getElementById('sidebar');
+             const mainContent = document.querySelector('.main-content-wrapper');
+             const accountHeader = document.querySelector('.account-header');
+             const backdrop = document.querySelector('.mobile-backdrop');
+             
+             // Toggle sidebar expanded/collapsed state and adjust content layout
+             sidebar.classList.toggle('collapsed');
+             mainContent.classList.toggle('sidebar-collapsed');
+             accountHeader.classList.toggle('sidebar-collapsed');
+             
+             // Change chevron icon direction based on sidebar state
+             const toggleBtn = document.querySelector('.sidebar-toggle-main i');
+             if (sidebar.classList.contains('collapsed')) {
+                 toggleBtn.className = 'fas fa-chevron-right';
+             } else {
+                 toggleBtn.className = 'fas fa-chevron-left';
+             }
+             
+             // Show/hide mobile backdrop overlay for touch devices
+             if (window.innerWidth <= 768) {
+                 sidebar.classList.toggle('show');
+                 
+                 if (sidebar.classList.contains('show')) {
+                     backdrop.style.display = 'block';
+                     setTimeout(() => backdrop.classList.add('show'), 10);
+                 } else {
+                     backdrop.classList.remove('show');
+                     setTimeout(() => backdrop.style.display = 'none', 300);
+                 }
+             }
+         }
+
+         // Close profile dropdown when clicking outside
+         document.addEventListener('click', function(event) {
+             const dropdown = document.getElementById('profileDropdown');
+             const profileCircle = document.querySelector('.profile-circle');
+             
+             if (!profileCircle.contains(event.target)) {
+                 dropdown.classList.remove('show');
+             }
+         });
+
+         // Enable sidebar header tap-to-toggle functionality on mobile
+         document.addEventListener('DOMContentLoaded', function() {
+             const sidebarHeader = document.querySelector('.sidebar-header');
+             
+             if (window.innerWidth <= 768) {
+                 sidebarHeader.addEventListener('click', function() {
+                     toggleSidebar();
+                 });
+             }
+         });
+    </script>
+</body>
+</html>

@@ -375,6 +375,13 @@
             box-shadow: var(--card-shadow);
         }
 
+        .filter-controls-panel h5 {
+            color: white;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
         /* Thematic Separator Styling */
         .thematic-separator {
             display: flex;
@@ -1279,6 +1286,12 @@
                 </a>
             </div>
             <div class="nav-item">
+                <a href="/gps-map" class="nav-link">
+                    <i class="fas fa-map-marked-alt"></i>
+                    GPS Map
+                </a>
+            </div>
+            <div class="nav-item">
                 <a href="/options" class="nav-link">
                     <i class="fas fa-cog"></i>
                     Options
@@ -1322,13 +1335,8 @@
         <div class="main-content-wrapper">
         <div class="container-fluid py-4">
 
-                <!-- TODA/E-Trike/Pi Device Filter and Registration Controls -->
-                <div class="section-title">
-                    <i class="fas fa-sliders-h"></i>
-                    Filters & Registration Controls
-                </div>
-                
                 <div class="filter-controls-panel">
+                    <h5><i class="fas fa-sliders-h me-2"></i>Filters & Registration Controls</h5>
                     <!-- City and Filter Status Display Badges -->
                     <div class="row mb-3">
                         <div class="col-12 text-center">
@@ -1356,10 +1364,10 @@
                         </div>
                     </div>
                     
-                        <div class="row align-items-center">
+                        <div class="row g-3 align-items-center">
                             <div class="col-md-3">
                                 <label class="filter-label-small">
-                                    <i class="fas fa-users me-2"></i>TODA
+                                    TODA
                                 </label>
                                 <select class="filter-select-small" id="toda-select">
                                     <option value="">All TODAs (City-wide)</option>
@@ -1367,7 +1375,7 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="filter-label-small">
-                                    <i class="fas fa-motorcycle me-2"></i>E-Trike
+                                    E-Trike
                                 </label>
                                 <select class="filter-select-small" id="etrike-select" disabled>
                                     <option value="">Select TODA first</option>
@@ -1375,13 +1383,14 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="filter-label-small">
-                                    <i class="fas fa-microchip me-2"></i>Pi Device
+                                    Pi Device
                                 </label>
                                 <select class="filter-select-small" id="pi-select">
                                     <option value="">All Pi Devices</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
+                                <label class="filter-label-small">&nbsp;</label>
                                 <div class="filter-actions-small">
                                     <button class="filter-btn-small btn-apply" id="apply-filter" disabled>
                                         <i class="fas fa-check me-2"></i>Apply
@@ -1392,6 +1401,7 @@
                                     <a href="{{ url_for('pi_registration') }}" class="filter-btn-small btn-register">
                                         <i class="fas fa-plus me-2"></i>Add Pi
                                     </a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1613,7 +1623,7 @@
     </div>
 
     <!-- Historical Population Data Modal -->
-    <div class="modal fade" id="historicalPopulationModal" tabindex="-1" aria-labelledby="historicalPopulationModalLabel" aria-hidden="true" style="z-index: 10000; overflow-y: hidden;">
+    <div class="modal fade" id="historicalPopulationModal" tabindex="-1" aria-labelledby="historicalPopulationModalLabel" aria-hidden="true" style="z-index: 10000;">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">

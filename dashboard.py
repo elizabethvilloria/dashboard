@@ -59,7 +59,9 @@ def get_latest_log_time():
                         continue
     
     if latest_timestamp > 0:
-        return datetime.datetime.utcfromtimestamp(latest_timestamp)
+        # Convert UTC timestamp to Philippines/Singapore time (UTC+8)
+        utc_time = datetime.datetime.utcfromtimestamp(latest_timestamp)
+        return utc_time + datetime.timedelta(hours=8)
     
     return datetime.datetime.now()
 
@@ -184,8 +186,9 @@ def get_passenger_counts():
                 # Hourly count (rolling)
                 hourly_count = 0
                 for entry in log_data:
-                    # Use UTC to avoid timezone issues
-                    entry_time = datetime.datetime.utcfromtimestamp(entry['entry_timestamp'])
+                    # Convert UTC to Philippines/Singapore time (UTC+8)
+                    utc_time = datetime.datetime.utcfromtimestamp(entry['entry_timestamp'])
+                    entry_time = utc_time + datetime.timedelta(hours=8)
                     if (now - entry_time).total_seconds() <= 3600:
                         hourly_count += 1
                 counts['hourly'] = hourly_count
@@ -497,6 +500,15 @@ def index():
     update_historical_summary()
     return render_template('index.html')
 
+@app.route('/gps-map')
+@login_required
+def gps_map():
+    # Set default city if not already set
+    if 'city' not in session:
+        session['city'] = 'manila'
+    
+    return render_template('gps_map.html')
+
 @app.route('/options')
 @login_required
 def options():
@@ -748,6 +760,107 @@ def pi_live_status():
     
     return jsonify({'is_live': is_live, 'last_heartbeat': last_pi_heartbeat_time})
 
+@app.route('/gps-data', methods=['POST'])
+def receive_gps_data():
+    """Receive GPS data from Pi devices"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['pi_id', 'latitude', 'longitude', 'timestamp']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Store GPS data
+        gps_entry = {
+            'pi_id': data['pi_id'],
+            'latitude': float(data['latitude']),
+            'longitude': float(data['longitude']),
+            'speed': float(data.get('speed', 0)),
+            'heading': float(data.get('heading', 0)),
+            'timestamp': data['timestamp'],
+            'received_at': datetime.datetime.now().isoformat()
+        }
+        
+        # Save to GPS log file
+        gps_log_path = os.path.join(LOG_DIR, 'gps_data.json')
+        gps_data = []
+        
+        if os.path.exists(gps_log_path):
+            try:
+                with open(gps_log_path, 'r') as f:
+                    gps_data = json.load(f)
+            except (json.JSONDecodeError, FileNotFoundError):
+                gps_data = []
+        
+        gps_data.append(gps_entry)
+        
+        # Keep only last 1000 entries to prevent file from growing too large
+        if len(gps_data) > 1000:
+            gps_data = gps_data[-1000:]
+        
+        with open(gps_log_path, 'w') as f:
+            json.dump(gps_data, f, indent=2)
+        
+        # Update Pi heartbeat
+        global last_pi_heartbeat_time
+        last_pi_heartbeat_time = datetime.datetime.now().timestamp()
+        
+        return jsonify({'status': 'success', 'message': 'GPS data received'})
+        
+    except Exception as e:
+        print(f"GPS data error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/vehicle-locations')
+@login_required
+def get_vehicle_locations():
+    """Get current vehicle locations for map display"""
+    try:
+        gps_log_path = os.path.join(LOG_DIR, 'gps_data.json')
+        if not os.path.exists(gps_log_path):
+            return jsonify({'vehicles': []})
+        
+        with open(gps_log_path, 'r') as f:
+            gps_data = json.load(f)
+        
+        # Get latest location for each Pi device
+        latest_locations = {}
+        for entry in gps_data:
+            pi_id = entry['pi_id']
+            entry_time = datetime.datetime.fromisoformat(entry['received_at'])
+            
+            if pi_id not in latest_locations or entry_time > datetime.datetime.fromisoformat(latest_locations[pi_id]['received_at']):
+                latest_locations[pi_id] = entry
+        
+        # Convert to vehicle format
+        vehicles = []
+        pi_assignments = load_pi_assignments()
+        
+        for pi_id, location in latest_locations.items():
+            assignment = pi_assignments.get(pi_id, {})
+            vehicle = {
+                'id': assignment.get('etrike_id', f'pi-{pi_id}'),
+                'name': f"E-Trike {assignment.get('etrike_id', pi_id)}",
+                'lat': location['latitude'],
+                'lng': location['longitude'],
+                'speed': location.get('speed', 0),
+                'heading': location.get('heading', 0),
+                'status': 'active' if (datetime.datetime.now() - datetime.datetime.fromisoformat(location['received_at'])).seconds < 60 else 'offline',
+                'passengers': 0,  # This would come from passenger data
+                'toda': assignment.get('toda_id', ''),
+                'pi': pi_id,
+                'last_update': location['received_at']
+            }
+            vehicles.append(vehicle)
+        
+        return jsonify({'vehicles': vehicles})
+        
+    except Exception as e:
+        print(f"Vehicle locations error: {e}")
+        return jsonify({'vehicles': []})
+
 @app.route('/population-data')
 @login_required
 def population_data():
@@ -772,8 +885,9 @@ def population_data():
                 
                 # Count passengers by hour
                 for entry in log_data:
-                    # Use UTC to avoid timezone issues
-                    entry_time = datetime.datetime.utcfromtimestamp(entry['entry_timestamp'])
+                    # Convert UTC to Philippines/Singapore time (UTC+8)
+                    utc_time = datetime.datetime.utcfromtimestamp(entry['entry_timestamp'])
+                    entry_time = utc_time + datetime.timedelta(hours=8)
                     hour = entry_time.hour
                     hourly_data[hour]['count'] += 1
                     
@@ -814,8 +928,9 @@ def historical_population_data():
                     
                     # Count passengers by hour
                     for entry in log_data:
-                        # Use UTC to avoid timezone issues
-                        entry_time = datetime.datetime.utcfromtimestamp(entry['entry_timestamp'])
+                        # Convert UTC to Philippines/Singapore time (UTC+8)
+                        utc_time = datetime.datetime.utcfromtimestamp(entry['entry_timestamp'])
+                        entry_time = utc_time + datetime.timedelta(hours=8)
                         hour = entry_time.hour
                         hourly_data[hour]['count'] += 1
                         
@@ -1205,8 +1320,9 @@ def export_pdf():
                 exit_time = passenger.get('exit_timestamp', 0)
                 dwell_time = passenger.get('dwell_time_minutes', 0)
                 
-                entry_str = datetime.datetime.utcfromtimestamp(entry_time).strftime('%H:%M:%S') if entry_time else 'N/A'
-                exit_str = datetime.datetime.utcfromtimestamp(exit_time).strftime('%H:%M:%S') if exit_time else 'N/A'
+                # Convert UTC to Philippines/Singapore time (UTC+8)
+                entry_str = (datetime.datetime.utcfromtimestamp(entry_time) + datetime.timedelta(hours=8)).strftime('%H:%M:%S') if entry_time else 'N/A'
+                exit_str = (datetime.datetime.utcfromtimestamp(exit_time) + datetime.timedelta(hours=8)).strftime('%H:%M:%S') if exit_time else 'N/A'
                 dwell_str = f"{dwell_time:.1f}" if dwell_time else 'N/A'
                 
                 table_data.append([str(i), entry_str, exit_str, dwell_str])

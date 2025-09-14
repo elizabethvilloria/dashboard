@@ -59,9 +59,8 @@ def get_latest_log_time():
                         continue
     
     if latest_timestamp > 0:
-        # Convert UTC timestamp to Philippines/Singapore time (UTC+8)
-        utc_time = datetime.datetime.utcfromtimestamp(latest_timestamp)
-        return utc_time + datetime.timedelta(hours=8)
+        # Convert timestamp to local time
+        return datetime.datetime.fromtimestamp(latest_timestamp)
     
     return datetime.datetime.now()
 
@@ -186,9 +185,8 @@ def get_passenger_counts():
                 # Hourly count (rolling)
                 hourly_count = 0
                 for entry in log_data:
-                    # Convert UTC to Philippines/Singapore time (UTC+8)
-                    utc_time = datetime.datetime.utcfromtimestamp(entry['entry_timestamp'])
-                    entry_time = utc_time + datetime.timedelta(hours=8)
+                    # Convert timestamp to local time
+                    entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
                     if (now - entry_time).total_seconds() <= 3600:
                         hourly_count += 1
                 counts['hourly'] = hourly_count
@@ -885,9 +883,8 @@ def population_data():
                 
                 # Count passengers by hour
                 for entry in log_data:
-                    # Convert UTC to Philippines/Singapore time (UTC+8)
-                    utc_time = datetime.datetime.utcfromtimestamp(entry['entry_timestamp'])
-                    entry_time = utc_time + datetime.timedelta(hours=8)
+                    # Convert timestamp to local time
+                    entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
                     hour = entry_time.hour
                     hourly_data[hour]['count'] += 1
                     
@@ -928,9 +925,8 @@ def historical_population_data():
                     
                     # Count passengers by hour
                     for entry in log_data:
-                        # Convert UTC to Philippines/Singapore time (UTC+8)
-                        utc_time = datetime.datetime.utcfromtimestamp(entry['entry_timestamp'])
-                        entry_time = utc_time + datetime.timedelta(hours=8)
+                        # Convert timestamp to local time
+                        entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
                         hour = entry_time.hour
                         hourly_data[hour]['count'] += 1
                         
@@ -1320,9 +1316,9 @@ def export_pdf():
                 exit_time = passenger.get('exit_timestamp', 0)
                 dwell_time = passenger.get('dwell_time_minutes', 0)
                 
-                # Convert UTC to Philippines/Singapore time (UTC+8)
-                entry_str = (datetime.datetime.utcfromtimestamp(entry_time) + datetime.timedelta(hours=8)).strftime('%H:%M:%S') if entry_time else 'N/A'
-                exit_str = (datetime.datetime.utcfromtimestamp(exit_time) + datetime.timedelta(hours=8)).strftime('%H:%M:%S') if exit_time else 'N/A'
+                # Convert timestamp to local time
+                entry_str = datetime.datetime.fromtimestamp(entry_time).strftime('%H:%M:%S') if entry_time else 'N/A'
+                exit_str = datetime.datetime.fromtimestamp(exit_time).strftime('%H:%M:%S') if exit_time else 'N/A'
                 dwell_str = f"{dwell_time:.1f}" if dwell_time else 'N/A'
                 
                 table_data.append([str(i), entry_str, exit_str, dwell_str])

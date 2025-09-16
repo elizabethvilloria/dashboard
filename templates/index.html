@@ -132,7 +132,7 @@
         .main-content-wrapper {
             margin-left: 220px;
             padding: 2rem;
-            padding-top: 3rem;
+            padding-top: 1.5rem;
             transition: margin-left 0.3s ease;
         }
 
@@ -1599,7 +1599,7 @@
         </div> <!-- End of main content wrapper with sidebar spacing -->
 
         <div class="footer">
-            <p><i class="fas fa-heart text-danger"></i> E-Trike AI Camera System - Powered by Raspberry Pi 5</p>
+            <p><i class="fas fa-heart text-danger"></i> E-Trike AI Camera System - Powered by Raspberry Pi</p>
             <p><span class="status-indicator"></span>System Status: Active</p>
         </div>
     </div>
@@ -2709,6 +2709,16 @@
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    const index = context[0].dataIndex;
+                                    const hour = Math.floor(index / 2);
+                                    const isHalfHour = index % 2 === 1;
+                                    return isHalfHour ? `${hour.toString().padStart(2, '0')}:30` : `${hour.toString().padStart(2, '0')}:00`;
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -2721,7 +2731,9 @@
                                 color: '#ffffff',
                                 font: {
                                     size: 11
-                                }
+                                },
+                                maxRotation: 0,
+                                minRotation: 0
                             }
                         },
                         y: {
@@ -2767,11 +2779,34 @@
             fetch(`/historical-population-data?date=${today}`)
                 .then(response => response.json())
                 .then(data => {
-                    const hours = data.hourly_data.map(item => item.hour);
-                    const counts = data.hourly_data.map(item => item.count);
+                    // Use actual 30-minute interval data
+                    const labels = [];
+                    const counts = [];
+                    const pointStyles = [];
                     
-                    populationChart.data.labels = hours;
+                    data.hourly_data.forEach((interval, index) => {
+                        // Show time labels only for full hours (00:00, 01:00, etc.)
+                        if (index % 2 === 0) {
+                            labels.push(interval.hour);
+                        } else {
+                            labels.push(''); // Empty label for 30-minute marks
+                        }
+                        
+                        counts.push(interval.count);
+                        pointStyles.push('circle');
+                    });
+                    
+                    populationChart.data.labels = labels;
                     populationChart.data.datasets[0].data = counts;
+                    populationChart.data.datasets[0].pointStyle = pointStyles;
+                    populationChart.data.datasets[0].pointRadius = pointStyles.map((style, index) => {
+                        // Full hours get radius 4, 30-minute marks get radius 2
+                        return index % 2 === 0 ? 4 : 2;
+                    });
+                    populationChart.data.datasets[0].pointHoverRadius = pointStyles.map((style, index) => {
+                        // Full hours expand to 6 on hover, 30-minute marks expand to 3
+                        return index % 2 === 0 ? 6 : 3;
+                    });
                     populationChart.update('none'); // 'none' disables animation
                 })
                 .catch(error => {
@@ -2832,6 +2867,16 @@
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    const index = context[0].dataIndex;
+                                    const hour = Math.floor(index / 2);
+                                    const isHalfHour = index % 2 === 1;
+                                    return isHalfHour ? `${hour.toString().padStart(2, '0')}:30` : `${hour.toString().padStart(2, '0')}:00`;
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -2844,7 +2889,9 @@
                                 color: '#000000',
                                 font: {
                                     size: 12
-                                }
+                                },
+                                maxRotation: 0,
+                                minRotation: 0
                             }
                         },
                         y: {
@@ -2895,23 +2942,46 @@
             fetch(`/historical-population-data?date=${selectedDate}`)
                 .then(response => response.json())
                 .then(data => {
-                    const hours = data.hourly_data.map(item => item.hour);
-                    const counts = data.hourly_data.map(item => item.count);
+                    // Use actual 30-minute interval data
+                    const labels = [];
+                    const counts = [];
+                    const pointStyles = [];
                     
-                    historicalPopulationChart.data.labels = hours;
+                    data.hourly_data.forEach((interval, index) => {
+                        // Show time labels only for full hours (00:00, 01:00, etc.)
+                        if (index % 2 === 0) {
+                            labels.push(interval.hour);
+                        } else {
+                            labels.push(''); // Empty label for 30-minute marks
+                        }
+                        
+                        counts.push(interval.count);
+                        pointStyles.push('circle');
+                    });
+                    
+                    historicalPopulationChart.data.labels = labels;
                     historicalPopulationChart.data.datasets[0].data = counts;
+                    historicalPopulationChart.data.datasets[0].pointStyle = pointStyles;
+                    historicalPopulationChart.data.datasets[0].pointRadius = pointStyles.map((style, index) => {
+                        // Full hours get radius 4, 30-minute marks get radius 2
+                        return index % 2 === 0 ? 4 : 2;
+                    });
+                    historicalPopulationChart.data.datasets[0].pointHoverRadius = pointStyles.map((style, index) => {
+                        // Full hours expand to 6 on hover, 30-minute marks expand to 3
+                        return index % 2 === 0 ? 6 : 3;
+                    });
                     historicalPopulationChart.update('none'); // 'none' disables animation
                     
-                    // Calculate statistics
+                    // Calculate statistics using actual 30-minute interval data
                     const totalPassengers = counts.reduce((sum, count) => sum + count, 0);
                     const maxCount = Math.max(...counts);
-                    const peakHourIndex = counts.indexOf(maxCount);
-                    const peakHour = hours[peakHourIndex];
-                    const avgPerHour = totalPassengers / 24;
+                    const peakIntervalIndex = counts.indexOf(maxCount);
+                    const peakInterval = data.hourly_data[peakIntervalIndex];
+                    const avgPerInterval = totalPassengers / 48; // 48 intervals per day
                     
                     document.getElementById('totalPassengers').textContent = totalPassengers;
-                    document.getElementById('peakHour').textContent = peakHour;
-                    document.getElementById('avgPerHour').textContent = Math.round(avgPerHour);
+                    document.getElementById('peakHour').textContent = peakInterval.hour;
+                    document.getElementById('avgPerHour').textContent = Math.round(avgPerInterval * 2); // Convert to per hour
                 })
                 .catch(error => {
                     console.error('Error loading historical population data:', error);

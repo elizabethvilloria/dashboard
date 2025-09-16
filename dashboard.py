@@ -882,17 +882,18 @@ def get_vehicle_locations():
 @app.route('/population-data')
 @login_required
 def population_data():
-    """Get hourly population data for the current day"""
+    """Get 30-minute interval population data for the current day"""
     today = datetime.datetime.now()
-    hourly_data = []
+    interval_data = []
     
-    # Initialize 24 hours with 0 counts
+    # Initialize 48 intervals (every 30 minutes) with 0 counts
     for hour in range(24):
-        hourly_data.append({
-            'hour': f"{hour:02d}:00",
-            'count': 0,
-            'timestamp': hour
-        })
+        for minute in [0, 30]:
+            interval_data.append({
+                'hour': f"{hour:02d}:{minute:02d}",
+                'count': 0,
+                'timestamp': hour * 60 + minute
+            })
     
     # Get today's log data
     today_log_path = os.path.join(LOG_DIR, str(today.year), str(today.month), f"{today.day}.json")
@@ -901,40 +902,48 @@ def population_data():
             with open(today_log_path, 'r') as f:
                 log_data = json.load(f)
                 
-                # Count passengers by hour
+                # Count passengers by 30-minute intervals
                 for entry in log_data:
-                    # Convert timestamp to local time
+                    # Use Pi's local time directly (no timezone conversion)
                     entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
                     hour = entry_time.hour
-                    hourly_data[hour]['count'] += 1
+                    minute = entry_time.minute
+                    
+                    # Determine which 30-minute interval
+                    interval_minute = 0 if minute < 30 else 30
+                    interval_index = hour * 2 + (0 if minute < 30 else 1)
+                    
+                    if 0 <= interval_index < len(interval_data):
+                        interval_data[interval_index]['count'] += 1
                     
         except (json.JSONDecodeError, FileNotFoundError):
             pass
     
     return jsonify({
         'date': today.strftime('%Y-%m-%d'),
-        'hourly_data': hourly_data
+        'hourly_data': interval_data
     })
 
 @app.route('/historical-population-data')
 @login_required
 def historical_population_data():
-    """Get historical population data for a specific date"""
+    """Get historical 30-minute interval population data for a specific date"""
     date_str = request.args.get('date')
     if not date_str:
         return jsonify({'error': 'Date parameter required'}), 400
     
     try:
         target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
-        hourly_data = []
+        interval_data = []
         
-        # Initialize 24 hours with 0 counts
+        # Initialize 48 intervals (every 30 minutes) with 0 counts
         for hour in range(24):
-            hourly_data.append({
-                'hour': f"{hour:02d}:00",
-                'count': 0,
-                'timestamp': hour
-            })
+            for minute in [0, 30]:
+                interval_data.append({
+                    'hour': f"{hour:02d}:{minute:02d}",
+                    'count': 0,
+                    'timestamp': hour * 60 + minute
+                })
         
         # Get the specific date's log data
         log_path = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month), f"{target_date.day}.json")
@@ -943,19 +952,26 @@ def historical_population_data():
                 with open(log_path, 'r') as f:
                     log_data = json.load(f)
                     
-                    # Count passengers by hour
+                    # Count passengers by 30-minute intervals
                     for entry in log_data:
-                        # Convert timestamp to local time
+                        # Use Pi's local time directly (no timezone conversion)
                         entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
                         hour = entry_time.hour
-                        hourly_data[hour]['count'] += 1
+                        minute = entry_time.minute
+                        
+                        # Determine which 30-minute interval
+                        interval_minute = 0 if minute < 30 else 30
+                        interval_index = hour * 2 + (0 if minute < 30 else 1)
+                        
+                        if 0 <= interval_index < len(interval_data):
+                            interval_data[interval_index]['count'] += 1
                         
             except (json.JSONDecodeError, FileNotFoundError):
                 pass
         
         return jsonify({
             'date': date_str,
-            'hourly_data': hourly_data
+            'hourly_data': interval_data
         })
         
     except ValueError:

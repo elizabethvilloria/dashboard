@@ -125,7 +125,7 @@
             margin-left: 220px;
             min-height: 100vh;
             transition: margin-left 0.3s ease;
-            padding-top: 60px;
+            padding-top: 1.5rem;
         }
 
         .main-content-wrapper.sidebar-collapsed {
@@ -568,6 +568,7 @@
          @media (max-width: 768px) {
              .sidebar {
                  transform: translateX(-100%);
+                 width: 280px;
              }
              
              .sidebar.show {
@@ -576,6 +577,12 @@
              
              .main-content-wrapper {
                  margin-left: 0;
+                 padding-top: 50px;
+             }
+             
+             .account-header {
+                 left: 0;
+                 padding: 0.3rem 0;
              }
              
              .mobile-backdrop.show {
@@ -583,11 +590,66 @@
              }
              
              .container-fluid {
+                 padding: 0.5rem;
+             }
+             
+             .filter-panel {
+                 margin-top: 1rem;
+                 margin-bottom: 1rem;
                  padding: 1rem;
              }
              
+             .filter-panel h5 {
+                 font-size: 1.1rem;
+                 margin-bottom: 0.8rem;
+             }
+             
+             .filter-label-small {
+                 font-size: 0.8rem;
+                 margin-bottom: 0.3rem;
+             }
+             
+             .filter-select-small {
+                 padding: 0.6rem;
+                 font-size: 0.85rem;
+             }
+             
+             .filter-btn-small {
+                 padding: 0.6rem 0.8rem;
+                 font-size: 0.8rem;
+                 min-width: 70px;
+             }
+             
              .map-container {
-                 height: 60vh;
+                 height: 50vh;
+                 padding: 1rem;
+                 margin-bottom: 1rem;
+             }
+             
+             .btn-fullscreen {
+                 bottom: 20px;
+                 left: 20px;
+                 width: 28px;
+                 height: 28px;
+             }
+             
+             .btn-fullscreen i {
+                 font-size: 1rem;
+             }
+             
+             .vehicle-info {
+                 min-width: 180px;
+                 padding: 0.8rem;
+             }
+             
+             .vehicle-info h6 {
+                 font-size: 1rem;
+                 margin-bottom: 0.6rem;
+             }
+             
+             .vehicle-info p {
+                 font-size: 0.8rem;
+                 margin: 0.3rem 0;
              }
 
              /* Add mobile navigation trigger */
@@ -604,6 +666,30 @@
                  transform: translateY(-50%);
                  font-size: 1.5rem;
                  color: white;
+             }
+             
+             /* Stack filter controls vertically on very small screens */
+             @media (max-width: 480px) {
+                 .row.g-3 .col-md-3 {
+                     margin-bottom: 0.5rem;
+                 }
+                 
+                 .filter-actions-small {
+                     justify-content: center;
+                     margin-top: 0.5rem;
+                 }
+                 
+                 .map-container {
+                     height: 45vh;
+                     padding: 0.5rem;
+                 }
+                 
+                 .btn-fullscreen {
+                     bottom: 15px;
+                     left: 15px;
+                     width: 26px;
+                     height: 26px;
+                 }
              }
          }
     </style>

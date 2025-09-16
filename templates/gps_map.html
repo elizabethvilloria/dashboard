@@ -449,6 +449,31 @@
             z-index: 1;
         }
 
+        .btn-fullscreen {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            background: none;
+            color: black;
+            border: none;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .btn-fullscreen:hover {
+            /* No transform effect */
+        }
+
+        .btn-fullscreen i {
+            font-size: 1.2rem;
+        }
+
 
         .status-indicator {
             display: inline-block;
@@ -464,6 +489,12 @@
             0% { opacity: 1; }
             50% { opacity: 0.5; }
             100% { opacity: 1; }
+        }
+
+        @keyframes highlight {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.7); }
+            50% { transform: scale(1.2); box-shadow: 0 0 0 10px rgba(5, 150, 105, 0.3); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
         }
 
         .vehicle-info {
@@ -640,6 +671,12 @@
                         </select>
                     </div>
                     <div class="col-md-3">
+                        <label for="etrike-selector" class="filter-label-small">Quick Select E-Trike</label>
+                        <select class="filter-select-small" id="etrike-selector">
+                            <option value="">Select E-Trike to View</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
                         <label class="filter-label-small">&nbsp;</label>
                         <div class="filter-actions-small">
                             <button class="filter-btn-small btn-apply" id="apply-filter" onclick="applyFilters()" disabled>
@@ -660,6 +697,10 @@
              <!-- Map Container -->
              <div class="map-container">
                  <div id="map"></div>
+                 <!-- Fullscreen Button -->
+                 <button class="btn-fullscreen" onclick="toggleFullscreen()" title="Toggle Fullscreen">
+                     <i class="fas fa-expand" id="fullscreen-icon"></i>
+                 </button>
              </div>
         </div>
 
@@ -764,12 +805,43 @@
                 currentFilters.pi = this.value;
                 updateApplyButton();
             });
+
+            // Add event listener for E-Trike selector
+            const etrikeSelector = document.getElementById('etrike-selector');
+            etrikeSelector.addEventListener('change', function() {
+                if (this.value) {
+                    teleportToEtrike(this.value);
+                }
+            });
         }
 
         function updateApplyButton() {
             const applyBtn = document.getElementById('apply-filter');
             const todaSelect = document.getElementById('toda-select');
             applyBtn.disabled = !todaSelect.value;
+        }
+
+        function updateEtrikeSelector(vehicles) {
+            const etrikeSelector = document.getElementById('etrike-selector');
+            const currentValue = etrikeSelector.value;
+            
+            // Clear existing options except the first one
+            etrikeSelector.innerHTML = '<option value="">Select E-Trike to View</option>';
+            
+            // Add active vehicles to selector
+            vehicles.forEach(vehicle => {
+                if (vehicle.status === 'active') {
+                    const option = document.createElement('option');
+                    option.value = vehicle.id;
+                    option.textContent = `${vehicle.name} - ${vehicle.speed} km/h - ${vehicle.toda.toUpperCase()}`;
+                    etrikeSelector.appendChild(option);
+                }
+            });
+            
+            // Restore selection if it still exists
+            if (currentValue && etrikeSelector.querySelector(`option[value="${currentValue}"]`)) {
+                etrikeSelector.value = currentValue;
+            }
         }
 
         function loadEtrikes(todaId) {
@@ -819,9 +891,12 @@
          }
 
         function updateVehicleMarkers(vehicles) {
-            // Clear existing markers
-            Object.values(vehicleMarkers).forEach(marker => map.removeLayer(marker));
-            vehicleMarkers = {};
+            // Update existing markers instead of clearing all
+            const existingVehicles = new Set(Object.keys(vehicleMarkers));
+            const currentVehicles = new Set(vehicles.map(v => v.id));
+
+            // Update the E-Trike selector dropdown
+            updateEtrikeSelector(vehicles);
 
             vehicles.forEach(vehicle => {
                 // Apply filters
@@ -851,9 +926,11 @@
                     iconAnchor: [10, 10]
                 });
 
-                const marker = L.marker([vehicle.lat, vehicle.lng], { icon })
-                    .addTo(map)
-                    .bindPopup(`
+                if (vehicleMarkers[vehicle.id]) {
+                    // Update existing marker position smoothly
+                    const marker = vehicleMarkers[vehicle.id];
+                    marker.setLatLng([vehicle.lat, vehicle.lng]);
+                    marker.setPopupContent(`
                         <div class="vehicle-info">
                             <h6>${vehicle.name}</h6>
                             <p><strong>Status:</strong> ${vehicle.status}</p>
@@ -863,15 +940,37 @@
                             <p><strong>Pi Device:</strong> ${vehicle.pi}</p>
                         </div>
                     `);
-
-                vehicleMarkers[vehicle.id] = marker;
+                } else {
+                    // Create new marker
+                    const marker = L.marker([vehicle.lat, vehicle.lng], { icon })
+                        .addTo(map)
+                        .bindPopup(`
+                            <div class="vehicle-info">
+                                <h6>${vehicle.name}</h6>
+                                <p><strong>Status:</strong> ${vehicle.status}</p>
+                                <p><strong>Speed:</strong> ${vehicle.speed} km/h</p>
+                                <p><strong>Passengers:</strong> ${vehicle.passengers}</p>
+                                <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
+                                <p><strong>Pi Device:</strong> ${vehicle.pi}</p>
+                            </div>
+                        `);
+                    vehicleMarkers[vehicle.id] = marker;
+                }
+            });
+            
+            // Remove markers for vehicles that are no longer present
+            Object.keys(vehicleMarkers).forEach(vehicleId => {
+                if (!currentVehicles.has(vehicleId)) {
+                    map.removeLayer(vehicleMarkers[vehicleId]);
+                    delete vehicleMarkers[vehicleId];
+                }
             });
         }
 
 
          function startRealTimeUpdates() {
-             // Update vehicle positions every 5 seconds
-             setInterval(loadVehicleData, 5000);
+             // Update vehicle positions every 1 second for more seamless tracking
+             setInterval(loadVehicleData, 1000);
          }
 
          function centerMap() {
@@ -885,6 +984,74 @@
                  console.log('Centered on default location');
              } else {
                  console.log('Map not initialized');
+             }
+         }
+
+         function teleportToEtrike(etrikeId) {
+             console.log('Teleporting to E-Trike:', etrikeId);
+             
+             if (vehicleMarkers[etrikeId]) {
+                 const marker = vehicleMarkers[etrikeId];
+                 const latLng = marker.getLatLng();
+                 
+                 // Center map on the selected E-Trike
+                 map.setView([latLng.lat, latLng.lng], 16);
+                 
+                 // Open the popup for the selected E-Trike
+                 marker.openPopup();
+                 
+                 // Add a brief highlight effect
+                 marker.getElement().style.animation = 'highlight 1s ease-in-out 3';
+                 
+                 console.log('Teleported to E-Trike at:', latLng.lat, latLng.lng);
+             } else {
+                 console.log('E-Trike not found on map:', etrikeId);
+                 alert('E-Trike not found on map. It may be offline or not visible.');
+             }
+         }
+
+         function toggleFullscreen() {
+             const mapContainer = document.querySelector('.map-container');
+             const fullscreenIcon = document.getElementById('fullscreen-icon');
+             
+             if (!document.fullscreenElement) {
+                 // Enter fullscreen
+                 if (mapContainer.requestFullscreen) {
+                     mapContainer.requestFullscreen();
+                 } else if (mapContainer.webkitRequestFullscreen) {
+                     mapContainer.webkitRequestFullscreen();
+                 } else if (mapContainer.msRequestFullscreen) {
+                     mapContainer.msRequestFullscreen();
+                 }
+                 
+                 // Change icon to exit fullscreen
+                 fullscreenIcon.className = 'fas fa-compress';
+                 
+                 // Resize map after entering fullscreen
+                 setTimeout(() => {
+                     if (map) {
+                         map.invalidateSize();
+                     }
+                 }, 100);
+             } else {
+                 // Exit fullscreen
+                 if (document.exitFullscreen) {
+                     document.exitFullscreen();
+                 } else if (document.webkitExitFullscreen) {
+                     document.webkitExitFullscreen();
+                 } else if (document.msExitFullscreen) {
+                     document.msExitFullscreen();
+                 }
+                 
+                 // Change icon back to enter fullscreen
+                 fullscreenIcon.className = 'fas fa-expand';
+                 
+                 // Resize map after exiting fullscreen
+                 setTimeout(() => {
+                     if (map) {
+                         map.invalidateSize();
+                     }
+                 }, 100);
              }
          }
 

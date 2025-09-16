@@ -546,7 +546,7 @@ def change_city():
 @login_required
 def get_todas():
     """Get available TODAs for the selected city"""
-    city = session.get('city', 'manila')
+    city = request.args.get('city') or session.get('city', 'manila')
     
     # Mock data - in real implementation, this would come from a database
     if city == 'manila':
@@ -595,19 +595,8 @@ def get_etrikes():
         return jsonify({'etikes': []})
     
     # Mock data - in real implementation, this would come from a database
-    if toda == 'bltmpc':
-        etikes = [
-            {'id': '00001', 'name': 'E-Trike 00001', 'status': 'active'},
-            {'id': '00002', 'name': 'E-Trike 00002', 'status': 'active'},
-            {'id': '00003', 'name': 'E-Trike 00003', 'status': 'maintenance'}
-        ]
-    elif toda == 'mtmpc':
-        etikes = [
-            {'id': '00004', 'name': 'E-Trike 00004', 'status': 'active'},
-            {'id': '00005', 'name': 'E-Trike 00005', 'status': 'active'}
-        ]
-    else:
-        etikes = []
+    # All e-trikes removed - no mock data
+    etikes = []
     
     return jsonify({'etikes': etikes})
 
@@ -626,7 +615,6 @@ def register_pi():
     toda_id = request.form.get('toda_id')
     etrike_id = request.form.get('etrike_id')
     city = request.form.get('city')
-    location = request.form.get('location', '')
     
     if not all([pi_id, toda_id, etrike_id, city]):
         return jsonify({'success': False, 'message': 'All fields are required'})
@@ -637,7 +625,6 @@ def register_pi():
         'toda_id': toda_id,
         'etrike_id': etrike_id,
         'city': city,
-        'location': location,
         'status': 'active',
         'registered_at': datetime.datetime.now().isoformat(),
         'last_seen': None
@@ -654,6 +641,34 @@ def register_pi():
 def get_pi_assignments():
     """Get all Pi device assignments"""
     return jsonify(load_pi_assignments())
+
+@app.route('/remove-pi', methods=['POST'])
+@login_required
+def remove_pi():
+    """Remove a Pi device"""
+    try:
+        data = request.get_json()
+        pi_id = data.get('pi_id')
+        
+        if not pi_id:
+            return jsonify({'success': False, 'message': 'Pi ID is required'})
+        
+        pi_assignments = load_pi_assignments()
+        
+        if pi_id not in pi_assignments:
+            return jsonify({'success': False, 'message': 'Pi device not found'})
+        
+        # Remove the Pi device
+        del pi_assignments[pi_id]
+        save_pi_assignments(pi_assignments)
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Pi device {pi_id} has been removed successfully'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/get-filtered-data')
 @login_required
@@ -749,12 +764,12 @@ def pi_heartbeat():
 @app.route('/pi-live-status')
 @login_required
 def pi_live_status():
-    """Check if Pi devices are connected (heartbeat within last 15 seconds)"""
+    """Check if Pi devices are connected (heartbeat within last 5 minutes)"""
     global last_pi_heartbeat_time
     current_time = datetime.datetime.now().timestamp()
     
     # Consider live if Pi devices sent heartbeat recently
-    is_live = (current_time - last_pi_heartbeat_time) <= 15  # 15 seconds threshold
+    is_live = (current_time - last_pi_heartbeat_time) <= 300  # 5 minutes threshold
     
     return jsonify({'is_live': is_live, 'last_heartbeat': last_pi_heartbeat_time})
 
@@ -845,7 +860,7 @@ def get_vehicle_locations():
                 'lng': location['longitude'],
                 'speed': location.get('speed', 0),
                 'heading': location.get('heading', 0),
-                'status': 'active' if (datetime.datetime.now() - datetime.datetime.fromisoformat(location['received_at'])).seconds < 60 else 'offline',
+                'status': 'active' if (datetime.datetime.now() - datetime.datetime.fromisoformat(location['received_at'])).seconds < 300 else 'offline',
                 'passengers': 0,  # This would come from passenger data
                 'toda': assignment.get('toda_id', ''),
                 'pi': pi_id,

@@ -1491,7 +1491,6 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center mb-3" style="position: relative; z-index: 10;">
                                     <div class="d-flex align-items-center text-white" style="pointer-events: none; margin-left: 16px;">
-                                        <span class="status-indicator me-2" style="opacity: 1 !important; display: none;"></span>
                                         <small class="text-white-50" style="opacity: 1 !important;">OFFLINE</small>
                                     </div>
                             <button class="btn btn-sm btn-outline-light" onclick="showHistoricalPopulationModal()" title="View Historical Graph Data">
@@ -2980,23 +2979,18 @@
             fetch('/pi-live-status')
                 .then(response => response.json())
                 .then(data => {
-                    const liveIndicator = document.querySelector('.status-indicator');
                     const liveText = document.querySelector('.text-white-50');
                     
                     if (data.is_live) {
-                        liveIndicator.style.display = 'inline-block';
                         liveText.textContent = 'ONLINE';
                     } else {
-                        liveIndicator.style.display = 'none';
                         liveText.textContent = 'OFFLINE';
                     }
                 })
                 .catch(error => {
                     console.error('Error checking Pi live status:', error);
-                    // On error, hide the live indicator
-                    const liveIndicator = document.querySelector('.status-indicator');
+                    // On error, set to offline
                     const liveText = document.querySelector('.text-white-50');
-                    liveIndicator.style.display = 'none';
                     liveText.textContent = 'OFFLINE';
                 });
         }

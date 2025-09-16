@@ -13,7 +13,7 @@ import sys
 from datetime import datetime
 
 class GPSSender:
-    def __init__(self, pi_id, dashboard_url="http://localhost:5001"):
+    def __init__(self, pi_id, dashboard_url="https://etrikedashboard.com"):
         self.pi_id = pi_id
         self.dashboard_url = dashboard_url
         self.serial_port = None
@@ -72,7 +72,7 @@ class GPSSender:
             print(f"❌ Error sending GPS data: {e}")
             return False
     
-    def run(self, update_interval=5):
+    def run(self, update_interval=1):
         """Main loop to continuously read and send GPS data"""
         print(f"🚀 Starting GPS data sender for Pi {self.pi_id}")
         print(f"📡 Dashboard URL: {self.dashboard_url}")
@@ -116,8 +116,8 @@ class GPSSender:
         lon_diff = abs(lon2 - lon1)
         distance = ((lat_diff ** 2) + (lon_diff ** 2)) ** 0.5
         
-        # Send if moved more than ~10 meters (roughly 0.0001 degrees)
-        return distance > 0.0001
+        # Send if moved more than ~2-3 meters (roughly 0.00002 degrees) for more sensitive tracking
+        return distance > 0.00002
 
 def main():
     if len(sys.argv) < 2:

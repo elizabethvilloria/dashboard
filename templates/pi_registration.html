@@ -31,6 +31,8 @@
             margin: 0;
             padding: 0;
             overflow-x: hidden;
+            overflow-y: auto;
+            position: relative;
         }
 
         .container {
@@ -38,6 +40,9 @@
             position: relative;
             z-index: 1;
             padding: 0 15px;
+            min-height: calc(100vh - 2rem);
+            display: flex;
+            flex-direction: column;
         }
 
 
@@ -101,6 +106,7 @@
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
             background: rgba(255, 255, 255, 0.15);
+            color: white;
         }
 
         .form-control::placeholder {
@@ -261,11 +267,52 @@
             margin-bottom: 1rem;
         }
 
+        .pi-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .btn-remove {
+            background: linear-gradient(135deg, var(--danger-color), #dc2626);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .btn-remove:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);
+        }
+
+        .btn-remove:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .header-actions {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
+        }
+
+        /* Prevent overscroll behavior */
+        html, body {
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
         }
 
         @media (max-width: 768px) {
@@ -326,6 +373,10 @@
                             <select class="form-select" id="city" name="city" required>
                                 <option value="" selected disabled>Select City</option>
                                 <option value="manila">Manila</option>
+                                <option value="quezon_city">Quezon City</option>
+                                <option value="muntinlupa">Muntinlupa</option>
+                                <option value="pasay">Pasay</option>
+                                <option value="lipa">Lipa</option>
                             </select>
                         </div>
                         
@@ -355,13 +406,6 @@
                             </select>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="location" class="form-label">
-                                <i class="fas fa-map-marker-alt me-2"></i>Location/Route (Optional)
-                            </label>
-                            <input type="text" class="form-control" id="location" name="location" 
-                                   placeholder="e.g., Route 1, Main Street">
-                        </div>
                         
                         <button type="submit" class="btn-register">
                             <i class="fas fa-save me-2"></i>Register Pi Device
@@ -400,6 +444,34 @@
             registerPi();
         });
 
+        // Handle city change to load TODAs
+        document.getElementById('city').addEventListener('change', function() {
+            loadTodasForCity(this.value);
+        });
+
+        function loadTodasForCity(city) {
+            if (!city) {
+                document.getElementById('toda_id').innerHTML = '<option value="" selected disabled>Select TODA</option>';
+                return;
+            }
+
+            fetch(`/get-todas?city=${city}`)
+                .then(response => response.json())
+                .then(data => {
+                    const todaSelect = document.getElementById('toda_id');
+                    let html = '<option value="" selected disabled>Select TODA</option>';
+                    
+                    data.todas.forEach(toda => {
+                        html += `<option value="${toda.id}">${toda.name} - ${toda.full_name}</option>`;
+                    });
+                    
+                    todaSelect.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error loading TODAs:', error);
+                });
+        }
+
         function registerPi() {
             const formData = new FormData(document.getElementById('pi-registration-form'));
             
@@ -410,7 +482,6 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showAlert('success', data.message);
                     document.getElementById('pi-registration-form').reset();
                     loadPiDevices(); // Refresh the list
                 } else {
@@ -447,13 +518,16 @@
                             <div class="pi-item">
                                 <div class="pi-id">${piId}</div>
                                 <div class="pi-details">
-                                    <strong>City:</strong> ${details.city}<br>
+                                    <strong>City:</strong> ${details.city.replace('_', ' ').toUpperCase()}<br>
                                     <strong>TODA:</strong> ${details.toda_id.toUpperCase()}<br>
-                                    <strong>E-Trike:</strong> ${details.etrike_id}<br>
-                                    ${details.location ? `<strong>Location:</strong> ${details.location}<br>` : ''}
-                                    <strong>Registered:</strong> ${new Date(details.registered_at).toLocaleDateString()}
+                                    <strong>E-Trike:</strong> ${details.etrike_id}
                                 </div>
-                                <span class="pi-status ${statusClass}">${details.status}</span>
+                                <div class="pi-actions">
+                                    <span class="pi-status ${statusClass}">${details.status}</span>
+                                    <button class="btn-remove" onclick="removePi('${piId}')" title="Remove Pi Device">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                </div>
                             </div>
                         `;
                     });
@@ -482,6 +556,30 @@
                     alert.remove();
                 }
             }, 5000);
+        }
+
+        function removePi(piId) {
+            if (confirm(`Are you sure you want to remove Pi device ${piId}? This action cannot be undone.`)) {
+                fetch('/remove-pi', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ pi_id: piId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadPiDevices(); // Refresh the list
+                    } else {
+                        showAlert('danger', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('danger', 'An error occurred while removing the Pi device.');
+                });
+            }
         }
     </script>
 </body>

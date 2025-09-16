@@ -451,19 +451,21 @@
 
         .btn-fullscreen {
             position: absolute;
-            bottom: 25px;
-            left: 25px;
-            background: none;
+            bottom: 41px;
+            left: 41px;
+            background: white;
             color: black;
-            border: none;
-            width: 50px;
-            height: 50px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
             z-index: 1000;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
         .btn-fullscreen:hover {
@@ -487,14 +489,38 @@
 
         @keyframes pulse {
             0% { opacity: 1; }
-            50% { opacity: 0.5; }
+            50% { opacity: 0.7; }
             100% { opacity: 1; }
         }
 
-        @keyframes highlight {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.7); }
-            50% { transform: scale(1.2); box-shadow: 0 0 0 10px rgba(5, 150, 105, 0.3); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+        /* Smooth marker movement */
+        .custom-div-icon {
+            transition: all 0.3s ease;
+        }
+
+        /* Enhanced vehicle info styling */
+        .vehicle-info {
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
+            border-radius: 12px;
+            padding: 1.2rem;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 220px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .vehicle-info h6 {
+            color: #10b981;
+            margin-bottom: 0.8rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .vehicle-info p {
+            margin: 0.4rem 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
         }
 
         .vehicle-info {
@@ -671,9 +697,9 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label for="etrike-selector" class="filter-label-small">Quick Select E-Trike</label>
-                        <select class="filter-select-small" id="etrike-selector">
-                            <option value="">Select E-Trike to View</option>
+                        <label for="gps-select" class="filter-label-small">GPS Vehicle</label>
+                        <select class="filter-select-small" id="gps-select">
+                            <option value="">All GPS Vehicles</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -719,10 +745,12 @@
         let routeLayers = {};
         let heatmapLayer = null;
         let trafficLayer = null;
+        let vehicleTrails = {}; // Store vehicle trail data
         let currentFilters = {
             toda: '',
             etrike: '',
-            pi: ''
+            pi: '',
+            gps: ''
         };
 
         // Initialize map when page loads
@@ -730,14 +758,15 @@
             initMap();
             loadTodas();
             loadPiDevices();
+            loadGpsVehicles();
             setupFilterEventListeners();
             updateApplyButton(); // Set initial button state
             startRealTimeUpdates();
         });
 
         function initMap() {
-            // Initialize map centered on Manila
-            map = L.map('map').setView([14.5995, 120.9842], 13);
+            // Initialize map centered on Barcelona
+            map = L.map('map').setView([41.3851, 2.1734], 13);
             
             // Add OpenStreetMap tiles
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -778,10 +807,28 @@
                 .catch(error => console.error('Error loading Pi devices:', error));
         }
 
+        function loadGpsVehicles() {
+            fetch('/vehicle-locations')
+                .then(response => response.json())
+                .then(data => {
+                    const gpsSelect = document.getElementById('gps-select');
+                    gpsSelect.innerHTML = '<option value="">All GPS Vehicles</option>';
+                    
+                    data.vehicles.forEach(vehicle => {
+                        const option = document.createElement('option');
+                        option.value = vehicle.pi;
+                        option.textContent = `Pi ${vehicle.pi} - ${vehicle.name}`;
+                        gpsSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading GPS vehicles:', error));
+        }
+
         function setupFilterEventListeners() {
             const todaSelect = document.getElementById('toda-select');
             const etrikeSelect = document.getElementById('etrike-select');
             const piSelect = document.getElementById('pi-select');
+            const gpsSelect = document.getElementById('gps-select');
 
             todaSelect.addEventListener('change', function() {
                 currentFilters.toda = this.value;
@@ -806,11 +853,13 @@
                 updateApplyButton();
             });
 
-            // Add event listener for E-Trike selector
-            const etrikeSelector = document.getElementById('etrike-selector');
-            etrikeSelector.addEventListener('change', function() {
+            gpsSelect.addEventListener('change', function() {
+                // Don't update filters - just center on selected vehicle
+                updateApplyButton();
+                
+                // If a specific GPS vehicle is selected, center on it
                 if (this.value) {
-                    teleportToEtrike(this.value);
+                    centerOnGpsVehicle(this.value);
                 }
             });
         }
@@ -819,29 +868,6 @@
             const applyBtn = document.getElementById('apply-filter');
             const todaSelect = document.getElementById('toda-select');
             applyBtn.disabled = !todaSelect.value;
-        }
-
-        function updateEtrikeSelector(vehicles) {
-            const etrikeSelector = document.getElementById('etrike-selector');
-            const currentValue = etrikeSelector.value;
-            
-            // Clear existing options except the first one
-            etrikeSelector.innerHTML = '<option value="">Select E-Trike to View</option>';
-            
-            // Add active vehicles to selector
-            vehicles.forEach(vehicle => {
-                if (vehicle.status === 'active') {
-                    const option = document.createElement('option');
-                    option.value = vehicle.id;
-                    option.textContent = `${vehicle.name} - ${vehicle.speed} km/h - ${vehicle.toda.toUpperCase()}`;
-                    etrikeSelector.appendChild(option);
-                }
-            });
-            
-            // Restore selection if it still exists
-            if (currentValue && etrikeSelector.querySelector(`option[value="${currentValue}"]`)) {
-                etrikeSelector.value = currentValue;
-            }
         }
 
         function loadEtrikes(todaId) {
@@ -870,8 +896,9 @@
             document.getElementById('etrike-select').value = '';
             document.getElementById('etrike-select').disabled = true;
             document.getElementById('pi-select').value = '';
+            document.getElementById('gps-select').value = '';
             
-            currentFilters = { toda: '', etrike: '', pi: '' };
+            currentFilters = { toda: '', etrike: '', pi: '', gps: '' };
             loadVehicleData();
         }
 
@@ -881,6 +908,9 @@
                  .then(data => {
                      const vehicles = data.vehicles || [];
                      updateVehicleMarkers(vehicles);
+                     
+                     // Update GPS filter dropdown with current vehicles
+                     updateGpsFilter(vehicles);
                  })
                  .catch(error => {
                      console.error('Error loading vehicle data:', error);
@@ -890,77 +920,123 @@
                  });
          }
 
-        function updateVehicleMarkers(vehicles) {
-            // Update existing markers instead of clearing all
-            const existingVehicles = new Set(Object.keys(vehicleMarkers));
-            const currentVehicles = new Set(vehicles.map(v => v.id));
-
-            // Update the E-Trike selector dropdown
-            updateEtrikeSelector(vehicles);
-
+        function updateGpsFilter(vehicles) {
+            const gpsSelect = document.getElementById('gps-select');
+            const currentValue = gpsSelect.value;
+            
+            gpsSelect.innerHTML = '<option value="">Select GPS Vehicle</option>';
+            
             vehicles.forEach(vehicle => {
-                // Apply filters
+                const option = document.createElement('option');
+                option.value = vehicle.pi;
+                option.textContent = `Pi ${vehicle.pi} - ${vehicle.name} (${vehicle.status})`;
+                gpsSelect.appendChild(option);
+            });
+            
+            // Restore previous selection if it still exists
+            if (currentValue) {
+                gpsSelect.value = currentValue;
+            }
+        }
+
+        function updateVehicleMarkers(vehicles) {
+            vehicles.forEach(vehicle => {
+                // Apply filters (excluding GPS filter - that's just for centering)
                 if (currentFilters.toda && vehicle.toda !== currentFilters.toda) return;
                 if (currentFilters.etrike && vehicle.id !== currentFilters.etrike) return;
                 if (currentFilters.pi && vehicle.pi !== currentFilters.pi) return;
 
-                // Create custom icon based on status
-                const iconColor = vehicle.status === 'active' ? '#10b981' : '#ef4444';
-                const icon = L.divIcon({
-                    html: `<div style="
-                        background: ${iconColor};
-                        width: 20px;
-                        height: 20px;
-                        border-radius: 50%;
-                        border: 3px solid white;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        color: white;
-                        font-size: 10px;
-                        font-weight: bold;
-                    ">${vehicle.name.slice(-2)}</div>`,
-                    className: 'custom-div-icon',
-                    iconSize: [20, 20],
-                    iconAnchor: [10, 10]
-                });
-
+                // Check if marker already exists
                 if (vehicleMarkers[vehicle.id]) {
                     // Update existing marker position smoothly
                     const marker = vehicleMarkers[vehicle.id];
-                    marker.setLatLng([vehicle.lat, vehicle.lng]);
+                    const newLatLng = [vehicle.lat, vehicle.lng];
+                    
+                    // Add to trail data
+                    addToVehicleTrail(vehicle);
+                    
+                    // Smooth movement animation
+                    marker.setLatLng(newLatLng, {
+                        animate: true,
+                        duration: 0.8,
+                        easeLinearity: 0.1
+                    });
+                    
+                    // Update popup content
+                    const isOffline = vehicle.status === 'offline';
                     marker.setPopupContent(`
                         <div class="vehicle-info">
-                            <h6>${vehicle.name}</h6>
-                            <p><strong>Status:</strong> ${vehicle.status}</p>
-                            <p><strong>Speed:</strong> ${vehicle.speed} km/h</p>
-                            <p><strong>Passengers:</strong> ${vehicle.passengers}</p>
+                            <h6>Pi ${vehicle.pi}</h6>
+                            <p><strong>Status:</strong> <span style="color: ${isOffline ? '#ef4444' : '#10b981'}">${vehicle.status.toUpperCase()}</span></p>
+                            <p><strong>Speed:</strong> ${vehicle.speed.toFixed(1)} km/h</p>
                             <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
-                            <p><strong>Pi Device:</strong> ${vehicle.pi}</p>
+                            <p><strong>Last Update:</strong> ${new Date(vehicle.last_update).toLocaleTimeString()}</p>
                         </div>
                     `);
                 } else {
-                    // Create new marker
+                    // Create new marker with different styling for offline vehicles
+                    const isOffline = vehicle.status === 'offline';
+                    const iconColor = isOffline ? '#ef4444' : '#10b981';
+                    const iconOpacity = isOffline ? '0.7' : '1';
+                    
+                    const icon = L.divIcon({
+                        html: `<div style="
+                            background: ${iconColor};
+                            width: 24px;
+                            height: 24px;
+                            border-radius: 50%;
+                            border: 3px solid white;
+                            box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 11px;
+                            font-weight: bold;
+                            opacity: ${iconOpacity};
+                            ${isOffline ? '' : 'animation: pulse 2s infinite;'}
+                        ">${vehicle.pi}</div>`,
+                        className: 'custom-div-icon',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    });
+
                     const marker = L.marker([vehicle.lat, vehicle.lng], { icon })
                         .addTo(map)
                         .bindPopup(`
                             <div class="vehicle-info">
-                                <h6>${vehicle.name}</h6>
-                                <p><strong>Status:</strong> ${vehicle.status}</p>
-                                <p><strong>Speed:</strong> ${vehicle.speed} km/h</p>
-                                <p><strong>Passengers:</strong> ${vehicle.passengers}</p>
+                                <h6>Pi ${vehicle.pi}</h6>
+                                <p><strong>Status:</strong> <span style="color: ${isOffline ? '#ef4444' : '#10b981'}">${vehicle.status.toUpperCase()}</span></p>
+                                <p><strong>Speed:</strong> ${vehicle.speed.toFixed(1)} km/h</p>
                                 <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
-                                <p><strong>Pi Device:</strong> ${vehicle.pi}</p>
+                                <p><strong>Last Update:</strong> ${new Date(vehicle.last_update).toLocaleTimeString()}</p>
+                                <div style="margin-top: 10px; text-align: center;">
+                                    <button onclick="hideVehicleTrail('${vehicle.pi}')" style="
+                                        background: #ef4444;
+                                        color: white;
+                                        border: none;
+                                        padding: 5px 10px;
+                                        border-radius: 4px;
+                                        cursor: pointer;
+                                        font-size: 12px;
+                                    ">Clear Trail</button>
+                                </div>
                             </div>
-                        `);
+                        `)
+                        .on('click', function() {
+                            // Add to trail and show trail when clicked
+                            addToVehicleTrail(vehicle);
+                            showVehicleTrail(vehicle.pi);
+                        });
+
                     vehicleMarkers[vehicle.id] = marker;
                 }
             });
-            
-            // Remove markers for vehicles that are no longer present
+
+            // Remove markers that are no longer in the vehicles list
+            const currentVehicleIds = vehicles.map(v => v.id);
             Object.keys(vehicleMarkers).forEach(vehicleId => {
-                if (!currentVehicles.has(vehicleId)) {
+                if (!currentVehicleIds.includes(vehicleId)) {
                     map.removeLayer(vehicleMarkers[vehicleId]);
                     delete vehicleMarkers[vehicleId];
                 }
@@ -969,46 +1045,89 @@
 
 
          function startRealTimeUpdates() {
-             // Update vehicle positions every 1 second for more seamless tracking
+             // Update vehicle positions every 1 second for seamless movement
              setInterval(loadVehicleData, 1000);
          }
 
-         function centerMap() {
-             console.log('Center map clicked');
-             if (map && Object.keys(vehicleMarkers).length > 0) {
-                 const group = new L.featureGroup(Object.values(vehicleMarkers));
-                 map.fitBounds(group.getBounds().pad(0.1));
-                 console.log('Centered on vehicle markers');
-             } else if (map) {
-                 map.setView([14.5995, 120.9842], 13);
-                 console.log('Centered on default location');
-             } else {
-                 console.log('Map not initialized');
-             }
-         }
+        function centerMap() {
+            console.log('Center map clicked');
+            if (map && Object.keys(vehicleMarkers).length > 0) {
+                const group = new L.featureGroup(Object.values(vehicleMarkers));
+                map.fitBounds(group.getBounds().pad(0.1));
+                console.log('Centered on vehicle markers');
+            } else if (map) {
+                map.setView([41.3851, 2.1734], 13);
+                console.log('Centered on default location');
+            } else {
+                console.log('Map not initialized');
+            }
+        }
 
-         function teleportToEtrike(etrikeId) {
-             console.log('Teleporting to E-Trike:', etrikeId);
-             
-             if (vehicleMarkers[etrikeId]) {
-                 const marker = vehicleMarkers[etrikeId];
-                 const latLng = marker.getLatLng();
-                 
-                 // Center map on the selected E-Trike
-                 map.setView([latLng.lat, latLng.lng], 16);
-                 
-                 // Open the popup for the selected E-Trike
-                 marker.openPopup();
-                 
-                 // Add a brief highlight effect
-                 marker.getElement().style.animation = 'highlight 1s ease-in-out 3';
-                 
-                 console.log('Teleported to E-Trike at:', latLng.lat, latLng.lng);
-             } else {
-                 console.log('E-Trike not found on map:', etrikeId);
-                 alert('E-Trike not found on map. It may be offline or not visible.');
-             }
-         }
+        function centerOnGpsVehicle(piId) {
+            console.log('Centering on GPS vehicle:', piId);
+            if (vehicleMarkers[piId]) {
+                const marker = vehicleMarkers[piId];
+                map.setView(marker.getLatLng(), 16, {
+                    animate: true,
+                    duration: 1.0
+                });
+                marker.openPopup();
+                console.log('Centered on vehicle:', piId);
+            } else {
+                console.log('Vehicle not found on map:', piId);
+            }
+        }
+
+        function addToVehicleTrail(vehicle) {
+            const piId = vehicle.pi;
+            if (!vehicleTrails[piId]) {
+                vehicleTrails[piId] = [];
+            }
+            
+            // Add current position to trail
+            vehicleTrails[piId].push({
+                lat: vehicle.lat,
+                lng: vehicle.lng,
+                timestamp: new Date(vehicle.last_update).getTime(),
+                speed: vehicle.speed
+            });
+            
+            // Keep only last 50 positions to prevent performance issues
+            if (vehicleTrails[piId].length > 50) {
+                vehicleTrails[piId] = vehicleTrails[piId].slice(-50);
+            }
+        }
+
+        function showVehicleTrail(piId) {
+            // Clear existing trail for this vehicle
+            if (routeLayers[piId]) {
+                map.removeLayer(routeLayers[piId]);
+            }
+            
+            if (vehicleTrails[piId] && vehicleTrails[piId].length > 1) {
+                // Create polyline from trail data
+                const trailCoordinates = vehicleTrails[piId].map(point => [point.lat, point.lng]);
+                
+                // Create simple green line trail
+                const trailPolyline = L.polyline(trailCoordinates, {
+                    color: '#10b981',
+                    weight: 4,
+                    opacity: 0.8,
+                    smoothFactor: 1
+                }).addTo(map);
+                
+                routeLayers[piId] = trailPolyline;
+                console.log(`Trail shown for vehicle ${piId} with ${vehicleTrails[piId].length} points`);
+            }
+        }
+
+        function hideVehicleTrail(piId) {
+            if (routeLayers[piId]) {
+                map.removeLayer(routeLayers[piId]);
+                delete routeLayers[piId];
+                console.log(`Trail hidden for vehicle ${piId}`);
+            }
+        }
 
          function toggleFullscreen() {
              const mapContainer = document.querySelector('.map-container');

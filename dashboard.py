@@ -764,12 +764,12 @@ def pi_heartbeat():
 @app.route('/pi-live-status')
 @login_required
 def pi_live_status():
-    """Check if Pi devices are connected (heartbeat within last 5 minutes)"""
+    """Check if Pi devices are connected (heartbeat within last 15 seconds)"""
     global last_pi_heartbeat_time
     current_time = datetime.datetime.now().timestamp()
     
     # Consider live if Pi devices sent heartbeat recently
-    is_live = (current_time - last_pi_heartbeat_time) <= 300  # 5 minutes threshold
+    is_live = (current_time - last_pi_heartbeat_time) <= 15  # 15 seconds threshold
     
     return jsonify({'is_live': is_live, 'last_heartbeat': last_pi_heartbeat_time})
 
@@ -853,6 +853,11 @@ def get_vehicle_locations():
         
         for pi_id, location in latest_locations.items():
             assignment = pi_assignments.get(pi_id, {})
+            # Check if vehicle is offline (no data for 5 minutes)
+            last_update = datetime.datetime.fromisoformat(location['received_at'])
+            time_since_update = (datetime.datetime.now() - last_update).total_seconds()
+            is_offline = time_since_update > 300  # 5 minutes = 300 seconds
+            
             vehicle = {
                 'id': assignment.get('etrike_id', f'pi-{pi_id}'),
                 'name': f"E-Trike {assignment.get('etrike_id', pi_id)}",
@@ -860,7 +865,7 @@ def get_vehicle_locations():
                 'lng': location['longitude'],
                 'speed': location.get('speed', 0),
                 'heading': location.get('heading', 0),
-                'status': 'active' if (datetime.datetime.now() - datetime.datetime.fromisoformat(location['received_at'])).seconds < 300 else 'offline',
+                'status': 'offline' if is_offline else 'active',
                 'passengers': 0,  # This would come from passenger data
                 'toda': assignment.get('toda_id', ''),
                 'pi': pi_id,

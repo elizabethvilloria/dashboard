@@ -854,9 +854,41 @@ def get_vehicle_locations():
         for pi_id, location in latest_locations.items():
             assignment = pi_assignments.get(pi_id, {})
             # Check if vehicle is offline (no data for 5 minutes)
-            last_update = datetime.datetime.fromisoformat(location['received_at'])
-            time_since_update = (datetime.datetime.now() - last_update).total_seconds()
+            # Use Pi's timestamp for offline detection to avoid timezone issues
+            pi_timestamp = location.get('timestamp', 0)
+            if pi_timestamp:
+                # Use Pi's timestamp for offline detection
+                last_update = datetime.datetime.fromtimestamp(pi_timestamp)
+                time_since_update = (datetime.datetime.now() - last_update).total_seconds()
+            else:
+                # Fallback to received_at if no Pi timestamp
+                last_update = datetime.datetime.fromisoformat(location['received_at'])
+                time_since_update = (datetime.datetime.now() - last_update).total_seconds()
+            
             is_offline = time_since_update > 300  # 5 minutes = 300 seconds
+            
+            # Check if vehicle is parked (stationary for 10+ minutes)
+            # We'll determine this by checking if the last position is the same as current
+            # For now, we'll use a simple heuristic: if speed is 0 and not offline, consider it parked
+            is_parked = False
+            if not is_offline and location.get('speed', 0) == 0:
+                # Check if we have previous position data to compare
+                # This is a simplified check - in a real system you'd compare coordinates
+                is_parked = time_since_update > 600  # 10 minutes = 600 seconds
+            
+            # Determine status
+            if is_offline:
+                status = 'offline'
+            elif is_parked:
+                status = 'parked'
+            else:
+                status = 'active'
+            
+            # Use the same timestamp for display
+            if pi_timestamp:
+                last_update_str = last_update.isoformat()
+            else:
+                last_update_str = location['received_at']
             
             vehicle = {
                 'id': assignment.get('etrike_id', f'pi-{pi_id}'),
@@ -865,11 +897,11 @@ def get_vehicle_locations():
                 'lng': location['longitude'],
                 'speed': location.get('speed', 0),
                 'heading': location.get('heading', 0),
-                'status': 'offline' if is_offline else 'active',
+                'status': status,
                 'passengers': 0,  # This would come from passenger data
                 'toda': assignment.get('toda_id', ''),
                 'pi': pi_id,
-                'last_update': location['received_at']
+                'last_update': last_update_str
             }
             vehicles.append(vehicle)
         

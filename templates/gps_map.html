@@ -510,6 +510,28 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
         }
 
+        /* Custom popup styling to remove white background */
+        .leaflet-popup-content-wrapper {
+            background: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+        }
+
+        .leaflet-popup-content {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .leaflet-popup-tip {
+            background: rgba(0, 0, 0, 0.9) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }
+
+        .leaflet-popup-close-button {
+            display: none !important;
+        }
+
         .vehicle-info h6 {
             color: #10b981;
             margin-bottom: 0.8rem;
@@ -1050,19 +1072,28 @@
                     
                     // Update popup content
                     const isOffline = vehicle.status === 'offline';
+                    const isParked = vehicle.status === 'parked';
+                    let statusColor = '#10b981'; // Default green for active
+                    if (isOffline) statusColor = '#ef4444'; // Red for offline
+                    else if (isParked) statusColor = '#f59e0b'; // Orange for parked
+                    
                     marker.setPopupContent(`
                         <div class="vehicle-info">
                             <h6>Pi ${vehicle.pi}</h6>
-                            <p><strong>Status:</strong> <span style="color: ${isOffline ? '#ef4444' : '#10b981'}">${vehicle.status.toUpperCase()}</span></p>
+                            <p><strong>Status:</strong> <span style="color: ${statusColor}">${vehicle.status.toUpperCase()}</span></p>
                             <p><strong>Speed:</strong> ${vehicle.speed.toFixed(1)} km/h</p>
                             <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
                             <p><strong>Last Update:</strong> ${new Date(vehicle.last_update).toLocaleTimeString()}</p>
                         </div>
                     `);
                 } else {
-                    // Create new marker with different styling for offline vehicles
+                    // Create new marker with different styling based on status
                     const isOffline = vehicle.status === 'offline';
-                    const iconColor = isOffline ? '#ef4444' : '#10b981';
+                    const isParked = vehicle.status === 'parked';
+                    let iconColor = '#10b981'; // Default green for active
+                    if (isOffline) iconColor = '#ef4444'; // Red for offline
+                    else if (isParked) iconColor = '#f59e0b'; // Orange for parked
+                    
                     const iconOpacity = isOffline ? '0.7' : '1';
                     
                     const icon = L.divIcon({
@@ -1092,7 +1123,7 @@
                         .bindPopup(`
                             <div class="vehicle-info">
                                 <h6>Pi ${vehicle.pi}</h6>
-                                <p><strong>Status:</strong> <span style="color: ${isOffline ? '#ef4444' : '#10b981'}">${vehicle.status.toUpperCase()}</span></p>
+                                <p><strong>Status:</strong> <span style="color: ${iconColor}">${vehicle.status.toUpperCase()}</span></p>
                                 <p><strong>Speed:</strong> ${vehicle.speed.toFixed(1)} km/h</p>
                                 <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
                                 <p><strong>Last Update:</strong> ${new Date(vehicle.last_update).toLocaleTimeString()}</p>
@@ -1178,9 +1209,9 @@
                 speed: vehicle.speed
             });
             
-            // Keep only last 50 positions to prevent performance issues
-            if (vehicleTrails[piId].length > 50) {
-                vehicleTrails[piId] = vehicleTrails[piId].slice(-50);
+            // Keep only last 1200 positions (20 minutes) to prevent performance issues
+            if (vehicleTrails[piId].length > 1200) {
+                vehicleTrails[piId] = vehicleTrails[piId].slice(-1200);
             }
         }
 

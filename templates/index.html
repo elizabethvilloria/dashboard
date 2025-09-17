@@ -2787,7 +2787,11 @@
                     data.hourly_data.forEach((interval, index) => {
                         // Show time labels only for full hours (00:00, 01:00, etc.)
                         if (index % 2 === 0) {
-                            labels.push(interval.hour);
+                            // Convert 24-hour format to user's local time format
+                            const [hour, minute] = interval.hour.split(':');
+                            const date = new Date();
+                            date.setHours(parseInt(hour), parseInt(minute), 0, 0);
+                            labels.push(date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
                         } else {
                             labels.push(''); // Empty label for 30-minute marks
                         }
@@ -2950,7 +2954,11 @@
                     data.hourly_data.forEach((interval, index) => {
                         // Show time labels only for full hours (00:00, 01:00, etc.)
                         if (index % 2 === 0) {
-                            labels.push(interval.hour);
+                            // Convert 24-hour format to user's local time format
+                            const [hour, minute] = interval.hour.split(':');
+                            const date = new Date();
+                            date.setHours(parseInt(hour), parseInt(minute), 0, 0);
+                            labels.push(date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
                         } else {
                             labels.push(''); // Empty label for 30-minute marks
                         }

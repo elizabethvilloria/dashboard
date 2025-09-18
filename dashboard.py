@@ -17,7 +17,7 @@ import time
 
 app = Flask(__name__)
 app.secret_key = 'etrike-secret-key-change-this'  # Change this to a random string
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # Simple authentication (in production, use proper user database)
 USERS = {
@@ -1602,12 +1602,12 @@ if __name__ == '__main__':
             context = ssl.SSLContext(ssl.PROTOCOL_TLS)  # Use TLS instead of TLSv1_2
             context.load_cert_chain(cert_path, key_path)
             print("🚀 Dashboard with WebSocket running on https://etrikedashboard.com:5001/")
-            socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context, async_mode='eventlet')
+            socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context)
         else:
             # Fall back to HTTP
             print("🚀 Dashboard with WebSocket running on http://localhost:5001/")
-            socketio.run(app, debug=False, host='0.0.0.0', port=5001, async_mode='eventlet')
+            socketio.run(app, debug=False, host='0.0.0.0', port=5001)
     except Exception as e:
         print(f"⚠️  SSL Error: {e}")
         print("🔄 Falling back to HTTP mode...")
-        socketio.run(app, debug=False, host='0.0.0.0', port=5001, async_mode='eventlet') 
+        socketio.run(app, debug=False, host='0.0.0.0', port=5001) 

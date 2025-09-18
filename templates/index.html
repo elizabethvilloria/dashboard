@@ -2437,13 +2437,10 @@
             return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
         }
 
-        // Helper function to format date from YYYY-MM-DD to MM/DD/YYYY
+        // Helper function to format date from YYYY-MM-DD to user's locale format
         function formatDate(dateString) {
             const date = new Date(dateString);
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            const year = date.getFullYear();
-            return `${month}/${day}/${year}`;
+            return date.toLocaleDateString(undefined, {timeZone: 'Europe/Madrid'});
         }
 
         // Helper function to format month from YYYY-MM to MM/YYYY
@@ -2712,7 +2709,11 @@
                                     const index = context[0].dataIndex;
                                     const hour = Math.floor(index / 2);
                                     const isHalfHour = index % 2 === 1;
-                                    return isHalfHour ? `${hour.toString().padStart(2, '0')}:30` : `${hour.toString().padStart(2, '0')}:00`;
+                                    const timeString = isHalfHour ? `${hour.toString().padStart(2, '0')}:30` : `${hour.toString().padStart(2, '0')}:00`;
+                                    const date = new Date();
+                                    const [h, m] = timeString.split(':');
+                                    date.setHours(parseInt(h), parseInt(m), 0, 0);
+                                    return date.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit', timeZone: 'Europe/Madrid'});
                                 }
                             }
                         }
@@ -2874,7 +2875,11 @@
                                     const index = context[0].dataIndex;
                                     const hour = Math.floor(index / 2);
                                     const isHalfHour = index % 2 === 1;
-                                    return isHalfHour ? `${hour.toString().padStart(2, '0')}:30` : `${hour.toString().padStart(2, '0')}:00`;
+                                    const timeString = isHalfHour ? `${hour.toString().padStart(2, '0')}:30` : `${hour.toString().padStart(2, '0')}:00`;
+                                    const date = new Date();
+                                    const [h, m] = timeString.split(':');
+                                    date.setHours(parseInt(h), parseInt(m), 0, 0);
+                                    return date.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit', timeZone: 'Europe/Madrid'});
                                 }
                             }
                         }

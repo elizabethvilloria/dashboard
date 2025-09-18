@@ -1092,7 +1092,13 @@
 
         function applyFilters() {
             console.log('Applying filters:', currentFilters);
-            // Filters are applied in real-time via WebSocket, no need to reload
+            // Request immediate GPS update via WebSocket
+            if (socket && socket.connected) {
+                socket.emit('request_gps_update');
+            } else {
+                // Fallback to manual fetch if WebSocket not available
+                loadVehicleData();
+            }
         }
 
         function clearFilters() {
@@ -1103,7 +1109,13 @@
             document.getElementById('gps-select').value = '';
             
             currentFilters = { toda: '', etrike: '', pi: '', gps: '' };
-            // Filters are cleared in real-time via WebSocket, no need to reload
+            // Request immediate GPS update via WebSocket
+            if (socket && socket.connected) {
+                socket.emit('request_gps_update');
+            } else {
+                // Fallback to manual fetch if WebSocket not available
+                loadVehicleData();
+            }
         }
 
          function loadVehicleData() {

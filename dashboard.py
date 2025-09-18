@@ -338,7 +338,6 @@ def get_vehicle_locations_data():
 def handle_connect():
     """Handle client connection"""
     print(f'🔌 Client connected: {request.sid}')
-    print(f'🔌 Transport: {request.transport}')
     print(f'🔌 Session ID: {request.sid}')
     print(f'🔌 Headers: {dict(request.headers)}')
     
@@ -1610,6 +1609,7 @@ if __name__ == '__main__':
             context = ssl.SSLContext(ssl.PROTOCOL_TLS)  # Use TLS instead of TLSv1_2
             context.load_cert_chain(cert_path, key_path)
             print("🚀 Dashboard with WebSocket running on https://etrikedashboard.com:5001/")
+            print("💡 For production with true WebSocket, use: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:443 --certfile=cert.pem --keyfile=key.pem dashboard:app")
             socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context)
         else:
             # Fall back to HTTP

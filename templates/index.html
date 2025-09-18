@@ -1491,7 +1491,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center mb-3" style="position: relative; z-index: 10;">
                                     <div class="d-flex align-items-center text-white" style="pointer-events: none; margin-left: 16px;">
-                                        <small class="text-white-50" style="opacity: 1 !important;">OFFLINE</small>
+                                        <small id="pi-status-text" class="text-white-50" style="opacity: 1 !important;">OFFLINE</small>
                                     </div>
                             <button class="btn btn-sm btn-outline-light" onclick="showHistoricalPopulationModal()" title="View Historical Graph Data">
                                 <i class="fas fa-archive me-1"></i>Historical Graph Data
@@ -3057,19 +3057,21 @@
             fetch('/pi-live-status')
                 .then(response => response.json())
                 .then(data => {
-                    const liveText = document.querySelector('.text-white-50');
+                    const liveText = document.getElementById('pi-status-text');
                     
                     if (data.is_live) {
-                        liveText.textContent = 'ONLINE';
+                        liveText.innerHTML = '<span style="color: white;">ONLINE</span> <span style="display: inline-block; width: 8px; height: 8px; background-color: #10b981; border-radius: 50%; margin-left: 6px;"></span>';
                     } else {
-                        liveText.textContent = 'OFFLINE';
+                        liveText.innerHTML = 'OFFLINE';
+                        liveText.className = 'text-white-50';
                     }
                 })
                 .catch(error => {
                     console.error('Error checking Pi live status:', error);
                     // On error, set to offline
-                    const liveText = document.querySelector('.text-white-50');
-                    liveText.textContent = 'OFFLINE';
+                    const liveText = document.getElementById('pi-status-text');
+                    liveText.innerHTML = 'OFFLINE';
+                    liveText.className = 'text-white-50';
                 });
         }
 

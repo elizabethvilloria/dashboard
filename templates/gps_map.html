@@ -1143,6 +1143,27 @@
             }
         }
 
+        function getRelativeTime(timestamp) {
+            const now = new Date().getTime();
+            const updateTime = new Date(timestamp).getTime();
+            const diffMs = now - updateTime;
+            
+            const seconds = Math.floor(diffMs / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (days > 0) {
+                return `${days} day${days > 1 ? 's' : ''} ago`;
+            } else if (hours > 0) {
+                return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            } else if (minutes > 0) {
+                return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+            } else {
+                return `${seconds} second${seconds > 1 ? 's' : ''} ago`;
+            }
+        }
+
         function updateVehicleMarkers(vehicles) {
             vehicles.forEach(vehicle => {
                 // Apply filters (excluding GPS filter - that's just for centering)
@@ -1179,7 +1200,7 @@
                             <p><strong>Status:</strong> <span style="color: ${statusColor}">${vehicle.status.toUpperCase()}</span></p>
                             <p><strong>Speed:</strong> ${vehicle.speed.toFixed(1)} km/h</p>
                             <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
-                            <p><strong>Last Update:</strong> ${new Date(vehicle.last_update).toLocaleTimeString()}</p>
+                            <p><strong>Last Update:</strong> ${getRelativeTime(vehicle.last_update)}</p>
                         </div>
                     `);
                 } else {
@@ -1222,7 +1243,7 @@
                                 <p><strong>Status:</strong> <span style="color: ${iconColor}">${vehicle.status.toUpperCase()}</span></p>
                                 <p><strong>Speed:</strong> ${vehicle.speed.toFixed(1)} km/h</p>
                                 <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
-                                <p><strong>Last Update:</strong> ${new Date(vehicle.last_update).toLocaleTimeString()}</p>
+                                <p><strong>Last Update:</strong> ${getRelativeTime(vehicle.last_update)}</p>
                                 <div style="margin-top: 10px; text-align: center;">
                                     <button onclick="hideVehicleTrail('${vehicle.pi}')" style="
                                         background: #ef4444;

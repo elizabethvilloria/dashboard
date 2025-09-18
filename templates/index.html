@@ -1951,8 +1951,8 @@
                         });
                         
                         sortedPassengers.forEach((passenger, index) => {
-                            const entryTime = passenger.entry_timestamp ? new Date(passenger.entry_timestamp * 1000).toLocaleString() : 'N/A';
-                            const exitTime = passenger.exit_timestamp ? new Date(passenger.exit_timestamp * 1000).toLocaleString() : 'N/A';
+                            const entryTime = passenger.entry_timestamp ? new Date(passenger.entry_timestamp * 1000).toLocaleString('en-GB', {timeZone: 'Europe/Madrid'}) : 'N/A';
+                            const exitTime = passenger.exit_timestamp ? new Date(passenger.exit_timestamp * 1000).toLocaleString('en-GB', {timeZone: 'Europe/Madrid'}) : 'N/A';
                             const dwellTime = passenger.dwell_time_minutes ? `${passenger.dwell_time_minutes} minutes` : 'N/A';
                             const personId = passenger.person_id || (index + 1);
                             
@@ -2783,9 +2783,11 @@
                     data.hourly_data.forEach((interval, index) => {
                         // Show time labels only for full hours (00:00, 01:00, etc.)
                         if (index % 2 === 0) {
-                            // Use the hour directly from server data (already in CET)
+                            // Convert 24-hour format to user's local time format
                             const [hour, minute] = interval.hour.split(':');
-                            labels.push(`${hour}:${minute}`);
+                            const date = new Date();
+                            date.setHours(parseInt(hour), parseInt(minute), 0, 0);
+                            labels.push(date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
                         } else {
                             labels.push(''); // Empty label for 30-minute marks
                         }
@@ -2948,9 +2950,11 @@
                     data.hourly_data.forEach((interval, index) => {
                         // Show time labels only for full hours (00:00, 01:00, etc.)
                         if (index % 2 === 0) {
-                            // Use the hour directly from server data (already in CET)
+                            // Convert 24-hour format to user's local time format
                             const [hour, minute] = interval.hour.split(':');
-                            labels.push(`${hour}:${minute}`);
+                            const date = new Date();
+                            date.setHours(parseInt(hour), parseInt(minute), 0, 0);
+                            labels.push(date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
                         } else {
                             labels.push(''); // Empty label for 30-minute marks
                         }

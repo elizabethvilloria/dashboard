@@ -2330,8 +2330,6 @@
         function updateDashboardWithFilteredData(data) {
             // Update passenger counter display cards with filtered totals
             document.getElementById('total-passengers').textContent = data.total;
-            document.getElementById('adult-passengers').textContent = data.adults;
-            document.getElementById('child-passengers').textContent = data.children;
             
             // Additional dashboard elements (charts, graphs) can be updated here
             console.log('Dashboard updated with filtered data:', data);
@@ -2343,9 +2341,7 @@
                 .then(response => response.json())
                 .then(data => {
                     updateDashboardWithFilteredData({
-                        total: data.total,
-                        adults: data.adults,
-                        children: data.children
+                        total: data.total
                     });
                 })
                 .catch(error => {

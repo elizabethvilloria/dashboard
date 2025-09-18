@@ -938,6 +938,9 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
     <!-- Custom JavaScript -->
     <script>
         let map;
@@ -952,6 +955,7 @@
             pi: '',
             gps: ''
         };
+        let socket; // WebSocket connection
 
         // Initialize map when page loads
         document.addEventListener('DOMContentLoaded', function() {
@@ -961,7 +965,7 @@
             loadGpsVehicles();
             setupFilterEventListeners();
             updateApplyButton(); // Set initial button state
-            startRealTimeUpdates();
+            initWebSocket(); // Initialize WebSocket instead of polling
         });
 
         function initMap() {
@@ -1253,9 +1257,36 @@
         }
 
 
-         function startRealTimeUpdates() {
-             // Update vehicle positions every 1 second for seamless movement
-             setInterval(loadVehicleData, 1000);
+         function initWebSocket() {
+             // Initialize WebSocket connection
+             socket = io();
+             
+             // Handle connection events
+             socket.on('connect', function() {
+                 console.log('Connected to WebSocket server');
+                 // Request immediate GPS update
+                 socket.emit('request_gps_update');
+             });
+             
+             socket.on('disconnect', function() {
+                 console.log('Disconnected from WebSocket server');
+             });
+             
+             // Handle real-time GPS updates
+             socket.on('gps_update', function(data) {
+                 console.log('Received GPS update:', data.vehicles.length, 'vehicles');
+                 updateVehicleMarkers(data.vehicles);
+                 
+                 // Update GPS filter dropdown with current vehicles
+                 updateGpsFilter(data.vehicles);
+             });
+             
+             socket.on('connect_error', function(error) {
+                 console.error('WebSocket connection error:', error);
+                 // Fallback to polling if WebSocket fails
+                 console.log('Falling back to polling...');
+                 setInterval(loadVehicleData, 5000); // Poll every 5 seconds as fallback
+             });
          }
 
         function centerMap() {

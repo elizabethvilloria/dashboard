@@ -1,5 +1,6 @@
 
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for, flash, send_file
+from flask_socketio import SocketIO, emit
 import json
 import datetime
 from collections import defaultdict
@@ -11,9 +12,12 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 import io
+import threading
+import time
 
 app = Flask(__name__)
 app.secret_key = 'etrike-secret-key-change-this'  # Change this to a random string
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Simple authentication (in production, use proper user database)
 USERS = {
@@ -25,6 +29,10 @@ HISTORICAL_FILE = "historical_summary.json"
 
 # Global variable to track when Pi devices last sent heartbeat
 last_pi_heartbeat_time = 0
+
+# Global variable to control the background thread
+gps_broadcast_thread = None
+stop_broadcast = False
 
 def get_latest_log_time():
     """Finds the timestamp of the most recent log entry."""
@@ -235,6 +243,116 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
+def broadcast_gps_updates():
+    """Background thread to broadcast GPS updates via WebSocket"""
+    global stop_broadcast
+    while not stop_broadcast:
+        try:
+            # Get current vehicle locations
+            vehicles = get_vehicle_locations_data()
+            if vehicles:
+                # Broadcast to all connected clients
+                socketio.emit('gps_update', {'vehicles': vehicles}, namespace='/')
+            time.sleep(1)  # Update every 1 second
+        except Exception as e:
+            print(f"GPS broadcast error: {e}")
+            time.sleep(5)  # Wait 5 seconds on error
+
+def get_vehicle_locations_data():
+    """Get vehicle locations data (extracted from the route function)"""
+    try:
+        gps_log_path = os.path.join(LOG_DIR, 'gps_data.json')
+        if not os.path.exists(gps_log_path):
+            return []
+
+        with open(gps_log_path, 'r') as f:
+            gps_data = json.load(f)
+
+        # Get latest location for each Pi device
+        latest_locations = {}
+        for entry in gps_data:
+            pi_id = entry['pi_id']
+            entry_time = datetime.datetime.fromisoformat(entry['received_at'])
+            
+            if pi_id not in latest_locations or entry_time > datetime.datetime.fromisoformat(latest_locations[pi_id]['received_at']):
+                latest_locations[pi_id] = entry
+
+        # Convert to vehicle format
+        vehicles = []
+        pi_assignments = load_pi_assignments()
+        
+        for pi_id, location in latest_locations.items():
+            assignment = pi_assignments.get(pi_id, {})
+            # Check if vehicle is offline (no data for 5 minutes)
+            pi_timestamp = location.get('timestamp', 0)
+            if pi_timestamp:
+                last_update = datetime.datetime.fromtimestamp(pi_timestamp)
+                time_since_update = (datetime.datetime.now() - last_update).total_seconds()
+            else:
+                last_update = datetime.datetime.fromisoformat(location['received_at'])
+                time_since_update = (datetime.datetime.now() - last_update).total_seconds()
+            
+            is_offline = time_since_update > 300  # 5 minutes = 300 seconds
+            is_parked = False
+            if not is_offline and location.get('speed', 0) == 0:
+                is_parked = time_since_update > 600  # 10 minutes = 600 seconds
+            
+            if is_offline:
+                status = 'offline'
+            elif is_parked:
+                status = 'parked'
+            else:
+                status = 'active'
+            
+            if pi_timestamp:
+                last_update_str = last_update.isoformat()
+            else:
+                last_update_str = location['received_at']
+            
+            vehicle = {
+                'id': assignment.get('etrike_id', f'pi-{pi_id}'),
+                'name': f"E-Trike {assignment.get('etrike_id', pi_id)}",
+                'lat': location['latitude'],
+                'lng': location['longitude'],
+                'speed': location.get('speed', 0),
+                'heading': location.get('heading', 0),
+                'status': status,
+                'passengers': 0,
+                'toda': assignment.get('toda_id', ''),
+                'pi': pi_id,
+                'last_update': last_update_str
+            }
+            vehicles.append(vehicle)
+        
+        return vehicles
+        
+    except Exception as e:
+        print(f"Vehicle locations error: {e}")
+        return []
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection"""
+    print(f'Client connected: {request.sid}')
+    # Start broadcast thread if not already running
+    global gps_broadcast_thread, stop_broadcast
+    if gps_broadcast_thread is None or not gps_broadcast_thread.is_alive():
+        stop_broadcast = False
+        gps_broadcast_thread = threading.Thread(target=broadcast_gps_updates, daemon=True)
+        gps_broadcast_thread.start()
+        print("GPS broadcast thread started")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection"""
+    print(f'Client disconnected: {request.sid}')
+
+@socketio.on('request_gps_update')
+def handle_gps_request():
+    """Handle client request for immediate GPS update"""
+    vehicles = get_vehicle_locations_data()
+    emit('gps_update', {'vehicles': vehicles})
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -688,15 +806,11 @@ def get_filtered_data_route():
     
     filtered_data = get_filtered_data(toda_id, etrike_id, pi_id)
     
-    # Count by type
-    adult_count = len([entry for entry in filtered_data if entry.get('type') == 'Adult'])
-    child_count = len([entry for entry in filtered_data if entry.get('type') == 'Child'])
+    # Count total passengers
     total_count = len(filtered_data)
     
     return jsonify({
         'total': total_count,
-        'adults': adult_count,
-        'children': child_count,
         'filtered_data': filtered_data
     })
 
@@ -1480,13 +1594,13 @@ if __name__ == '__main__':
         if os.path.exists(cert_path) and os.path.exists(key_path):
             context = ssl.SSLContext(ssl.PROTOCOL_TLS)  # Use TLS instead of TLSv1_2
             context.load_cert_chain(cert_path, key_path)
-            print("🚀 Dashboard running on https://etrikedashboard.com:5001/")
-            app.run(debug=False, host='0.0.0.0', port=443, ssl_context=context)
+            print("🚀 Dashboard with WebSocket running on https://etrikedashboard.com:5001/")
+            socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context)
         else:
             # Fall back to HTTP
-            print("🚀 Dashboard running on http://localhost:5001/")
-            app.run(debug=False, host='0.0.0.0', port=5001)
+            print("🚀 Dashboard with WebSocket running on http://localhost:5001/")
+            socketio.run(app, debug=False, host='0.0.0.0', port=5001)
     except Exception as e:
         print(f"⚠️  SSL Error: {e}")
         print("🔄 Falling back to HTTP mode...")
-        app.run(debug=False, host='0.0.0.0', port=5001) 
+        socketio.run(app, debug=False, host='0.0.0.0', port=5001) 

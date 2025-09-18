@@ -287,8 +287,11 @@ def get_vehicle_locations_data():
             # Check if vehicle is offline (no data for 5 minutes)
             pi_timestamp = location.get('timestamp', 0)
             if pi_timestamp:
-                last_update = datetime.datetime.fromtimestamp(pi_timestamp)
-                time_since_update = (datetime.datetime.now() - last_update).total_seconds()
+                # Convert UTC timestamp to CET timezone
+                import pytz
+                utc_time = datetime.datetime.fromtimestamp(pi_timestamp, tz=pytz.UTC)
+                last_update = utc_time.astimezone(pytz.timezone('Europe/Madrid'))
+                time_since_update = (datetime.datetime.now(pytz.timezone('Europe/Madrid')) - last_update).total_seconds()
             else:
                 last_update = datetime.datetime.fromisoformat(location['received_at'])
                 time_since_update = (datetime.datetime.now() - last_update).total_seconds()
@@ -971,9 +974,11 @@ def get_vehicle_locations():
             # Use Pi's timestamp for offline detection to avoid timezone issues
             pi_timestamp = location.get('timestamp', 0)
             if pi_timestamp:
-                # Use Pi's timestamp for offline detection
-                last_update = datetime.datetime.fromtimestamp(pi_timestamp)
-                time_since_update = (datetime.datetime.now() - last_update).total_seconds()
+                # Convert UTC timestamp to CET timezone
+                import pytz
+                utc_time = datetime.datetime.fromtimestamp(pi_timestamp, tz=pytz.UTC)
+                last_update = utc_time.astimezone(pytz.timezone('Europe/Madrid'))
+                time_since_update = (datetime.datetime.now(pytz.timezone('Europe/Madrid')) - last_update).total_seconds()
             else:
                 # Fallback to received_at if no Pi timestamp
                 last_update = datetime.datetime.fromisoformat(location['received_at'])

@@ -1304,12 +1304,11 @@
                  updateGpsFilter(data.vehicles);
              });
              
-             socket.on('connect_error', function(error) {
-                 console.error('WebSocket connection error:', error);
-                 // Fallback to polling if WebSocket fails
-                 console.log('Falling back to polling...');
-                 setInterval(loadVehicleData, 5000); // Poll every 5 seconds as fallback
-             });
+            socket.on('connect_error', function(error) {
+                console.error('WebSocket connection error:', error);
+                // WebSocket failed, but don't fall back to polling to avoid spam
+                console.log('WebSocket connection failed. Please refresh the page to retry.');
+            });
          }
 
         function centerMap() {

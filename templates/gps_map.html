@@ -1092,7 +1092,8 @@
 
         function applyFilters() {
             console.log('Applying filters:', currentFilters);
-            loadVehicleData();
+            // Filters are applied in real-time via WebSocket updates
+            // No need to make HTTP request
         }
 
         function clearFilters() {
@@ -1103,7 +1104,8 @@
             document.getElementById('gps-select').value = '';
             
             currentFilters = { toda: '', etrike: '', pi: '', gps: '' };
-            loadVehicleData();
+            // Filters are cleared in real-time via WebSocket updates
+            // No need to make HTTP request
         }
 
          function loadVehicleData() {

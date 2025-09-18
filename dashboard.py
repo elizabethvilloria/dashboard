@@ -17,7 +17,7 @@ import time
 
 app = Flask(__name__)
 app.secret_key = 'etrike-secret-key-change-this'  # Change this to a random string
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
 
 # Simple authentication (in production, use proper user database)
 USERS = {
@@ -337,24 +337,32 @@ def get_vehicle_locations_data():
 @socketio.on('connect')
 def handle_connect():
     """Handle client connection"""
-    print(f'Client connected: {request.sid}')
+    print(f'🔌 Client connected: {request.sid}')
+    print(f'🔌 Transport: {request.transport}')
+    print(f'🔌 Session ID: {request.sid}')
+    print(f'🔌 Headers: {dict(request.headers)}')
+    
     # Start broadcast thread if not already running
     global gps_broadcast_thread, stop_broadcast
     if gps_broadcast_thread is None or not gps_broadcast_thread.is_alive():
         stop_broadcast = False
         gps_broadcast_thread = threading.Thread(target=broadcast_gps_updates, daemon=True)
         gps_broadcast_thread.start()
-        print("GPS broadcast thread started")
+        print("🚀 GPS broadcast thread started")
+    else:
+        print("⚠️  GPS broadcast thread already running")
 
 @socketio.on('disconnect')
 def handle_disconnect():
     """Handle client disconnection"""
-    print(f'Client disconnected: {request.sid}')
+    print(f'🔌 Client disconnected: {request.sid}')
 
 @socketio.on('request_gps_update')
 def handle_gps_request():
     """Handle client request for immediate GPS update"""
+    print(f'📡 GPS update requested by: {request.sid}')
     vehicles = get_vehicle_locations_data()
+    print(f'📡 Sending {len(vehicles)} vehicles to client')
     emit('gps_update', {'vehicles': vehicles})
 
 @app.route('/login', methods=['GET', 'POST'])

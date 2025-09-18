@@ -17,7 +17,7 @@ import time
 
 app = Flask(__name__)
 app.secret_key = 'etrike-secret-key-change-this'  # Change this to a random string
-socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Simple authentication (in production, use proper user database)
 USERS = {
@@ -335,33 +335,26 @@ def get_vehicle_locations_data():
         return []
 
 @socketio.on('connect')
-def handle_connect(auth=None):
+def handle_connect():
     """Handle client connection"""
-    print(f'🔌 Client connected: {request.sid}')
-    print(f'🔌 Session ID: {request.sid}')
-    print(f'🔌 Headers: {dict(request.headers)}')
-    
+    print(f'Client connected: {request.sid}')
     # Start broadcast thread if not already running
     global gps_broadcast_thread, stop_broadcast
     if gps_broadcast_thread is None or not gps_broadcast_thread.is_alive():
         stop_broadcast = False
         gps_broadcast_thread = threading.Thread(target=broadcast_gps_updates, daemon=True)
         gps_broadcast_thread.start()
-        print("🚀 GPS broadcast thread started")
-    else:
-        print("⚠️  GPS broadcast thread already running")
+        print("GPS broadcast thread started")
 
 @socketio.on('disconnect')
 def handle_disconnect():
     """Handle client disconnection"""
-    print(f'🔌 Client disconnected: {request.sid}')
+    print(f'Client disconnected: {request.sid}')
 
 @socketio.on('request_gps_update')
 def handle_gps_request():
     """Handle client request for immediate GPS update"""
-    print(f'📡 GPS update requested by: {request.sid}')
     vehicles = get_vehicle_locations_data()
-    print(f'📡 Sending {len(vehicles)} vehicles to client')
     emit('gps_update', {'vehicles': vehicles})
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -1609,7 +1602,6 @@ if __name__ == '__main__':
             context = ssl.SSLContext(ssl.PROTOCOL_TLS)  # Use TLS instead of TLSv1_2
             context.load_cert_chain(cert_path, key_path)
             print("🚀 Dashboard with WebSocket running on https://etrikedashboard.com:5001/")
-            print("💡 For production with true WebSocket, use: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:443 --certfile=cert.pem --keyfile=key.pem dashboard:app")
             socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context)
         else:
             # Fall back to HTTP

@@ -1092,13 +1092,7 @@
 
         function applyFilters() {
             console.log('Applying filters:', currentFilters);
-            // Request immediate GPS update via WebSocket
-            if (socket && socket.connected) {
-                socket.emit('request_gps_update');
-            } else {
-                // Fallback to manual fetch if WebSocket not available
-                loadVehicleData();
-            }
+            loadVehicleData();
         }
 
         function clearFilters() {
@@ -1109,13 +1103,7 @@
             document.getElementById('gps-select').value = '';
             
             currentFilters = { toda: '', etrike: '', pi: '', gps: '' };
-            // Request immediate GPS update via WebSocket
-            if (socket && socket.connected) {
-                socket.emit('request_gps_update');
-            } else {
-                // Fallback to manual fetch if WebSocket not available
-                loadVehicleData();
-            }
+            loadVehicleData();
         }
 
          function loadVehicleData() {
@@ -1303,9 +1291,6 @@
              
              socket.on('disconnect', function() {
                  console.log('Disconnected from WebSocket server');
-                 // Fallback to manual polling when disconnected
-                 console.log('Falling back to manual polling...');
-                 loadVehicleData();
              });
              
              // Handle real-time GPS updates
@@ -1319,19 +1304,10 @@
              
              socket.on('connect_error', function(error) {
                  console.error('WebSocket connection error:', error);
-                 // Socket.IO will handle fallback to polling automatically
-                 console.log('Socket.IO will use polling fallback automatically');
-                 // Also try manual fallback
-                 loadVehicleData();
+                 // Fallback to polling if WebSocket fails
+                 console.log('Falling back to polling...');
+                 setInterval(loadVehicleData, 5000); // Poll every 5 seconds as fallback
              });
-             
-             // Set up periodic fallback in case WebSocket stops working
-             setInterval(function() {
-                 if (!socket || !socket.connected) {
-                     console.log('WebSocket not connected, using fallback polling...');
-                     loadVehicleData();
-                 }
-             }, 10000); // Check every 10 seconds
          }
 
         function centerMap() {

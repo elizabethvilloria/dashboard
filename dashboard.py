@@ -1100,8 +1100,10 @@ def historical_population_data():
                     
                     # Count passengers by 30-minute intervals
                     for entry in log_data:
-                        # Use Pi's local time directly (no timezone conversion)
-                        entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
+                        # Convert UTC timestamp to CET timezone
+                        import pytz
+                        utc_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'], tz=pytz.UTC)
+                        entry_time = utc_time.astimezone(pytz.timezone('Europe/Madrid'))
                         hour = entry_time.hour
                         minute = entry_time.minute
                         

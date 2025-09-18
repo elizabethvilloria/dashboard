@@ -1951,8 +1951,8 @@
                         });
                         
                         sortedPassengers.forEach((passenger, index) => {
-                            const entryTime = passenger.entry_timestamp ? new Date(passenger.entry_timestamp * 1000).toLocaleString('en-GB', {timeZone: 'Europe/Madrid'}) : 'N/A';
-                            const exitTime = passenger.exit_timestamp ? new Date(passenger.exit_timestamp * 1000).toLocaleString('en-GB', {timeZone: 'Europe/Madrid'}) : 'N/A';
+                            const entryTime = passenger.entry_timestamp ? new Date(passenger.entry_timestamp * 1000).toLocaleString(undefined, {timeZone: 'Europe/Madrid'}) : 'N/A';
+                            const exitTime = passenger.exit_timestamp ? new Date(passenger.exit_timestamp * 1000).toLocaleString(undefined, {timeZone: 'Europe/Madrid'}) : 'N/A';
                             const dwellTime = passenger.dwell_time_minutes ? `${passenger.dwell_time_minutes} minutes` : 'N/A';
                             const personId = passenger.person_id || (index + 1);
                             

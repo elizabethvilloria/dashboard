@@ -408,12 +408,13 @@
 
         /* Responsive Design: Mobile Device Adaptations for Options Page */
         @media (max-width: 768px) {
-            /* Sidebar becomes half-width overlay on mobile devices */
+            /* Sidebar becomes partial-width overlay on mobile devices */
             .sidebar {
                 position: fixed;
                 top: 0;
                 left: 0;
-                width: 280px;
+                width: 60%;
+                max-width: 300px;
                 height: 100vh;
                 z-index: 10000;
                 transform: translateX(-100%);
@@ -468,6 +469,27 @@
                 cursor: pointer;
             }
 
+            /* Make collapse button more prominent on mobile */
+            .sidebar-toggle-main {
+                position: fixed;
+                top: 1rem;
+                right: 1rem;
+                z-index: 10001;
+                background: rgba(0, 0, 0, 0.8);
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                border: 2px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .sidebar-toggle-main i {
+                font-size: 1.2rem;
+            }
+
             /* Ensure all clickable elements are touch-friendly on options page */
             button, a, select, .nav-link {
                 touch-action: manipulation;
@@ -478,6 +500,39 @@
             .container-fluid {
                 padding-left: 0.5rem;
                 padding-right: 0.5rem;
+            }
+
+            /* Add swipe gesture hint */
+            .sidebar::before {
+                content: '← Swipe to close';
+                position: absolute;
+                top: 50%;
+                right: -80px;
+                transform: translateY(-50%) rotate(90deg);
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 0.8rem;
+                font-weight: 500;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            .sidebar.show::before {
+                opacity: 1;
+            }
+
+            /* Improve mobile sidebar content spacing */
+            .sidebar-nav {
+                padding: 0 1rem;
+            }
+
+            .nav-item {
+                margin-bottom: 0.8rem;
+            }
+
+            .nav-link {
+                font-size: 1rem;
+                padding: 1.2rem 1rem;
             }
         }
     </style>

@@ -593,7 +593,8 @@
          @media (max-width: 768px) {
              .sidebar {
                  transform: translateX(-100%);
-                 width: 280px;
+                 width: 60%;
+                 max-width: 300px;
              }
              
              .sidebar.show {
@@ -683,6 +684,7 @@
              .sidebar-header {
                  cursor: pointer;
                  padding: 1rem;
+                 position: relative;
              }
 
              .sidebar-header::after {
@@ -693,6 +695,27 @@
                  transform: translateY(-50%);
                  font-size: 1.5rem;
                  color: white;
+             }
+
+             /* Make collapse button more prominent on mobile */
+             .sidebar-toggle-main {
+                 position: fixed;
+                 top: 1rem;
+                 right: 1rem;
+                 z-index: 10001;
+                 background: rgba(0, 0, 0, 0.8);
+                 border-radius: 50%;
+                 width: 50px;
+                 height: 50px;
+                 display: flex;
+                 align-items: center;
+                 justify-content: center;
+                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                 border: 2px solid rgba(255, 255, 255, 0.2);
+             }
+
+             .sidebar-toggle-main i {
+                 font-size: 1.2rem;
              }
 
              /* Mobile-friendly card layouts */
@@ -724,6 +747,39 @@
              .container-fluid {
                  padding-left: 0.5rem;
                  padding-right: 0.5rem;
+             }
+
+             /* Add swipe gesture hint */
+             .sidebar::before {
+                 content: '← Swipe to close';
+                 position: absolute;
+                 top: 50%;
+                 right: -80px;
+                 transform: translateY(-50%) rotate(90deg);
+                 color: rgba(255, 255, 255, 0.6);
+                 font-size: 0.8rem;
+                 font-weight: 500;
+                 pointer-events: none;
+                 opacity: 0;
+                 transition: opacity 0.3s ease;
+             }
+
+             .sidebar.show::before {
+                 opacity: 1;
+             }
+
+             /* Improve mobile sidebar content spacing */
+             .sidebar-nav {
+                 padding: 0 1rem;
+             }
+
+             .nav-item {
+                 margin-bottom: 0.8rem;
+             }
+
+             .nav-link {
+                 font-size: 1rem;
+                 padding: 1.2rem 1rem;
              }
              
              /* Stack filter controls vertically on very small screens */
@@ -907,44 +963,6 @@
             updateApplyButton(); // Set initial button state
             startRealTimeUpdates();
         });
-
-        // Function to calculate time ago from a date
-        function getTimeAgo(date) {
-            const now = new Date();
-            const diffInSeconds = Math.floor((now - date) / 1000);
-            
-            if (diffInSeconds < 60) {
-                return diffInSeconds <= 1 ? 'Just now' : `${diffInSeconds} seconds ago`;
-            }
-            
-            const diffInMinutes = Math.floor(diffInSeconds / 60);
-            if (diffInMinutes < 60) {
-                return diffInMinutes === 1 ? '1 minute ago' : `${diffInMinutes} minutes ago`;
-            }
-            
-            const diffInHours = Math.floor(diffInMinutes / 60);
-            if (diffInHours < 24) {
-                return diffInHours === 1 ? '1 hour ago' : `${diffInHours} hours ago`;
-            }
-            
-            const diffInDays = Math.floor(diffInHours / 24);
-            if (diffInDays < 7) {
-                return diffInDays === 1 ? '1 day ago' : `${diffInDays} days ago`;
-            }
-            
-            const diffInWeeks = Math.floor(diffInDays / 7);
-            if (diffInWeeks < 4) {
-                return diffInWeeks === 1 ? '1 week ago' : `${diffInWeeks} weeks ago`;
-            }
-            
-            const diffInMonths = Math.floor(diffInDays / 30);
-            if (diffInMonths < 12) {
-                return diffInMonths === 1 ? '1 month ago' : `${diffInMonths} months ago`;
-            }
-            
-            const diffInYears = Math.floor(diffInDays / 365);
-            return diffInYears === 1 ? '1 year ago' : `${diffInYears} years ago`;
-        }
 
         function initMap() {
             // Initialize map centered on Barcelona
@@ -1151,14 +1169,13 @@
                     if (isOffline) statusColor = '#ef4444'; // Red for offline
                     else if (isParked) statusColor = '#f59e0b'; // Orange for parked
                     
-                    const timeAgo = getTimeAgo(new Date(vehicle.last_update));
                     marker.setPopupContent(`
                         <div class="vehicle-info">
                             <h6>Pi ${vehicle.pi}</h6>
                             <p><strong>Status:</strong> <span style="color: ${statusColor}">${vehicle.status.toUpperCase()}</span></p>
                             <p><strong>Speed:</strong> ${vehicle.speed.toFixed(1)} km/h</p>
                             <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
-                            <p><strong>Last Update:</strong> ${timeAgo}</p>
+                            <p><strong>Last Update:</strong> ${new Date(vehicle.last_update).toLocaleTimeString()}</p>
                         </div>
                     `);
                 } else {
@@ -1193,7 +1210,6 @@
                         iconAnchor: [12, 12]
                     });
 
-                    const timeAgo = getTimeAgo(new Date(vehicle.last_update));
                     const marker = L.marker([vehicle.lat, vehicle.lng], { icon })
                         .addTo(map)
                         .bindPopup(`
@@ -1202,7 +1218,7 @@
                                 <p><strong>Status:</strong> <span style="color: ${iconColor}">${vehicle.status.toUpperCase()}</span></p>
                                 <p><strong>Speed:</strong> ${vehicle.speed.toFixed(1)} km/h</p>
                                 <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
-                                <p><strong>Last Update:</strong> ${timeAgo}</p>
+                                <p><strong>Last Update:</strong> ${new Date(vehicle.last_update).toLocaleTimeString()}</p>
                                 <div style="margin-top: 10px; text-align: center;">
                                     <button onclick="hideVehicleTrail('${vehicle.pi}')" style="
                                         background: #ef4444;

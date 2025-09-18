@@ -936,7 +936,7 @@ def population_data():
                 
                 # Count passengers by 30-minute intervals
                 for entry in log_data:
-                    # Convert timestamp to local timezone (automatic)
+                    # Use Pi's local time directly (no timezone conversion)
                     entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
                     hour = entry_time.hour
                     minute = entry_time.minute
@@ -986,7 +986,7 @@ def historical_population_data():
                     
                     # Count passengers by 30-minute intervals
                     for entry in log_data:
-                        # Convert timestamp to local timezone (automatic)
+                        # Use Pi's local time directly (no timezone conversion)
                         entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
                         hour = entry_time.hour
                         minute = entry_time.minute

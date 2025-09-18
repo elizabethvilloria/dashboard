@@ -1306,7 +1306,9 @@
                  console.error('WebSocket connection error:', error);
                  // Fallback to polling if WebSocket fails
                  console.log('Falling back to polling...');
-                 setInterval(loadVehicleData, 5000); // Poll every 5 seconds as fallback
+                 if (!window.pollingInterval) {
+                     window.pollingInterval = setInterval(loadVehicleData, 5000); // Poll every 5 seconds as fallback
+                 }
              });
          }
 

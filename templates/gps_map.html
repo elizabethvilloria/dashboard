@@ -1303,6 +1303,9 @@
              
              socket.on('disconnect', function() {
                  console.log('Disconnected from WebSocket server');
+                 // Fallback to manual polling when disconnected
+                 console.log('Falling back to manual polling...');
+                 loadVehicleData();
              });
              
              // Handle real-time GPS updates
@@ -1318,7 +1321,17 @@
                  console.error('WebSocket connection error:', error);
                  // Socket.IO will handle fallback to polling automatically
                  console.log('Socket.IO will use polling fallback automatically');
+                 // Also try manual fallback
+                 loadVehicleData();
              });
+             
+             // Set up periodic fallback in case WebSocket stops working
+             setInterval(function() {
+                 if (!socket || !socket.connected) {
+                     console.log('WebSocket not connected, using fallback polling...');
+                     loadVehicleData();
+                 }
+             }, 10000); // Check every 10 seconds
          }
 
         function centerMap() {

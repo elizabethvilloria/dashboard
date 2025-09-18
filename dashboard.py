@@ -335,7 +335,7 @@ def get_vehicle_locations_data():
         return []
 
 @socketio.on('connect')
-def handle_connect():
+def handle_connect(auth=None):
     """Handle client connection"""
     print(f'🔌 Client connected: {request.sid}')
     print(f'🔌 Session ID: {request.sid}')

@@ -2787,7 +2787,7 @@
                             const [hour, minute] = interval.hour.split(':');
                             const date = new Date();
                             date.setHours(parseInt(hour), parseInt(minute), 0, 0);
-                            labels.push(date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+                            labels.push(date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Europe/Madrid'}));
                         } else {
                             labels.push(''); // Empty label for 30-minute marks
                         }
@@ -2954,7 +2954,7 @@
                             const [hour, minute] = interval.hour.split(':');
                             const date = new Date();
                             date.setHours(parseInt(hour), parseInt(minute), 0, 0);
-                            labels.push(date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+                            labels.push(date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Europe/Madrid'}));
                         } else {
                             labels.push(''); // Empty label for 30-minute marks
                         }

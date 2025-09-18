@@ -1602,12 +1602,12 @@ if __name__ == '__main__':
             context = ssl.SSLContext(ssl.PROTOCOL_TLS)  # Use TLS instead of TLSv1_2
             context.load_cert_chain(cert_path, key_path)
             print("🚀 Dashboard with WebSocket running on https://etrikedashboard.com:5001/")
-            socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context)
+            socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context, async_mode='eventlet')
         else:
             # Fall back to HTTP
             print("🚀 Dashboard with WebSocket running on http://localhost:5001/")
-            socketio.run(app, debug=False, host='0.0.0.0', port=5001)
+            socketio.run(app, debug=False, host='0.0.0.0', port=5001, async_mode='eventlet')
     except Exception as e:
         print(f"⚠️  SSL Error: {e}")
         print("🔄 Falling back to HTTP mode...")
-        socketio.run(app, debug=False, host='0.0.0.0', port=5001) 
+        socketio.run(app, debug=False, host='0.0.0.0', port=5001, async_mode='eventlet') 

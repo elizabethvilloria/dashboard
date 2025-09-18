@@ -1306,9 +1306,15 @@
                  console.error('WebSocket connection error:', error);
                  // Fallback to polling if WebSocket fails
                  console.log('Falling back to polling...');
-                 if (!window.pollingInterval) {
-                     window.pollingInterval = setInterval(loadVehicleData, 5000); // Poll every 5 seconds as fallback
-                 }
+                 setInterval(function() {
+                     fetch('/vehicle-locations')
+                         .then(response => response.json())
+                         .then(data => {
+                             updateVehicleMarkers(data.vehicles || []);
+                             updateGpsFilter(data.vehicles || []);
+                         })
+                         .catch(error => console.error('Polling error:', error));
+                 }, 5000); // Poll every 5 seconds as fallback
              });
          }
 

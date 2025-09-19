@@ -420,16 +420,6 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
-        .btn-center {
-            background: linear-gradient(135deg, var(--accent-color), var(--teal));
-            color: white;
-        }
-
-        .btn-center:hover {
-            transform: translateY(-2px);
-            color: white;
-            text-decoration: none;
-        }
 
         .map-container {
             background: rgba(0, 0, 0, 0.7);
@@ -470,7 +460,7 @@
         }
 
         .btn-fullscreen:hover {
-            /* No transform effect */
+            background: #f3f4f6;
         }
 
         .btn-fullscreen i {
@@ -576,6 +566,17 @@
             margin-top: 2rem;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
+
+
+        /* Trail colors for different vehicles */
+        .trail-pi-1 { color: #ef4444; }
+        .trail-pi-2 { color: #3b82f6; }
+        .trail-pi-3 { color: #10b981; }
+        .trail-pi-4 { color: #f59e0b; }
+        .trail-pi-5 { color: #8b5cf6; }
+        .trail-pi-6 { color: #06b6d4; }
+        .trail-pi-7 { color: #f97316; }
+        .trail-pi-8 { color: #84cc16; }
 
         .mobile-backdrop {
             display: none;
@@ -892,12 +893,6 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label for="pi-select" class="filter-label-small">Pi Device</label>
-                        <select class="filter-select-small" id="pi-select">
-                            <option value="">All Pi Devices</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
                         <label for="gps-select" class="filter-label-small">GPS Vehicle</label>
                         <select class="filter-select-small" id="gps-select">
                             <option value="">All GPS Vehicles</option>
@@ -907,18 +902,16 @@
                         <label class="filter-label-small">&nbsp;</label>
                         <div class="filter-actions-small">
                             <button class="filter-btn-small btn-apply" id="apply-filter" onclick="applyFilters()" disabled>
-                                <i class="fas fa-search me-2"></i>Apply
+                                <i class="fas fa-check me-2"></i>Apply
                             </button>
                             <button class="filter-btn-small btn-clear" onclick="clearFilters()">
                                 <i class="fas fa-times me-2"></i>Clear
-                            </button>
-                            <button class="filter-btn-small btn-center" onclick="centerMap()">
-                                <i class="fas fa-crosshairs me-2"></i>Center
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+
 
 
              <!-- Map Container -->
@@ -953,16 +946,15 @@
         let currentFilters = {
             toda: '',
             etrike: '',
-            pi: '',
             gps: ''
         };
         let socket; // WebSocket connection
+        
 
         // Initialize map when page loads
         document.addEventListener('DOMContentLoaded', function() {
             initMap();
             loadTodas();
-            loadPiDevices();
             loadGpsVehicles();
             setupFilterEventListeners();
             updateApplyButton(); // Set initial button state
@@ -996,21 +988,6 @@
                 .catch(error => console.error('Error loading TODAs:', error));
         }
 
-        function loadPiDevices() {
-            fetch('/get-pi-assignments')
-                .then(response => response.json())
-                .then(data => {
-                    const piSelect = document.getElementById('pi-select');
-                    Object.keys(data).forEach(piId => {
-                        const assignment = data[piId];
-                        const option = document.createElement('option');
-                        option.value = piId;
-                        option.textContent = `Pi ${piId} - ${assignment.etrike_id}`;
-                        piSelect.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error loading Pi devices:', error));
-        }
 
         function loadGpsVehicles() {
             fetch('/vehicle-locations')
@@ -1032,7 +1009,6 @@
         function setupFilterEventListeners() {
             const todaSelect = document.getElementById('toda-select');
             const etrikeSelect = document.getElementById('etrike-select');
-            const piSelect = document.getElementById('pi-select');
             const gpsSelect = document.getElementById('gps-select');
 
             todaSelect.addEventListener('change', function() {
@@ -1053,10 +1029,6 @@
                 updateApplyButton();
             });
 
-            piSelect.addEventListener('change', function() {
-                currentFilters.pi = this.value;
-                updateApplyButton();
-            });
 
             gpsSelect.addEventListener('change', function() {
                 // Don't update filters - just center on selected vehicle
@@ -1101,10 +1073,9 @@
             document.getElementById('toda-select').value = '';
             document.getElementById('etrike-select').value = '';
             document.getElementById('etrike-select').disabled = true;
-            document.getElementById('pi-select').value = '';
             document.getElementById('gps-select').value = '';
             
-            currentFilters = { toda: '', etrike: '', pi: '', gps: '' };
+            currentFilters = { toda: '', etrike: '', gps: '' };
             // Filters are cleared in real-time via WebSocket updates
             // No need to make HTTP request
         }
@@ -1172,7 +1143,6 @@
                 // Apply filters (excluding GPS filter - that's just for centering)
                 if (currentFilters.toda && vehicle.toda !== currentFilters.toda) return;
                 if (currentFilters.etrike && vehicle.id !== currentFilters.etrike) return;
-                if (currentFilters.pi && vehicle.pi !== currentFilters.pi) return;
 
                 // Check if marker already exists
                 if (vehicleMarkers[vehicle.id]) {
@@ -1312,19 +1282,6 @@
             });
          }
 
-        function centerMap() {
-            console.log('Center map clicked');
-            if (map && Object.keys(vehicleMarkers).length > 0) {
-                const group = new L.featureGroup(Object.values(vehicleMarkers));
-                map.fitBounds(group.getBounds().pad(0.1));
-                console.log('Centered on vehicle markers');
-            } else if (map) {
-                map.setView([41.3851, 2.1734], 13);
-                console.log('Centered on default location');
-            } else {
-                console.log('Map not initialized');
-            }
-        }
 
         function centerOnGpsVehicle(piId) {
             console.log('Centering on GPS vehicle:', piId);
@@ -1514,7 +1471,9 @@
                      toggleSidebar();
                  });
              }
+             
          });
+
     </script>
 </body>
 </html>

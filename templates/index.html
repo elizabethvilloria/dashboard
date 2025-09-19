@@ -1365,6 +1365,7 @@
                     </div>
                     
                         <div class="row g-3 align-items-center">
+                            <div class="col-md-2"></div>
                             <div class="col-md-3">
                                 <label class="filter-label-small">
                                     TODA
@@ -1382,14 +1383,6 @@
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <label class="filter-label-small">
-                                    Pi Device
-                                </label>
-                                <select class="filter-select-small" id="pi-select">
-                                    <option value="">All Pi Devices</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
                                 <label class="filter-label-small">&nbsp;</label>
                                 <div class="filter-actions-small">
                                     <button class="filter-btn-small btn-apply" id="apply-filter" disabled>
@@ -1398,11 +1391,9 @@
                                     <button class="filter-btn-small btn-clear" id="clear-filter">
                                         <i class="fas fa-times me-2"></i>Clear
                                     </button>
-                                    <a href="{{ url_for('pi_registration') }}" class="filter-btn-small btn-register">
-                                        <i class="fas fa-plus me-2"></i>Add Pi
-                                    </a>
                                 </div>
                             </div>
+                            <div class="col-md-1"></div>
                         </div>
                     </div>
                 </div>
@@ -2099,7 +2090,6 @@
             loadTodas();
             setupFilterEventListeners();
             loadPiStatus(); // Load Raspberry Pi device status for monitoring
-            loadPiDevices(); // Populate Pi device filter dropdown options
         });
 
         function loadTodas() {
@@ -2113,6 +2103,9 @@
                         option.textContent = `${toda.name} - ${toda.full_name}`;
                         todaSelect.appendChild(option);
                     });
+                    
+                    // Restore saved selections after loading TODAs
+                    restoreFilterSelections();
                 });
         }
 
@@ -2125,6 +2118,7 @@
             // Handle TODA (Tricycle Operators and Drivers Association) selection changes
             todaSelect.addEventListener('change', function() {
                 currentToda = this.value;
+                saveFilterSelections(); // Save selections to localStorage
                 if (currentToda) {
                     loadEtrikes(currentToda);
                     etrikeSelect.disabled = false;
@@ -2140,6 +2134,7 @@
             // Handle individual E-Trike vehicle selection changes
             etrikeSelect.addEventListener('change', function() {
                 currentEtrike = this.value;
+                saveFilterSelections(); // Save selections to localStorage
                 updateApplyButton();
             });
 
@@ -2155,7 +2150,7 @@
         }
 
         function loadEtrikes(todaId) {
-            fetch(`/get-etrikes?toda=${todaId}`)
+            return fetch(`/get-etrikes?toda=${todaId}`)
                 .then(response => response.json())
                 .then(data => {
                     const etrikeSelect = document.getElementById('etrike-select');
@@ -2178,9 +2173,8 @@
         function applyFilter() {
             const todaId = document.getElementById('toda-select').value;
             const etrikeId = document.getElementById('etrike-select').value;
-            const piId = document.getElementById('pi-select').value;
             
-            if (!todaId && !etrikeId && !piId) {
+            if (!todaId && !etrikeId) {
                 // No filters selected - show all city data
                 document.getElementById('filter-status').innerHTML = 'City-wide View';
                 loadDashboardData(); // Load unfiltered city-wide passenger data
@@ -2216,7 +2210,43 @@
             const filterStatus = document.getElementById('filter-status');
             filterStatus.innerHTML = 'City-wide View';
             
+            // Clear saved selections from localStorage
+            localStorage.removeItem('dashboard_toda_selection');
+            localStorage.removeItem('dashboard_etrike_selection');
+            
             showFilterMessage('Filter cleared!', 'info');
+        }
+
+        function saveFilterSelections() {
+            // Save current filter selections to localStorage
+            localStorage.setItem('dashboard_toda_selection', currentToda);
+            localStorage.setItem('dashboard_etrike_selection', currentEtrike);
+        }
+
+        function restoreFilterSelections() {
+            // Restore saved filter selections from localStorage
+            const savedToda = localStorage.getItem('dashboard_toda_selection');
+            const savedEtrike = localStorage.getItem('dashboard_etrike_selection');
+            
+            if (savedToda) {
+                const todaSelect = document.getElementById('toda-select');
+                todaSelect.value = savedToda;
+                currentToda = savedToda;
+                
+                // Load E-Trikes for the selected TODA
+                if (savedToda) {
+                    loadEtrikes(savedToda).then(() => {
+                        // After E-Trikes are loaded, restore E-Trike selection
+                        if (savedEtrike) {
+                            const etrikeSelect = document.getElementById('etrike-select');
+                            etrikeSelect.value = savedEtrike;
+                            currentEtrike = savedEtrike;
+                            etrikeSelect.disabled = false;
+                        }
+                        updateApplyButton();
+                    });
+                }
+            }
         }
 
         function showFilterMessage(message, type) {
@@ -2245,10 +2275,7 @@
                         piStatusList.innerHTML = `
                             <div class="text-center text-white-50">
                                 <i class="fas fa-microchip fa-2x mb-2"></i>
-                                <p>No Pi devices registered</p>
-                                <a href="/pi-registration" class="btn btn-sm btn-outline-light">
-                                    <i class="fas fa-plus me-1"></i>Register Pi
-                                </a>
+                                <p>No Pi devices connected</p>
                             </div>
                         `;
                         return;
@@ -2282,37 +2309,13 @@
                 });
         }
 
-        // Populate Pi device dropdown with registered Raspberry Pi devices
-        function loadPiDevices() {
-            fetch('/get-pi-assignments')
-                .then(response => response.json())
-                .then(data => {
-                    const piSelect = document.getElementById('pi-select');
-                    
-                    if (Object.keys(data).length === 0) {
-                        piSelect.innerHTML = '<option value="">No Pi devices registered</option>';
-                        return;
-                    }
-                    
-                    piSelect.innerHTML = '<option value="">All Pi Devices</option>';
-                    Object.entries(data).forEach(([piId, details]) => {
-                        const option = document.createElement('option');
-                        option.value = piId;
-                        option.textContent = `${piId} - ${details.toda_id.toUpperCase()} ${details.etrike_id}`;
-                        piSelect.appendChild(option);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading Pi devices:', error);
-                });
-        }
+        // Populate Pi device dropdown with connected Raspberry Pi devices
 
         function loadFilteredData(todaId, etrikeId, piId) {
             // Construct API query parameters for filtered data request
             const params = new URLSearchParams();
             if (todaId) params.append('toda_id', todaId);
             if (etrikeId) params.append('etrike_id', etrikeId);
-            if (piId) params.append('pi_id', piId);
             
             fetch(`/get-filtered-data?${params.toString()}`)
                 .then(response => response.json())

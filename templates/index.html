@@ -2104,8 +2104,8 @@
                         todaSelect.appendChild(option);
                     });
                     
-                    // Restore saved selections after loading TODAs
-                    restoreFilterSelections();
+                    // Restore filter preferences after TODAs are loaded
+                    restoreFilterPreferences();
                 });
         }
 
@@ -2118,7 +2118,6 @@
             // Handle TODA (Tricycle Operators and Drivers Association) selection changes
             todaSelect.addEventListener('change', function() {
                 currentToda = this.value;
-                saveFilterSelections(); // Save selections to localStorage
                 if (currentToda) {
                     loadEtrikes(currentToda);
                     etrikeSelect.disabled = false;
@@ -2134,7 +2133,6 @@
             // Handle individual E-Trike vehicle selection changes
             etrikeSelect.addEventListener('change', function() {
                 currentEtrike = this.value;
-                saveFilterSelections(); // Save selections to localStorage
                 updateApplyButton();
             });
 
@@ -2150,7 +2148,7 @@
         }
 
         function loadEtrikes(todaId) {
-            return fetch(`/get-etrikes?toda=${todaId}`)
+            fetch(`/get-etrikes?toda=${todaId}`)
                 .then(response => response.json())
                 .then(data => {
                     const etrikeSelect = document.getElementById('etrike-select');
@@ -2174,6 +2172,10 @@
             const todaId = document.getElementById('toda-select').value;
             const etrikeId = document.getElementById('etrike-select').value;
             
+            // Save filter selections to localStorage
+            localStorage.setItem('selectedToda', todaId);
+            localStorage.setItem('selectedEtrike', etrikeId);
+            
             if (!todaId && !etrikeId) {
                 // No filters selected - show all city data
                 document.getElementById('filter-status').innerHTML = 'City-wide View';
@@ -2183,24 +2185,32 @@
             
             let filterText = '';
             if (todaId) {
-                filterText += `TODA: ${todaId.toUpperCase()}`;
+                const todaSelect = document.getElementById('toda-select');
+                const selectedToda = todaSelect.options[todaSelect.selectedIndex].text;
+                filterText += `TODA: ${selectedToda}`;
+                console.log('TODA selected:', selectedToda);
             }
             if (etrikeId) {
-                filterText += ` - E-Trike: ${etrikeId}`;
-            }
-            if (piId) {
-                filterText += ` - Pi: ${piId}`;
+                const etrikeSelect = document.getElementById('etrike-select');
+                const selectedEtrike = etrikeSelect.options[etrikeSelect.selectedIndex].text;
+                filterText += ` - E-Trike: ${selectedEtrike}`;
+                console.log('E-Trike selected:', selectedEtrike);
             }
             
+            console.log('Filter text:', filterText);
             document.getElementById('filter-status').innerHTML = filterText;
             
             // Apply filters and update dashboard with filtered passenger data
-            loadFilteredData(todaId, etrikeId, piId);
+            loadFilteredData(todaId, etrikeId, '');
         }
 
         function clearFilter() {
             currentToda = '';
             currentEtrike = '';
+            
+            // Clear localStorage
+            localStorage.removeItem('selectedToda');
+            localStorage.removeItem('selectedEtrike');
             
             document.getElementById('toda-select').value = '';
             document.getElementById('etrike-select').value = '';
@@ -2210,43 +2220,7 @@
             const filterStatus = document.getElementById('filter-status');
             filterStatus.innerHTML = 'City-wide View';
             
-            // Clear saved selections from localStorage
-            localStorage.removeItem('dashboard_toda_selection');
-            localStorage.removeItem('dashboard_etrike_selection');
-            
             showFilterMessage('Filter cleared!', 'info');
-        }
-
-        function saveFilterSelections() {
-            // Save current filter selections to localStorage
-            localStorage.setItem('dashboard_toda_selection', currentToda);
-            localStorage.setItem('dashboard_etrike_selection', currentEtrike);
-        }
-
-        function restoreFilterSelections() {
-            // Restore saved filter selections from localStorage
-            const savedToda = localStorage.getItem('dashboard_toda_selection');
-            const savedEtrike = localStorage.getItem('dashboard_etrike_selection');
-            
-            if (savedToda) {
-                const todaSelect = document.getElementById('toda-select');
-                todaSelect.value = savedToda;
-                currentToda = savedToda;
-                
-                // Load E-Trikes for the selected TODA
-                if (savedToda) {
-                    loadEtrikes(savedToda).then(() => {
-                        // After E-Trikes are loaded, restore E-Trike selection
-                        if (savedEtrike) {
-                            const etrikeSelect = document.getElementById('etrike-select');
-                            etrikeSelect.value = savedEtrike;
-                            currentEtrike = savedEtrike;
-                            etrikeSelect.disabled = false;
-                        }
-                        updateApplyButton();
-                    });
-                }
-            }
         }
 
         function showFilterMessage(message, type) {
@@ -3053,6 +3027,37 @@
                 document.getElementById('currencySelect').value = savedCurrency;
                 currentCurrency = savedCurrency;
                 updateAllRevenueDisplays();
+            }
+        }
+        
+        function restoreFilterPreferences() {
+            // Load saved filter preferences
+            const savedToda = localStorage.getItem('selectedToda');
+            const savedEtrike = localStorage.getItem('selectedEtrike');
+            
+            if (savedToda) {
+                document.getElementById('toda-select').value = savedToda;
+                currentToda = savedToda;
+                
+                // Enable E-Trike dropdown and load options
+                document.getElementById('etrike-select').disabled = false;
+                loadEtrikesForToda(savedToda);
+                
+                // Set E-Trike selection if saved
+                if (savedEtrike) {
+                    setTimeout(() => {
+                        document.getElementById('etrike-select').value = savedEtrike;
+                        currentEtrike = savedEtrike;
+                    }, 500); // Wait for E-Trike options to load
+                }
+                
+                // Enable apply button
+                document.getElementById('apply-filter').disabled = false;
+                
+                // Apply the saved filters
+                setTimeout(() => {
+                    applyFilter();
+                }, 1000); // Wait for all data to load
             }
         }
 

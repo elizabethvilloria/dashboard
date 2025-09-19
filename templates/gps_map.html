@@ -878,32 +878,17 @@
         <div class="container-fluid">
             <!-- Filter Panel -->
             <div class="filter-panel">
-                <h5><i class="fas fa-sliders-h me-2"></i>Filter Vehicles</h5>
+                <h5><i class="fas fa-map-marker-alt me-2"></i>Select Vehicle</h5>
                 <div class="row g-3">
-                    <div class="col-md-3">
-                        <label for="toda-select" class="filter-label-small">TODA</label>
-                        <select class="filter-select-small" id="toda-select">
-                            <option value="">All TODAs</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="etrike-select" class="filter-label-small">E-Trike</label>
-                        <select class="filter-select-small" id="etrike-select" disabled>
-                            <option value="">Select TODA first</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label for="gps-select" class="filter-label-small">GPS Vehicle</label>
                         <select class="filter-select-small" id="gps-select">
                             <option value="">All GPS Vehicles</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="filter-label-small">&nbsp;</label>
                         <div class="filter-actions-small">
-                            <button class="filter-btn-small btn-apply" id="apply-filter" onclick="applyFilters()" disabled>
-                                <i class="fas fa-check me-2"></i>Apply
-                            </button>
                             <button class="filter-btn-small btn-clear" onclick="clearFilters()">
                                 <i class="fas fa-times me-2"></i>Clear
                             </button>
@@ -944,8 +929,6 @@
         let trafficLayer = null;
         let vehicleTrails = {}; // Store vehicle trail data
         let currentFilters = {
-            toda: '',
-            etrike: '',
             gps: ''
         };
         let socket; // WebSocket connection
@@ -954,10 +937,9 @@
         // Initialize map when page loads
         document.addEventListener('DOMContentLoaded', function() {
             initMap();
-            loadTodas();
             loadGpsVehicles();
             setupFilterEventListeners();
-            updateApplyButton(); // Set initial button state
+            restoreGpsMapFilterPreferences(); // Restore saved GPS selection
             initWebSocket(); // Initialize WebSocket instead of polling
         });
 
@@ -973,20 +955,6 @@
             console.log('Map initialized');
         }
 
-        function loadTodas() {
-            fetch('/get-todas')
-                .then(response => response.json())
-                .then(data => {
-                    const todaSelect = document.getElementById('toda-select');
-                    data.todas.forEach(toda => {
-                        const option = document.createElement('option');
-                        option.value = toda.id;
-                        option.textContent = `${toda.name} - ${toda.full_name}`;
-                        todaSelect.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error loading TODAs:', error));
-        }
 
 
         function loadGpsVehicles() {
@@ -1007,32 +975,13 @@
         }
 
         function setupFilterEventListeners() {
-            const todaSelect = document.getElementById('toda-select');
-            const etrikeSelect = document.getElementById('etrike-select');
             const gpsSelect = document.getElementById('gps-select');
 
-            todaSelect.addEventListener('change', function() {
-                currentFilters.toda = this.value;
-                if (this.value) {
-                    loadEtrikes(this.value);
-                    etrikeSelect.disabled = false;
-                } else {
-                    etrikeSelect.innerHTML = '<option value="">Select TODA first</option>';
-                    etrikeSelect.disabled = true;
-                    currentFilters.etrike = '';
-                }
-                updateApplyButton();
-            });
-
-            etrikeSelect.addEventListener('change', function() {
-                currentFilters.etrike = this.value;
-                updateApplyButton();
-            });
-
-
             gpsSelect.addEventListener('change', function() {
-                // Don't update filters - just center on selected vehicle
-                updateApplyButton();
+                currentFilters.gps = this.value;
+                
+                // Save to localStorage
+                localStorage.setItem('gpsMapSelectedGps', this.value);
                 
                 // If a specific GPS vehicle is selected, center on it
                 if (this.value) {
@@ -1041,43 +990,45 @@
             });
         }
 
-        function updateApplyButton() {
-            const applyBtn = document.getElementById('apply-filter');
-            const todaSelect = document.getElementById('toda-select');
-            applyBtn.disabled = !todaSelect.value;
-        }
 
-        function loadEtrikes(todaId) {
-            fetch(`/get-etrikes?toda=${todaId}`)
-                .then(response => response.json())
-                .then(data => {
-                    const etrikeSelect = document.getElementById('etrike-select');
-                    etrikeSelect.innerHTML = '<option value="">All E-Trikes</option>';
-                    data.etikes.forEach(etrike => {
-                        const option = document.createElement('option');
-                        option.value = etrike.id;
-                        option.textContent = `${etrike.name} - ${etrike.status}`;
-                        etrikeSelect.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error loading E-Trikes:', error));
-        }
 
         function applyFilters() {
             console.log('Applying filters:', currentFilters);
+            
+            // Save filter selections to localStorage
+            localStorage.setItem('gpsMapSelectedGps', currentFilters.gps);
+            
             // Filters are applied in real-time via WebSocket updates
             // No need to make HTTP request
         }
 
         function clearFilters() {
-            document.getElementById('toda-select').value = '';
-            document.getElementById('etrike-select').value = '';
-            document.getElementById('etrike-select').disabled = true;
             document.getElementById('gps-select').value = '';
             
-            currentFilters = { toda: '', etrike: '', gps: '' };
+            // Clear localStorage
+            localStorage.removeItem('gpsMapSelectedGps');
+            
+            currentFilters = { gps: '' };
             // Filters are cleared in real-time via WebSocket updates
             // No need to make HTTP request
+        }
+
+        function restoreGpsMapFilterPreferences() {
+            // Load saved filter preferences
+            const savedGps = localStorage.getItem('gpsMapSelectedGps');
+            
+            // Set GPS selection if saved
+            if (savedGps) {
+                setTimeout(() => {
+                    document.getElementById('gps-select').value = savedGps;
+                    currentFilters.gps = savedGps;
+                    
+                    // Center map on selected vehicle if GPS is selected
+                    if (savedGps) {
+                        centerOnGpsVehicle(savedGps);
+                    }
+                }, 1000); // Wait for vehicle data to load
+            }
         }
 
          function loadVehicleData() {
@@ -1102,7 +1053,7 @@
             const gpsSelect = document.getElementById('gps-select');
             const currentValue = gpsSelect.value;
             
-            gpsSelect.innerHTML = '<option value="">Select GPS Vehicle</option>';
+            gpsSelect.innerHTML = '<option value="">All GPS Vehicles</option>';
             
             vehicles.forEach(vehicle => {
                 const option = document.createElement('option');
@@ -1140,9 +1091,7 @@
 
         function updateVehicleMarkers(vehicles) {
             vehicles.forEach(vehicle => {
-                // Apply filters (excluding GPS filter - that's just for centering)
-                if (currentFilters.toda && vehicle.toda !== currentFilters.toda) return;
-                if (currentFilters.etrike && vehicle.id !== currentFilters.etrike) return;
+                // No filtering needed - show all vehicles
 
                 // Check if marker already exists
                 if (vehicleMarkers[vehicle.id]) {

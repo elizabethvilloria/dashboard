@@ -269,23 +269,6 @@ def get_vehicle_locations_data():
         with open(gps_log_path, 'r') as f:
             gps_data = json.load(f)
 
-        # Pi Device to TODA/E-Trike mapping
-        pi_mapping = {
-            'pi001': {
-                'toda': 'BLTMPC',
-                'toda_name': 'Barangay Laging Tapat Motorcycle and Pedicab Cooperative',
-                'etrike': 'pi001',
-                'etrike_name': 'E-Trike pi001'
-            },
-            # Add more Pi devices here as needed
-            # 'pi002': {
-            #     'toda': 'MTMPC',
-            #     'toda_name': 'Manila Tricycle and Motorcycle Operators Cooperative',
-            #     'etrike': 'pi002',
-            #     'etrike_name': 'E-Trike pi002'
-            # }
-        }
-
         # Get latest location for each Pi device
         latest_locations = {}
         for entry in gps_data:
@@ -328,24 +311,16 @@ def get_vehicle_locations_data():
             else:
                 last_update_str = location['received_at']
             
-            # Get TODA and E-Trike mapping for this Pi device
-            pi_info = pi_mapping.get(pi_id, {
-                'toda': '',
-                'toda_name': 'Unknown TODA',
-                'etrike': pi_id,
-                'etrike_name': f'Pi Device {pi_id}'
-            })
-            
             vehicle = {
                 'id': f'pi-{pi_id}',
-                'name': pi_info['etrike_name'],
+                'name': f"Pi Device {pi_id}",
                 'lat': location['latitude'],
                 'lng': location['longitude'],
                 'speed': location.get('speed', 0),
                 'heading': location.get('heading', 0),
                 'status': status,
                 'passengers': 0,
-                'toda': pi_info['toda'],
+                'toda': '',
                 'pi': pi_id,
                 'last_update': last_update_str
             }
@@ -739,17 +714,9 @@ def get_etrikes():
     if not toda:
         return jsonify({'etikes': []})
     
-    # Get actual E-Trikes (Pi devices) associated with the selected TODA
-    vehicles = get_vehicle_locations_data()
+    # Mock data - in real implementation, this would come from a database
+    # All e-trikes removed - no mock data
     etikes = []
-    
-    for vehicle in vehicles:
-        if vehicle['toda'] == toda.upper():
-            etikes.append({
-                'id': vehicle['pi'],
-                'name': vehicle['name'],
-                'status': vehicle['status']
-            })
     
     return jsonify({'etikes': etikes})
 
@@ -909,23 +876,6 @@ def get_vehicle_locations():
         with open(gps_log_path, 'r') as f:
             gps_data = json.load(f)
         
-        # Pi Device to TODA/E-Trike mapping
-        pi_mapping = {
-            'pi001': {
-                'toda': 'BLTMPC',
-                'toda_name': 'Barangay Laging Tapat Motorcycle and Pedicab Cooperative',
-                'etrike': 'pi001',
-                'etrike_name': 'E-Trike pi001'
-            },
-            # Add more Pi devices here as needed
-            # 'pi002': {
-            #     'toda': 'MTMPC',
-            #     'toda_name': 'Manila Tricycle and Motorcycle Operators Cooperative',
-            #     'etrike': 'pi002',
-            #     'etrike_name': 'E-Trike pi002'
-            # }
-        }
-        
         # Get latest location for each Pi device
         latest_locations = {}
         for entry in gps_data:
@@ -978,24 +928,16 @@ def get_vehicle_locations():
             else:
                 last_update_str = location['received_at']
             
-            # Get TODA and E-Trike mapping for this Pi device
-            pi_info = pi_mapping.get(pi_id, {
-                'toda': '',
-                'toda_name': 'Unknown TODA',
-                'etrike': pi_id,
-                'etrike_name': f'Pi Device {pi_id}'
-            })
-            
             vehicle = {
                 'id': f'pi-{pi_id}',
-                'name': pi_info['etrike_name'],
+                'name': f"Pi Device {pi_id}",
                 'lat': location['latitude'],
                 'lng': location['longitude'],
                 'speed': location.get('speed', 0),
                 'heading': location.get('heading', 0),
                 'status': status,
                 'passengers': 0,  # This would come from passenger data
-                'toda': pi_info['toda'],
+                'toda': '',
                 'pi': pi_id,
                 'last_update': last_update_str
             }
@@ -1274,13 +1216,6 @@ def upload_data():
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
-        # Get Pi ID from headers
-        pi_id = request.headers.get('X-Pi-Id')
-        if pi_id:
-            print(f"📦 Data package received from Pi Device: {pi_id}")
-        else:
-            print("📦 Data package received from unknown Pi device")
-        
         if file and file.filename.endswith('.zip'):
             # Save the uploaded zip file temporarily
             import tempfile
@@ -1301,13 +1236,8 @@ def upload_data():
             global last_pi_heartbeat_time
             last_pi_heartbeat_time = datetime.datetime.now().timestamp()
             
-            # Log Pi device activity
-            if pi_id:
-                print(f"✅ Data package from Pi {pi_id} received and extracted")
-            else:
-                print(f"✅ Data package received and extracted")
-            
-            return jsonify({'message': 'Data uploaded successfully', 'pi_id': pi_id}), 200
+            print(f"✅ Data package received and extracted")
+            return jsonify({'message': 'Data uploaded successfully'}), 200
         
         return jsonify({'error': 'Invalid file format'}), 400
         

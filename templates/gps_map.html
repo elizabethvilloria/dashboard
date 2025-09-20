@@ -268,9 +268,6 @@
             background: rgba(239, 68, 68, 0.1);
         }
 
-        .container-fluid {
-            padding: 2rem;
-        }
 
         .section-title {
             color: white;
@@ -427,10 +424,10 @@
             border-radius: 20px;
             padding: 2rem;
             margin-top: 2rem;
-            margin-bottom: 2rem;
+            margin-bottom: 0;
             box-shadow: var(--card-shadow);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            height: 70vh;
+            height: calc(100vh - 8rem);
             position: relative;
         }
 
@@ -698,9 +695,6 @@
                  pointer-events: auto;
              }
              
-             .container-fluid {
-                 padding: 0.5rem;
-             }
              
              .filter-panel {
                  margin-top: 1rem;
@@ -730,9 +724,9 @@
              }
              
              .map-container {
-                 height: 50vh;
+                 height: calc(100vh - 6rem);
                  padding: 1rem;
-                 margin-bottom: 1rem;
+                 margin-bottom: 0;
              }
              
             .btn-fullscreen {
@@ -844,11 +838,6 @@
                  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
              }
 
-             /* Better spacing for mobile */
-             .container-fluid {
-                 padding-left: 0.5rem;
-                 padding-right: 0.5rem;
-             }
 
              /* Add swipe gesture hint */
              .sidebar::before {
@@ -867,6 +856,44 @@
 
              .sidebar.show::before {
                  opacity: 1;
+             }
+
+             /* Mobile filter controls */
+             .filter-panel .row {
+                 flex-direction: column;
+                 gap: 1rem;
+             }
+
+             .filter-panel .col-md-3 {
+                 width: 100%;
+             }
+
+             .filter-actions-small {
+                 justify-content: center;
+                 flex-wrap: wrap;
+             }
+
+             .filter-btn-small {
+                 min-width: 120px;
+                 padding: 0.8rem 1rem;
+             }
+
+             /* Mobile map container adjustments */
+             .map-container {
+                 margin-top: 1rem;
+                 margin-bottom: 1rem;
+             }
+
+             /* Footer adjustment */
+             .footer {
+                 margin-left: 0;
+                 padding: 1rem;
+                 font-size: 0.8rem;
+             }
+
+             /* Hide desktop elements on mobile */
+             .desktop-only {
+                 display: none;
              }
 
              /* Improve mobile sidebar content spacing */
@@ -895,7 +922,7 @@
                  }
                  
                  .map-container {
-                     height: 45vh;
+                     height: calc(100vh - 5rem);
                      padding: 0.5rem;
                  }
                  
@@ -925,6 +952,28 @@
                     font-size: 0.75rem;
                     padding: 4px 6px;
                 }
+             }
+         }
+
+         /* Responsive design for extra small mobile devices */
+         @media (max-width: 576px) {
+             .main-header {
+                 padding: 1.5rem 1rem;
+             }
+
+             .map-container {
+                 padding: 1rem;
+                 margin-top: 0.5rem;
+                 margin-bottom: 0.5rem;
+             }
+
+             .filter-panel {
+                 padding: 1rem;
+             }
+
+             .filter-panel h5 {
+                 font-size: 1.1rem;
+                 margin-bottom: 0.8rem;
              }
          }
     </style>
@@ -994,7 +1043,7 @@
 
     <!-- Main Content Wrapper -->
     <div class="main-content-wrapper">
-        <div class="container-fluid">
+        <div class="container-fluid py-4">
 
 
 

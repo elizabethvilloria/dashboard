@@ -390,6 +390,8 @@ def login():
                 height: 100vh; 
                 margin: 0; 
                 position: relative;
+                overflow: hidden;
+                overscroll-behavior: none;
             }
             
 

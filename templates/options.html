@@ -372,6 +372,16 @@
             background: rgba(239, 68, 68, 0.1);
         }
 
+        /* Mobile touch improvements for profile actions */
+        @media (max-width: 768px) {
+            .profile-action {
+                min-height: 44px;
+                padding: 12px 16px;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            }
+        }
+
 
         /* E-Trike System Status Indicator Animation */
         .status-indicator {
@@ -420,7 +430,24 @@
                 order: 2;
             }
             
+            .sidebar {
                 transition: transform 0.3s ease;
+            }
+            
+            /* Mobile touch improvements for sidebar toggle */
+            .sidebar-toggle-main {
+                min-height: 44px;
+                min-width: 44px;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            }
+            
+            /* Mobile touch improvements for profile circle */
+            .profile-circle {
+                min-height: 44px;
+                min-width: 44px;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
             }
 
             .sidebar.show {

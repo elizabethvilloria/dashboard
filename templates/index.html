@@ -1190,8 +1190,9 @@
             }
 
             .history-section h4 {
-                font-size: 1.1rem;
-                margin-bottom: 1rem;
+                font-size: 1rem;
+                margin-bottom: 0.75rem;
+                line-height: 1.2;
             }
 
             .history-section .d-flex {
@@ -1203,6 +1204,8 @@
             .history-section .d-flex .gap-2 {
                 width: 100%;
                 justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 0.5rem !important;
             }
 
             .clickable-date-container {
@@ -1221,8 +1224,25 @@
 
             .table th,
             .table td {
-                padding: 0.5rem 0.25rem;
+                padding: 0.4rem 0.2rem;
                 white-space: nowrap;
+                font-size: 0.75rem;
+                line-height: 1.1;
+            }
+
+            .table th {
+                font-weight: 600;
+                font-size: 0.7rem;
+            }
+
+            /* Prevent text overflow in cards */
+            .history-section {
+                overflow: hidden;
+            }
+
+            .history-section * {
+                max-width: 100%;
+                word-wrap: break-word;
             }
 
             .btn-sm {
@@ -1368,13 +1388,31 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Mobile touch improvements */
+        /* Mobile and tablet touch improvements */
         @media (max-width: 768px) {
             .clickable-date-container {
                 min-height: 44px; /* iOS recommended touch target size */
                 display: flex;
                 align-items: center;
                 justify-content: center;
+            }
+        }
+
+        /* iPad specific improvements */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .clickable-date-container {
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .clickable-date-container input {
+                pointer-events: none;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
             }
         }
     </style>
@@ -1794,40 +1832,62 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
-        // Mobile touch event handlers for calendar pickers
+        // Mobile and tablet touch event handlers for calendar pickers
         document.addEventListener('DOMContentLoaded', function() {
-            // Add touch event handlers for calendar pickers on mobile
+            // Add touch event handlers for calendar pickers on mobile and tablet
             const dateContainers = document.querySelectorAll('.clickable-date-container');
             dateContainers.forEach(container => {
-                // Add touchstart event for better mobile responsiveness
+                let touchStarted = false;
+                
+                // Add touchstart event for better mobile/tablet responsiveness
                 container.addEventListener('touchstart', function(e) {
+                    touchStarted = true;
                     e.preventDefault();
                     e.stopPropagation();
                 }, { passive: false });
                 
                 // Add touchend event to trigger the picker
                 container.addEventListener('touchend', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    // Find the input inside this container
-                    const input = container.querySelector('input[type="date"], input[type="week"], input[type="month"]');
-                    if (input) {
-                        // Trigger the picker
-                        input.focus();
-                        input.showPicker();
+                    if (touchStarted) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Find the input inside this container
+                        const input = container.querySelector('input[type="date"], input[type="week"], input[type="month"]');
+                        if (input) {
+                            // For iPad, we need to handle this differently
+                            if (navigator.userAgent.includes('iPad') || (navigator.userAgent.includes('Mac') && 'ontouchend' in document)) {
+                                // iPad Safari - use a small delay to ensure proper handling
+                                setTimeout(() => {
+                                    input.focus();
+                                    input.showPicker();
+                                }, 50);
+                            } else {
+                                // Mobile devices
+                                input.focus();
+                                input.showPicker();
+                            }
+                        }
                     }
+                    touchStarted = false;
                 }, { passive: false });
                 
-                // Add click event as fallback
+                // Add touchcancel event to reset touch state
+                container.addEventListener('touchcancel', function(e) {
+                    touchStarted = false;
+                });
+                
+                // Add click event as fallback for desktop
                 container.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const input = container.querySelector('input[type="date"], input[type="week"], input[type="month"]');
-                    if (input) {
-                        input.focus();
-                        input.showPicker();
+                    if (!touchStarted) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const input = container.querySelector('input[type="date"], input[type="week"], input[type="month"]');
+                        if (input) {
+                            input.focus();
+                            input.showPicker();
+                        }
                     }
                 });
             });

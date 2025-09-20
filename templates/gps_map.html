@@ -59,7 +59,7 @@
             background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.8));
             backdrop-filter: blur(15px);
             border-right: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 1000;
+            z-index: 10001;
             padding: 1.5rem 0;
             overflow-y: auto;
             transition: width 0.3s ease, transform 0.3s ease;
@@ -658,19 +658,6 @@
         .trail-pi-7 { color: #f97316; }
         .trail-pi-8 { color: #84cc16; }
 
-        .mobile-backdrop {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 9999;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-        }
 
          @media (max-width: 768px) {
              .sidebar {
@@ -708,10 +695,6 @@
                  padding: 0.5rem 0;
              }
              
-             .mobile-backdrop.show {
-                 opacity: 1;
-                 pointer-events: auto;
-             }
              
              
              .filter-panel {
@@ -750,17 +733,25 @@
             .btn-fullscreen {
                 bottom: 20px;
                 left: 20px;
-                width: 28px;
-                height: 28px;
+                width: 44px;
+                height: 44px;
+                min-width: 44px;
+                min-height: 44px;
             }
             
             .btn-fullscreen i {
-                font-size: 1rem;
+                font-size: 1.2rem;
+            }
+            
+            /* Mobile touch improvements */
+            .btn-fullscreen {
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
             }
 
             .gps-dropdown-container {
                 bottom: 20px;
-                left: 60px;
+                left: 70px;
             }
 
             .custom-dropdown {
@@ -769,8 +760,13 @@
 
             .dropdown-selected {
                 font-size: 0.8rem;
-                padding: 4px 8px;
-                height: 28px;
+                padding: 8px 12px;
+                height: 44px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
             }
 
             .dropdown-option {
@@ -927,13 +923,15 @@
                 .btn-fullscreen {
                     bottom: 15px;
                     left: 15px;
-                    width: 26px;
-                    height: 26px;
+                    width: 44px;
+                    height: 44px;
+                    min-width: 44px;
+                    min-height: 44px;
                 }
 
                 .gps-dropdown-container {
                     bottom: 15px;
-                    left: 50px;
+                    left: 65px;
                 }
 
                 .custom-dropdown {
@@ -978,7 +976,6 @@
 </head>
 <body>
     <!-- Mobile Touch Device Sidebar Backdrop Overlay -->
-    <div class="mobile-backdrop" onclick="toggleSidebar()"></div>
 
     <!-- E-Trike Dashboard Left Sidebar Navigation Menu -->
     <div class="sidebar" id="sidebar">
@@ -1577,7 +1574,6 @@
              const sidebar = document.getElementById('sidebar');
              const mainContent = document.querySelector('.main-content-wrapper');
              const accountHeader = document.querySelector('.account-header');
-             const backdrop = document.querySelector('.mobile-backdrop');
              
              // Toggle sidebar expanded/collapsed state and adjust content layout
              sidebar.classList.toggle('collapsed');
@@ -1592,17 +1588,9 @@
                  toggleBtn.className = 'fas fa-chevron-left';
              }
              
-             // Show/hide mobile backdrop overlay for touch devices
+             // Show/hide mobile sidebar for touch devices
              if (window.innerWidth <= 768) {
                  sidebar.classList.toggle('show');
-                 
-                 if (sidebar.classList.contains('show')) {
-                     backdrop.style.display = 'block';
-                     setTimeout(() => backdrop.classList.add('show'), 10);
-                 } else {
-                     backdrop.classList.remove('show');
-                     setTimeout(() => backdrop.style.display = 'none', 300);
-                 }
              }
          }
 

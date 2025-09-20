@@ -59,7 +59,7 @@
             background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.8));
             backdrop-filter: blur(15px);
             border-right: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 1000;
+            z-index: 10001;
             padding: 1.5rem 0;
             overflow-y: auto;
             transition: width 0.3s ease, transform 0.3s ease;
@@ -391,24 +391,7 @@
         }
 
         /* Mobile Touch Device Options Page Backdrop Overlay */
-        .mobile-backdrop {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 9999;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-        }
 
-        .mobile-backdrop.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
 
         /* Responsive Design: Mobile Device Adaptations for Options Page */
         @media (max-width: 768px) {
@@ -539,7 +522,6 @@
 <body>
 
     <!-- Mobile Touch Device Options Page Sidebar Backdrop Overlay -->
-    <div class="mobile-backdrop" onclick="toggleSidebar()"></div>
 
     <!-- E-Trike Dashboard Options Page Left Sidebar Navigation Menu -->
     <div class="sidebar" id="sidebar">
@@ -659,7 +641,6 @@
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.querySelector('.main-content-wrapper');
             const accountHeader = document.querySelector('.account-header');
-            const backdrop = document.querySelector('.mobile-backdrop');
             
             // Toggle sidebar expanded/collapsed state and adjust options page content layout
             sidebar.classList.toggle('collapsed');
@@ -674,31 +655,20 @@
                 toggleBtn.className = 'fas fa-chevron-left';
             }
             
-            // Show/hide mobile backdrop overlay for touch devices
+            // Show/hide mobile sidebar for touch devices
             if (window.innerWidth <= 768) {
                 sidebar.classList.toggle('show');
-                
-                if (sidebar.classList.contains('show')) {
-                    backdrop.style.display = 'block';
-                    setTimeout(() => backdrop.classList.add('show'), 10);
-                } else {
-                    backdrop.classList.remove('show');
-                    setTimeout(() => backdrop.style.display = 'none', 300);
-                }
             }
         }
 
         // Auto-close sidebar when user taps outside on mobile devices
         document.addEventListener('click', function(event) {
             const sidebar = document.querySelector('.sidebar');
-            const backdrop = document.querySelector('.mobile-backdrop');
             
             if (window.innerWidth <= 768) {
-                // Close sidebar only when tapping backdrop, not other UI elements
-                if (event.target === backdrop) {
+                // Close sidebar when tapping outside of it
+                if (!sidebar.contains(event.target) && !event.target.closest('.sidebar-toggle-main')) {
                     sidebar.classList.remove('show');
-                    backdrop.classList.remove('show');
-                    setTimeout(() => backdrop.style.display = 'none', 300);
                 }
             }
         });

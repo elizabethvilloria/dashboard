@@ -672,17 +672,38 @@
             pointer-events: none;
         }
 
+        /* Responsive design: Hide mobile-only elements on desktop - matching dashboard */
+        .mobile-only {
+            display: none;
+        }
+
          @media (max-width: 768px) {
+             .mobile-only {
+                 display: block;
+             }
+
+             /* Show backdrop on mobile - matching dashboard */
+             .mobile-backdrop {
+                 display: block;
+             }
+
+             /* Sidebar becomes full-width overlay on mobile - matching dashboard */
              .sidebar {
+                 position: fixed;
+                 top: 0;
+                 left: 0;
+                 width: 100%;
+                 height: 100vh;
+                 z-index: 10000;
                  transform: translateX(-100%);
-                 width: 60%;
-                 max-width: 300px;
+                 transition: transform 0.3s ease;
              }
              
              .sidebar.show {
                  transform: translateX(0);
              }
              
+             /* Adjust main content for mobile - matching dashboard */
              .main-content-wrapper {
                  margin-left: 0;
                  padding: 1rem;
@@ -692,6 +713,15 @@
              .account-header {
                  left: 0;
                  padding: 0.5rem 0;
+             }
+
+             /* Mobile-friendly header - matching dashboard */
+             .main-header h1 {
+                 font-size: 1.8rem;
+             }
+             
+             .main-header .subtitle {
+                 font-size: 1rem;
              }
              
              .mobile-backdrop.show {

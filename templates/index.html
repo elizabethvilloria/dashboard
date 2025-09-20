@@ -1318,6 +1318,61 @@
                 order: 1;
                 margin-bottom: 0;
             }
+
+            /* Shorten text on mobile to prevent overlap */
+            .card-text-detail {
+                font-size: 0.8rem;
+                line-height: 1.2;
+            }
+
+            /* Shorten specific card text on mobile using data attributes */
+            .card-text-detail[data-mobile-text] {
+                font-size: 0.75rem;
+            }
+
+            /* Shorten table headers on mobile */
+            .history-section .table th {
+                font-size: 0.7rem;
+                padding: 0.3rem 0.2rem;
+            }
+
+            /* Shorten specific text on mobile */
+            .history-section .table th:first-child {
+                min-width: 60px;
+            }
+
+            .history-section .table th:nth-child(2) {
+                min-width: 80px;
+            }
+
+            .history-section .table th:last-child {
+                min-width: 50px;
+            }
+
+            /* Mobile text shortening for better fit */
+            .card-text-detail {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                max-width: 100%;
+            }
+
+            /* Specific mobile text adjustments */
+            .card-text-detail:contains("Passengers This Hour") {
+                font-size: 0.7rem;
+            }
+
+            .card-text-detail:contains("Passengers Today") {
+                font-size: 0.7rem;
+            }
+
+            .card-text-detail:contains("Passengers This Week") {
+                font-size: 0.7rem;
+            }
+
+            .card-text-detail:contains("Passengers This Month") {
+                font-size: 0.7rem;
+            }
         }
 
         /* Mobile sidebar overlay backdrop for touch devices */

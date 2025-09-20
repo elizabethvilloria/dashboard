@@ -1057,20 +1057,19 @@
         }
 
         @media (max-width: 768px) {
-            /* Sidebar becomes full-width overlay on mobile */
             .sidebar {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100vh;
-                z-index: 10000;
                 transform: translateX(-100%);
-                transition: transform 0.3s ease;
+                width: 60%;
+                max-width: 300px;
             }
-
+            
             .sidebar.show {
                 transform: translateX(0);
+            }
+
+            /* Mobile: Swap positions - profile circle right, toggle arrow left */
+            .account-section {
+                flex-direction: row-reverse;
             }
 
             /* Adjust main content for mobile */
@@ -1218,10 +1217,6 @@
                 display: block;
             }
 
-            /* Show backdrop on mobile */
-            .mobile-backdrop {
-                display: block;
-            }
 
             /* Add mobile navigation trigger */
             .sidebar-header {
@@ -1290,6 +1285,26 @@
 
         .clickable-date-container input {
             cursor: pointer;
+        }
+
+        /* Mobile-specific calendar picker improvements */
+        @media (max-width: 768px) {
+            .clickable-date-container {
+                min-height: 44px; /* iOS recommended touch target size */
+                display: flex;
+                align-items: center;
+            }
+            
+            .clickable-date-container input {
+                font-size: 16px; /* Prevents zoom on iOS */
+                min-height: 44px;
+                border: 2px solid transparent;
+                transition: border-color 0.2s ease;
+            }
+            
+            .clickable-date-container:active input {
+                border-color: rgba(255, 255, 255, 0.3);
+            }
         }
     </style>
 </head>
@@ -1533,8 +1548,8 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4 class="mb-0">Daily Totals</h4>
                         <div class="d-flex align-items-center gap-2">
-                            <div class="clickable-date-container" onclick="document.getElementById('dailyDatePicker').showPicker()">
-                                <input type="date" class="form-control form-control-sm" id="dailyDatePicker" onchange="filterSection('daily')" style="width: 150px; pointer-events: none;">
+                            <div class="clickable-date-container" onclick="openDatePicker('dailyDatePicker')">
+                                <input type="date" class="form-control form-control-sm" id="dailyDatePicker" onchange="filterSection('daily')" style="width: 150px;">
                             </div>
                             <button class="btn btn-sm btn-outline-light export-btn" onclick="exportToPDF('daily')" title="Export to PDF">
                                 <i class="fas fa-file-pdf"></i>
@@ -1562,8 +1577,8 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4 class="mb-0">Weekly Totals</h4>
                         <div class="d-flex align-items-center gap-2">
-                            <div class="clickable-date-container" onclick="document.getElementById('weeklyDatePicker').showPicker()">
-                                <input type="week" class="form-control form-control-sm" id="weeklyDatePicker" onchange="filterSection('weekly')" style="width: 150px; pointer-events: none;">
+                            <div class="clickable-date-container" onclick="openDatePicker('weeklyDatePicker')">
+                                <input type="week" class="form-control form-control-sm" id="weeklyDatePicker" onchange="filterSection('weekly')" style="width: 150px;">
                             </div>
                             <button class="btn btn-sm btn-outline-light export-btn" onclick="exportToPDF('weekly')" title="Export to PDF">
                                 <i class="fas fa-file-pdf"></i>
@@ -1591,8 +1606,8 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4 class="mb-0">Monthly Totals</h4>
                         <div class="d-flex align-items-center gap-2">
-                            <div class="clickable-date-container" onclick="document.getElementById('monthlyDatePicker').showPicker()">
-                                <input type="month" class="form-control form-control-sm" id="monthlyDatePicker" onchange="filterSection('monthly')" style="width: 150px; pointer-events: none;">
+                            <div class="clickable-date-container" onclick="openDatePicker('monthlyDatePicker')">
+                                <input type="month" class="form-control form-control-sm" id="monthlyDatePicker" onchange="filterSection('monthly')" style="width: 150px;">
                             </div>
                             <button class="btn btn-sm btn-outline-light export-btn" onclick="exportToPDF('monthly')" title="Export to PDF">
                                 <i class="fas fa-file-pdf"></i>
@@ -2358,7 +2373,28 @@
                 });
         }
 
-
+        // Open date picker with mobile-friendly approach
+        function openDatePicker(pickerId) {
+            const picker = document.getElementById(pickerId);
+            
+            // Try showPicker() first (works on desktop and some mobile browsers)
+            if (picker.showPicker) {
+                try {
+                    picker.showPicker();
+                    return;
+                } catch (e) {
+                    // showPicker() failed, fall back to focus
+                }
+            }
+            
+            // Fallback: focus the input (works on most mobile browsers)
+            picker.focus();
+            
+            // For mobile, also trigger a click event
+            if (window.innerWidth <= 768) {
+                picker.click();
+            }
+        }
 
         // Toggle sidebar visibility for mobile and desktop layouts
         function toggleSidebar() {
@@ -2366,7 +2402,6 @@
             const mainContent = document.querySelector('.main-content-wrapper');
             const footer = document.querySelector('.footer');
             const accountHeader = document.querySelector('.account-header');
-            const backdrop = document.querySelector('.mobile-backdrop');
             
             // Toggle sidebar expanded/collapsed state and adjust content layout
             sidebar.classList.toggle('collapsed');
@@ -2382,31 +2417,20 @@
                 toggleBtn.className = 'fas fa-chevron-left';
             }
             
-            // Show/hide mobile backdrop overlay for touch devices
+            // Show/hide mobile sidebar for touch devices
             if (window.innerWidth <= 768) {
                 sidebar.classList.toggle('show');
-                
-                if (sidebar.classList.contains('show')) {
-                    backdrop.style.display = 'block';
-                    setTimeout(() => backdrop.classList.add('show'), 10);
-                } else {
-                    backdrop.classList.remove('show');
-                    setTimeout(() => backdrop.style.display = 'none', 300);
-                }
             }
         }
 
         // Auto-close sidebar when user taps outside on mobile devices
         document.addEventListener('click', function(event) {
             const sidebar = document.querySelector('.sidebar');
-            const backdrop = document.querySelector('.mobile-backdrop');
             
             if (window.innerWidth <= 768) {
-                // Close sidebar only when tapping backdrop, not other UI elements
-                if (event.target === backdrop) {
+                // Close sidebar when tapping outside of it
+                if (!sidebar.contains(event.target) && !event.target.closest('.sidebar-toggle-main')) {
                     sidebar.classList.remove('show');
-                    backdrop.classList.remove('show');
-                    setTimeout(() => backdrop.style.display = 'none', 300);
                 }
             }
         });

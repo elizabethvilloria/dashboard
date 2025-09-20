@@ -29,11 +29,15 @@
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow-x: hidden;
+            overscroll-behavior: none;
+            overscroll-behavior-x: none;
             overscroll-behavior-y: none;
         }
 
         html {
             background: linear-gradient(135deg, var(--light-green) 0%, var(--light-blue) 50%, var(--teal) 100%);
+            overscroll-behavior: none;
+            overscroll-behavior-x: none;
             overscroll-behavior-y: none;
         }
 
@@ -1180,7 +1184,80 @@
             }
 
             .history-section {
-                padding: 1.5rem 1rem;
+                padding: 1rem 0.75rem;
+                margin-bottom: 1rem;
+                min-height: 280px;
+            }
+
+            .history-section h4 {
+                font-size: 1.1rem;
+                margin-bottom: 1rem;
+            }
+
+            .history-section .d-flex {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 0.75rem;
+            }
+
+            .history-section .d-flex .gap-2 {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .clickable-date-container {
+                width: 100%;
+                max-width: 140px;
+            }
+
+            .clickable-date-container input {
+                width: 100% !important;
+                font-size: 0.8rem;
+            }
+
+            .table {
+                font-size: 0.8rem;
+            }
+
+            .table th,
+            .table td {
+                padding: 0.5rem 0.25rem;
+                white-space: nowrap;
+            }
+
+            .btn-sm {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.75rem;
+            }
+
+            /* Better column stacking on mobile */
+            .row.g-4 {
+                margin: 0;
+            }
+
+            .row.g-4 > [class*="col-"] {
+                padding: 0.5rem;
+            }
+
+            /* Ensure proper spacing between cards */
+            .col-lg-4 {
+                margin-bottom: 1rem;
+            }
+
+            /* Improve table responsiveness */
+            .table-responsive {
+                border-radius: 0.5rem;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Better touch targets for mobile */
+            .export-btn {
+                min-width: 44px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
         }
 
@@ -1274,6 +1351,8 @@
             display: inline-block;
             border-radius: 0.375rem;
             transition: background-color 0.15s ease-in-out;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         .clickable-date-container:hover {
@@ -1286,6 +1365,17 @@
 
         .clickable-date-container input {
             cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Mobile touch improvements */
+        @media (max-width: 768px) {
+            .clickable-date-container {
+                min-height: 44px; /* iOS recommended touch target size */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -1704,6 +1794,45 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
+        // Mobile touch event handlers for calendar pickers
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add touch event handlers for calendar pickers on mobile
+            const dateContainers = document.querySelectorAll('.clickable-date-container');
+            dateContainers.forEach(container => {
+                // Add touchstart event for better mobile responsiveness
+                container.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, { passive: false });
+                
+                // Add touchend event to trigger the picker
+                container.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Find the input inside this container
+                    const input = container.querySelector('input[type="date"], input[type="week"], input[type="month"]');
+                    if (input) {
+                        // Trigger the picker
+                        input.focus();
+                        input.showPicker();
+                    }
+                }, { passive: false });
+                
+                // Add click event as fallback
+                container.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const input = container.querySelector('input[type="date"], input[type="week"], input[type="month"]');
+                    if (input) {
+                        input.focus();
+                        input.showPicker();
+                    }
+                });
+            });
+        });
+
         // Store previous counts to detect increases
         let previousCounts = {
             hourly: null,

@@ -743,10 +743,9 @@
                 font-size: 1.2rem;
             }
             
-            /* Mobile touch improvements */
+            /* Hide fullscreen button on mobile - doesn't work on mobile browsers */
             .btn-fullscreen {
-                touch-action: manipulation;
-                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+                display: none;
             }
 
             .gps-dropdown-container {
@@ -789,22 +788,6 @@
                  margin: 0.3rem 0;
              }
 
-             /* Add mobile navigation trigger */
-             .sidebar-header {
-                 cursor: pointer;
-                 padding: 1rem;
-                 position: relative;
-             }
-
-             .sidebar-header::after {
-                 content: '☰';
-                 position: absolute;
-                 right: 1rem;
-                 top: 50%;
-                 transform: translateY(-50%);
-                 font-size: 1.5rem;
-                 color: white;
-             }
 
 
              /* Mobile-friendly card layouts */
@@ -921,12 +904,7 @@
                  }
                  
                 .btn-fullscreen {
-                    bottom: 15px;
-                    left: 15px;
-                    width: 44px;
-                    height: 44px;
-                    min-width: 44px;
-                    min-height: 44px;
+                    display: none;
                 }
 
                 .gps-dropdown-container {
@@ -1604,17 +1582,6 @@
              }
          });
 
-         // Enable sidebar header tap-to-toggle functionality on mobile
-         document.addEventListener('DOMContentLoaded', function() {
-             const sidebarHeader = document.querySelector('.sidebar-header');
-             
-             if (window.innerWidth <= 768) {
-                 sidebarHeader.addEventListener('click', function() {
-                     toggleSidebar();
-                 });
-             }
-             
-         });
 
     </script>
 </body>

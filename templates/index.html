@@ -1227,21 +1227,6 @@
             }
 
 
-            /* Add mobile navigation trigger */
-            .sidebar-header {
-                cursor: pointer;
-                padding: 1rem;
-            }
-
-            .sidebar-header::after {
-                content: '☰';
-                position: absolute;
-                right: 1rem;
-                top: 50%;
-                transform: translateY(-50%);
-                font-size: 1.5rem;
-                color: rgba(255, 255, 255, 0.7);
-            }
 
             /* Mobile-friendly card layouts */
             .card {
@@ -2444,16 +2429,6 @@
             }
         });
 
-        // Enable sidebar header tap-to-toggle functionality on mobile
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebarHeader = document.querySelector('.sidebar-header');
-            
-            if (window.innerWidth <= 768) {
-                sidebarHeader.addEventListener('click', function() {
-                    toggleSidebar();
-                });
-            }
-        });
 
         // Adjust sidebar behavior when browser window is resized
         window.addEventListener('resize', function() {

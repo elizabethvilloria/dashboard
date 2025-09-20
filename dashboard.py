@@ -304,7 +304,7 @@ def get_vehicle_locations_data():
             elif is_parked:
                 status = 'parked'
             else:
-                status = 'active'
+                status = 'online'
             
             if pi_timestamp:
                 last_update_str = last_update.isoformat()
@@ -922,7 +922,7 @@ def get_vehicle_locations():
             elif is_parked:
                 status = 'parked'
             else:
-                status = 'active'
+                status = 'online'
             
             # Use the same timestamp for display
             if pi_timestamp:

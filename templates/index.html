@@ -1275,16 +1275,14 @@
         .clickable-date-container input {
             cursor: pointer;
         }
-
-        .calendar-icon {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9rem;
-            pointer-events: none;
-            z-index: 1;
+        
+        .clickable-date-container input::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+        }
+        
+        .clickable-date-container input::-webkit-inner-spin-button,
+        .clickable-date-container input::-webkit-outer-spin-button {
+            cursor: pointer;
         }
 
         /* Mobile-specific calendar picker improvements */
@@ -1557,7 +1555,6 @@
                         <div class="d-flex align-items-center gap-2">
                             <div class="clickable-date-container" onclick="openDatePicker('dailyDatePicker')">
                                 <input type="date" class="form-control form-control-sm" id="dailyDatePicker" onchange="filterSection('daily')" style="width: 150px;">
-                                <i class="fas fa-calendar-day calendar-icon"></i>
                             </div>
                             <button class="btn btn-sm btn-outline-light export-btn" onclick="exportToPDF('daily')" title="Export to PDF">
                                 <i class="fas fa-file-pdf"></i>
@@ -1570,7 +1567,7 @@
                                             <tr>
                                                 <th>Date</th>
                                     <th>Total Passengers</th>
-                                    <th>Details</th>
+                                    <th>Info</th>
                                             </tr>
                                         </thead>
                                         <tbody id="daily-history-body">
@@ -1587,7 +1584,6 @@
                         <div class="d-flex align-items-center gap-2">
                             <div class="clickable-date-container" onclick="openDatePicker('weeklyDatePicker')">
                                 <input type="week" class="form-control form-control-sm" id="weeklyDatePicker" onchange="filterSection('weekly')" style="width: 150px;">
-                                <i class="fas fa-calendar-week calendar-icon"></i>
                             </div>
                             <button class="btn btn-sm btn-outline-light export-btn" onclick="exportToPDF('weekly')" title="Export to PDF">
                                 <i class="fas fa-file-pdf"></i>
@@ -1598,9 +1594,9 @@
                         <table class="table">
                                         <thead>
                                             <tr>
-                                    <th>WEEK OF</th>
+                                    <th>Date</th>
                                     <th>Total Passengers</th>
-                                    <th>Details</th>
+                                    <th>Info</th>
                                             </tr>
                                         </thead>
                                         <tbody id="weekly-history-body">
@@ -1617,7 +1613,6 @@
                         <div class="d-flex align-items-center gap-2">
                             <div class="clickable-date-container" onclick="openDatePicker('monthlyDatePicker')">
                                 <input type="month" class="form-control form-control-sm" id="monthlyDatePicker" onchange="filterSection('monthly')" style="width: 150px;">
-                                <i class="fas fa-calendar-alt calendar-icon"></i>
                             </div>
                             <button class="btn btn-sm btn-outline-light export-btn" onclick="exportToPDF('monthly')" title="Export to PDF">
                                 <i class="fas fa-file-pdf"></i>
@@ -1628,9 +1623,9 @@
                         <table class="table">
                                         <thead>
                                             <tr>
-                                                <th>Month Of</th>
+                                                <th>Date</th>
                                     <th>Total Passengers</th>
-                                    <th>Details</th>
+                                    <th>Info</th>
                                             </tr>
                                         </thead>
                                         <tbody id="monthly-history-body">
@@ -1935,7 +1930,7 @@
                                 <td>${formattedDate}</td>
                                 <td class="text-center"><span class="badge bg-primary fs-6">${record.total || 0}</span></td>
                                 <td><button class="detail-btn" onclick="showPassengerDetails('daily', '${record.date}', ${record.total})">
-                                    <i class="fas fa-info-circle me-1"></i>Info
+                                    <i class="fas fa-info-circle me-1"></i>Details
                                 </button></td>
                             </tr>`;
                             dailyBody.innerHTML += row;
@@ -1948,7 +1943,7 @@
                                 <td>${formattedDate}</td>
                                 <td class="text-center"><span class="badge bg-primary fs-6">${record.total || 0}</span></td>
                                 <td><button class="detail-btn" onclick="showPassengerDetails('weekly', '${record.week_of}', ${record.total})">
-                                    <i class="fas fa-info-circle me-1"></i>Info
+                                    <i class="fas fa-info-circle me-1"></i>Details
                                 </button></td>
                             </tr>`;
                             weeklyBody.innerHTML += row;
@@ -1961,7 +1956,7 @@
                                 <td>${formattedMonth}</td>
                                 <td class="text-center"><span class="badge bg-primary fs-6">${record.total || 0}</span></td>
                                 <td><button class="detail-btn" onclick="showPassengerDetails('monthly', '${record.month_of}', ${record.total})">
-                                    <i class="fas fa-info-circle me-1"></i>Info
+                                    <i class="fas fa-info-circle me-1"></i>Details
                                 </button></td>
                             </tr>`;
                             monthlyBody.innerHTML += row;

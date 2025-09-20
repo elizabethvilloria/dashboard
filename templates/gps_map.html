@@ -672,22 +672,8 @@
             pointer-events: none;
         }
 
-        /* Responsive design: Hide mobile-only elements on desktop - matching dashboard */
-        .mobile-only {
-            display: none;
-        }
-
          @media (max-width: 768px) {
-             .mobile-only {
-                 display: block;
-             }
-
-             /* Show backdrop on mobile - matching dashboard */
-             .mobile-backdrop {
-                 display: block;
-             }
-
-             /* Sidebar becomes full-width overlay on mobile - matching dashboard */
+             /* Sidebar becomes full-width overlay on mobile */
              .sidebar {
                  position: fixed;
                  top: 0;
@@ -703,7 +689,6 @@
                  transform: translateX(0);
              }
              
-             /* Adjust main content for mobile - matching dashboard */
              .main-content-wrapper {
                  margin-left: 0;
                  padding: 1rem;
@@ -714,21 +699,16 @@
                  left: 0;
                  padding: 0.5rem 0;
              }
-
-             /* Mobile-friendly header - matching dashboard */
-             .main-header h1 {
-                 font-size: 1.8rem;
-             }
-             
-             .main-header .subtitle {
-                 font-size: 1rem;
-             }
              
              .mobile-backdrop.show {
                  opacity: 1;
                  pointer-events: auto;
              }
-             
+
+             /* Show backdrop on mobile */
+             .mobile-backdrop {
+                 display: block;
+             }
              
              .filter-panel {
                  margin-top: 1rem;
@@ -823,7 +803,7 @@
                  top: 50%;
                  transform: translateY(-50%);
                  font-size: 1.5rem;
-                 color: white;
+                 color: rgba(255, 255, 255, 0.7);
              }
 
              /* Make collapse button more prominent on mobile */

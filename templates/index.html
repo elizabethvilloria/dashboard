@@ -32,6 +32,10 @@
             overscroll-behavior: none;
             overscroll-behavior-x: none;
             overscroll-behavior-y: none;
+            /* Performance optimizations */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            will-change: auto;
         }
 
         html {
@@ -39,12 +43,18 @@
             overscroll-behavior: none;
             overscroll-behavior-x: none;
             overscroll-behavior-y: none;
+            /* Scroll performance */
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
         }
 
         .container {
             max-width: 1400px;
             position: relative;
             z-index: 1;
+            /* Performance optimizations */
+            contain: layout style;
+            will-change: auto;
         }
 
         /* E-Trike Dashboard Sidebar Navigation Styles */
@@ -108,7 +118,7 @@
             color: rgba(255, 255, 255, 0.8);
             text-decoration: none;
             border-radius: 10px;
-            transition: all 0.3s ease;
+            transition: background-color 0.3s ease, color 0.3s ease;
             font-weight: 500;
             font-size: 0.9rem;
         }
@@ -138,6 +148,9 @@
             padding: 2rem;
             padding-top: 1.5rem;
             transition: margin-left 0.3s ease;
+            /* Performance optimizations */
+            contain: layout style;
+            will-change: margin-left;
         }
 
         .main-content-wrapper.sidebar-collapsed {

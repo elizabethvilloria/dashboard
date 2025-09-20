@@ -1276,6 +1276,17 @@
             cursor: pointer;
         }
 
+        .calendar-icon {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            pointer-events: none;
+            z-index: 1;
+        }
+
         /* Mobile-specific calendar picker improvements */
         @media (max-width: 768px) {
             .clickable-date-container {
@@ -1546,6 +1557,7 @@
                         <div class="d-flex align-items-center gap-2">
                             <div class="clickable-date-container" onclick="openDatePicker('dailyDatePicker')">
                                 <input type="date" class="form-control form-control-sm" id="dailyDatePicker" onchange="filterSection('daily')" style="width: 150px;">
+                                <i class="fas fa-calendar-day calendar-icon"></i>
                             </div>
                             <button class="btn btn-sm btn-outline-light export-btn" onclick="exportToPDF('daily')" title="Export to PDF">
                                 <i class="fas fa-file-pdf"></i>
@@ -1575,6 +1587,7 @@
                         <div class="d-flex align-items-center gap-2">
                             <div class="clickable-date-container" onclick="openDatePicker('weeklyDatePicker')">
                                 <input type="week" class="form-control form-control-sm" id="weeklyDatePicker" onchange="filterSection('weekly')" style="width: 150px;">
+                                <i class="fas fa-calendar-week calendar-icon"></i>
                             </div>
                             <button class="btn btn-sm btn-outline-light export-btn" onclick="exportToPDF('weekly')" title="Export to PDF">
                                 <i class="fas fa-file-pdf"></i>
@@ -1604,6 +1617,7 @@
                         <div class="d-flex align-items-center gap-2">
                             <div class="clickable-date-container" onclick="openDatePicker('monthlyDatePicker')">
                                 <input type="month" class="form-control form-control-sm" id="monthlyDatePicker" onchange="filterSection('monthly')" style="width: 150px;">
+                                <i class="fas fa-calendar-alt calendar-icon"></i>
                             </div>
                             <button class="btn btn-sm btn-outline-light export-btn" onclick="exportToPDF('monthly')" title="Export to PDF">
                                 <i class="fas fa-file-pdf"></i>

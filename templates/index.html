@@ -1067,9 +1067,18 @@
                 transform: translateX(0);
             }
 
-            /* Mobile: Swap positions - profile circle right, toggle arrow left */
+            /* Mobile: Profile circle far right, arrow to its left */
             .account-section {
-                flex-direction: row-reverse;
+                justify-content: flex-end;
+            }
+            
+            .account-section .sidebar-toggle-main {
+                order: 1;
+                margin-right: 0.5rem;
+            }
+            
+            .account-section .profile-circle {
+                order: 2;
             }
 
             /* Adjust main content for mobile */

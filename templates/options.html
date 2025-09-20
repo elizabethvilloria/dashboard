@@ -423,9 +423,18 @@
                 z-index: 10000;
                 transform: translateX(-100%);
 
-            /* Mobile: Swap positions - profile circle right, toggle arrow left */
+            /* Mobile: Profile circle far right, arrow to its left */
             .account-section {
-                flex-direction: row-reverse;
+                justify-content: flex-end;
+            }
+            
+            .account-section .sidebar-toggle-main {
+                order: 1;
+                margin-right: 0.5rem;
+            }
+            
+            .account-section .profile-circle {
+                order: 2;
             }
             
                 transition: transform 0.3s ease;
@@ -479,26 +488,6 @@
                 cursor: pointer;
             }
 
-            /* Make collapse button more prominent on mobile */
-            .sidebar-toggle-main {
-                position: fixed;
-                top: 1rem;
-                right: 1rem;
-                z-index: 10001;
-                background: rgba(0, 0, 0, 0.8);
-                border-radius: 50%;
-                width: 50px;
-                height: 50px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-                border: 2px solid rgba(255, 255, 255, 0.2);
-            }
-
-            .sidebar-toggle-main i {
-                font-size: 1.2rem;
-            }
 
             /* Ensure all clickable elements are touch-friendly on options page */
             button, a, select, .nav-link {

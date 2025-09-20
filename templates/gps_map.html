@@ -426,6 +426,7 @@
             backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 2rem;
+            margin-top: 2rem;
             margin-bottom: 2rem;
             box-shadow: var(--card-shadow);
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -465,6 +466,84 @@
 
         .btn-fullscreen i {
             font-size: 1.2rem;
+        }
+
+        .gps-dropdown-container {
+            position: absolute;
+            bottom: 41px;
+            left: 85px;
+            z-index: 1000;
+        }
+
+        .custom-dropdown {
+            position: relative;
+            min-width: 180px;
+        }
+
+        .dropdown-selected {
+            background: white;
+            color: black;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 0.875rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 32px;
+            box-sizing: border-box;
+        }
+
+        .dropdown-selected:hover {
+            background: #f3f4f6;
+        }
+
+        .dropdown-selected:focus {
+            outline: none;
+            border-color: #e5e7eb;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .dropdown-options {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1001;
+            display: none;
+            margin-bottom: 4px;
+        }
+
+        .dropdown-options.show {
+            display: block;
+        }
+
+        .dropdown-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .dropdown-option:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-option:hover {
+            background: #f3f4f6;
+        }
+
+        .dropdown-option.selected {
+            background: #e0f2fe;
+            color: #0369a1;
         }
 
 
@@ -656,16 +735,36 @@
                  margin-bottom: 1rem;
              }
              
-             .btn-fullscreen {
-                 bottom: 20px;
-                 left: 20px;
-                 width: 28px;
-                 height: 28px;
-             }
-             
-             .btn-fullscreen i {
-                 font-size: 1rem;
-             }
+            .btn-fullscreen {
+                bottom: 20px;
+                left: 20px;
+                width: 28px;
+                height: 28px;
+            }
+            
+            .btn-fullscreen i {
+                font-size: 1rem;
+            }
+
+            .gps-dropdown-container {
+                bottom: 20px;
+                left: 60px;
+            }
+
+            .custom-dropdown {
+                min-width: 150px;
+            }
+
+            .dropdown-selected {
+                font-size: 0.8rem;
+                padding: 4px 8px;
+                height: 28px;
+            }
+
+            .dropdown-option {
+                font-size: 0.8rem;
+                padding: 6px 8px;
+            }
              
              .vehicle-info {
                  min-width: 180px;
@@ -800,12 +899,32 @@
                      padding: 0.5rem;
                  }
                  
-                 .btn-fullscreen {
-                     bottom: 15px;
-                     left: 15px;
-                     width: 26px;
-                     height: 26px;
-                 }
+                .btn-fullscreen {
+                    bottom: 15px;
+                    left: 15px;
+                    width: 26px;
+                    height: 26px;
+                }
+
+                .gps-dropdown-container {
+                    bottom: 15px;
+                    left: 50px;
+                }
+
+                .custom-dropdown {
+                    min-width: 120px;
+                }
+
+                .dropdown-selected {
+                    font-size: 0.75rem;
+                    padding: 3px 6px;
+                    height: 26px;
+                }
+
+                .dropdown-option {
+                    font-size: 0.75rem;
+                    padding: 4px 6px;
+                }
              }
          }
     </style>
@@ -876,32 +995,24 @@
     <!-- Main Content Wrapper -->
     <div class="main-content-wrapper">
         <div class="container-fluid">
-            <!-- Filter Panel -->
-            <div class="filter-panel">
-                <h5><i class="fas fa-map-marker-alt me-2"></i>Select Vehicle</h5>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="gps-select" class="filter-label-small">GPS Vehicle</label>
-                        <select class="filter-select-small" id="gps-select">
-                            <option value="">All GPS Vehicles</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="filter-label-small">&nbsp;</label>
-                        <div class="filter-actions-small">
-                            <button class="filter-btn-small btn-clear" onclick="clearFilters()">
-                                <i class="fas fa-times me-2"></i>Clear
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
 
 
              <!-- Map Container -->
              <div class="map-container">
                  <div id="map"></div>
+                 <!-- GPS Vehicle Dropdown -->
+                 <div class="gps-dropdown-container">
+                     <div class="custom-dropdown" id="gps-dropdown">
+                         <div class="dropdown-selected" id="gps-selected">
+                             <span>All GPS Vehicles</span>
+                             <i class="fas fa-chevron-up"></i>
+                         </div>
+                         <div class="dropdown-options" id="gps-options">
+                             <div class="dropdown-option" data-value="">All GPS Vehicles</div>
+                         </div>
+                     </div>
+                 </div>
                  <!-- Fullscreen Button -->
                  <button class="btn-fullscreen" onclick="toggleFullscreen()" title="Toggle Fullscreen">
                      <i class="fas fa-expand" id="fullscreen-icon"></i>
@@ -961,31 +1072,58 @@
             fetch('/vehicle-locations')
                 .then(response => response.json())
                 .then(data => {
-                    const gpsSelect = document.getElementById('gps-select');
-                    gpsSelect.innerHTML = '<option value="">All GPS Vehicles</option>';
+                    const gpsOptions = document.getElementById('gps-options');
+                    gpsOptions.innerHTML = '<div class="dropdown-option" data-value="">All GPS Vehicles</div>';
                     
                     data.vehicles.forEach(vehicle => {
-                        const option = document.createElement('option');
-                        option.value = vehicle.pi;
+                        const option = document.createElement('div');
+                        option.className = 'dropdown-option';
+                        option.setAttribute('data-value', vehicle.pi);
                         option.textContent = `Pi ${vehicle.pi} - ${vehicle.name}`;
-                        gpsSelect.appendChild(option);
+                        gpsOptions.appendChild(option);
                     });
                 })
                 .catch(error => console.error('Error loading GPS vehicles:', error));
         }
 
         function setupFilterEventListeners() {
-            const gpsSelect = document.getElementById('gps-select');
+            const gpsDropdown = document.getElementById('gps-dropdown');
+            const gpsSelected = document.getElementById('gps-selected');
+            const gpsOptions = document.getElementById('gps-options');
 
-            gpsSelect.addEventListener('change', function() {
-                currentFilters.gps = this.value;
-                
-                // Save to localStorage
-                localStorage.setItem('gpsMapSelectedGps', this.value);
-                
-                // If a specific GPS vehicle is selected, center on it
-                if (this.value) {
-                    centerOnGpsVehicle(this.value);
+            // Toggle dropdown
+            gpsSelected.addEventListener('click', function(e) {
+                e.stopPropagation();
+                gpsOptions.classList.toggle('show');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function() {
+                gpsOptions.classList.remove('show');
+            });
+
+            // Handle option selection
+            gpsOptions.addEventListener('click', function(e) {
+                if (e.target.classList.contains('dropdown-option')) {
+                    const value = e.target.getAttribute('data-value');
+                    const text = e.target.textContent;
+                    
+                    // Update selected text
+                    gpsSelected.querySelector('span').textContent = text;
+                    
+                    // Update current selection
+                    currentFilters.gps = value;
+                    
+                    // Save to localStorage
+                    localStorage.setItem('gpsMapSelectedGps', value);
+                    
+                    // If a specific GPS vehicle is selected, center on it
+                    if (value) {
+                        centerOnGpsVehicle(value);
+                    }
+                    
+                    // Close dropdown
+                    gpsOptions.classList.remove('show');
                 }
             });
         }
@@ -1003,7 +1141,8 @@
         }
 
         function clearFilters() {
-            document.getElementById('gps-select').value = '';
+            const gpsSelected = document.getElementById('gps-selected');
+            gpsSelected.querySelector('span').textContent = 'All GPS Vehicles';
             
             // Clear localStorage
             localStorage.removeItem('gpsMapSelectedGps');
@@ -1020,7 +1159,18 @@
             // Set GPS selection if saved
             if (savedGps) {
                 setTimeout(() => {
-                    document.getElementById('gps-select').value = savedGps;
+                    const gpsSelected = document.getElementById('gps-selected');
+                    const gpsOptions = document.getElementById('gps-options');
+                    
+                    // Find the option with the saved value
+                    const options = gpsOptions.querySelectorAll('.dropdown-option');
+                    for (let option of options) {
+                        if (option.getAttribute('data-value') === savedGps) {
+                            gpsSelected.querySelector('span').textContent = option.textContent;
+                            break;
+                        }
+                    }
+                    
                     currentFilters.gps = savedGps;
                     
                     // Center map on selected vehicle if GPS is selected
@@ -1050,21 +1200,28 @@
          }
 
         function updateGpsFilter(vehicles) {
-            const gpsSelect = document.getElementById('gps-select');
-            const currentValue = gpsSelect.value;
+            const gpsOptions = document.getElementById('gps-options');
+            const gpsSelected = document.getElementById('gps-selected');
+            const currentText = gpsSelected.querySelector('span').textContent;
             
-            gpsSelect.innerHTML = '<option value="">All GPS Vehicles</option>';
+            gpsOptions.innerHTML = '<div class="dropdown-option" data-value="">All GPS Vehicles</div>';
             
             vehicles.forEach(vehicle => {
-                const option = document.createElement('option');
-                option.value = vehicle.pi;
+                const option = document.createElement('div');
+                option.className = 'dropdown-option';
+                option.setAttribute('data-value', vehicle.pi);
                 option.textContent = `Pi ${vehicle.pi} - ${vehicle.name} (${vehicle.status})`;
-                gpsSelect.appendChild(option);
+                gpsOptions.appendChild(option);
             });
             
             // Restore previous selection if it still exists
-            if (currentValue) {
-                gpsSelect.value = currentValue;
+            const options = gpsOptions.querySelectorAll('.dropdown-option');
+            for (let option of options) {
+                if (option.textContent === currentText) {
+                    gpsSelected.querySelector('span').textContent = option.textContent;
+                    currentFilters.gps = option.getAttribute('data-value');
+                    break;
+                }
             }
         }
 
@@ -1234,16 +1391,17 @@
 
         function centerOnGpsVehicle(piId) {
             console.log('Centering on GPS vehicle:', piId);
-            if (vehicleMarkers[piId]) {
-                const marker = vehicleMarkers[piId];
+            const vehicleId = `pi-${piId}`;
+            if (vehicleMarkers[vehicleId]) {
+                const marker = vehicleMarkers[vehicleId];
                 map.setView(marker.getLatLng(), 16, {
                     animate: true,
                     duration: 1.0
                 });
                 marker.openPopup();
-                console.log('Centered on vehicle:', piId);
+                console.log('Centered on vehicle:', vehicleId);
             } else {
-                console.log('Vehicle not found on map:', piId);
+                console.log('Vehicle not found on map:', vehicleId);
             }
         }
 

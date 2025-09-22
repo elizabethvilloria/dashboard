@@ -469,6 +469,34 @@
             font-size: 1.2rem;
         }
 
+        .btn-reset-trails {
+            position: absolute;
+            bottom: 41px;
+            left: 130px;
+            background: #ef4444;
+            color: white;
+            border: 1px solid #dc2626;
+            border-radius: 4px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-reset-trails:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+
+        .btn-reset-trails i {
+            font-size: 1rem;
+        }
+
         .gps-dropdown-container {
             position: absolute;
             bottom: 41px;
@@ -753,6 +781,19 @@
                 left: 70px;
             }
 
+            .btn-reset-trails {
+                bottom: 20px;
+                left: 120px;
+                width: 44px;
+                height: 44px;
+                min-width: 44px;
+                min-height: 44px;
+            }
+            
+            .btn-reset-trails i {
+                font-size: 1.2rem;
+            }
+
             .custom-dropdown {
                 min-width: 150px;
             }
@@ -1035,10 +1076,15 @@
                         </div>
                      </div>
                  </div>
-                 <!-- Fullscreen Button -->
-                 <button class="btn-fullscreen" onclick="toggleFullscreen()" title="Toggle Fullscreen">
-                     <i class="fas fa-expand" id="fullscreen-icon"></i>
-                 </button>
+                <!-- Fullscreen Button -->
+                <button class="btn-fullscreen" onclick="toggleFullscreen()" title="Toggle Fullscreen">
+                    <i class="fas fa-expand" id="fullscreen-icon"></i>
+                </button>
+                
+                <!-- Reset Daily Trails Button -->
+                <button class="btn-reset-trails" onclick="resetDailyTrails()" title="Reset Daily Trails">
+                    <i class="fas fa-redo"></i>
+                </button>
              </div>
         </div>
 
@@ -1061,6 +1107,7 @@
         let heatmapLayer = null;
         let trafficLayer = null;
         let vehicleTrails = {}; // Store vehicle trail data
+        let currentTrailDate = null; // Track current date for daily trail reset
         let currentFilters = {
             gps: ''
         };
@@ -1074,6 +1121,9 @@
             setupFilterEventListeners();
             restoreGpsMapFilterPreferences(); // Restore saved GPS selection
             initWebSocket(); // Initialize WebSocket instead of polling
+            
+            // Initialize daily trail system
+            currentTrailDate = new Date().toDateString();
         });
 
         function initMap() {
@@ -1295,10 +1345,14 @@
                     if (isOffline) statusColor = '#ef4444'; // Red for offline
                     else if (isParked) statusColor = '#f59e0b'; // Orange for parked
                     
+                    // Get daily distance for this vehicle
+                    const dailyDistance = vehicleTrails[vehicle.pi]?.dailyDistance || 0;
+                    
                     marker.setPopupContent(`
                         <div class="vehicle-info">
                             <h6>Pi ${vehicle.pi}</h6>
                             <p><strong>Status:</strong> <span style="color: ${statusColor}">${vehicle.status.toUpperCase()}</span></p>
+                            <p><strong>Total Distance:</strong> ${dailyDistance.toFixed(1)}km</p>
                             <p><strong>Speed:</strong> ${vehicle.speed.toFixed(1)} km/h</p>
                             <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
                             <p><strong>Last Update:</strong> ${getRelativeTime(vehicle.last_update)}</p>
@@ -1336,12 +1390,16 @@
                         iconAnchor: [12, 12]
                     });
 
+                    // Get daily distance for this vehicle
+                    const dailyDistance = vehicleTrails[vehicle.pi]?.dailyDistance || 0;
+                    
                     const marker = L.marker([vehicle.lat, vehicle.lng], { icon })
                         .addTo(map)
                         .bindPopup(`
                             <div class="vehicle-info">
                                 <h6>Pi ${vehicle.pi}</h6>
                                 <p><strong>Status:</strong> <span style="color: ${iconColor}">${vehicle.status.toUpperCase()}</span></p>
+                                <p><strong>Total Distance:</strong> ${dailyDistance.toFixed(1)}km</p>
                                 <p><strong>Speed:</strong> ${vehicle.speed.toFixed(1)} km/h</p>
                                 <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
                                 <p><strong>Last Update:</strong> ${getRelativeTime(vehicle.last_update)}</p>
@@ -1427,24 +1485,70 @@
             }
         }
 
+        function resetDailyTrails() {
+            // Clear all trail data for new day
+            vehicleTrails = {};
+            
+            // Remove all trail lines from map
+            Object.keys(routeLayers).forEach(piId => {
+                if (routeLayers[piId]) {
+                    map.removeLayer(routeLayers[piId]);
+                    delete routeLayers[piId];
+                }
+            });
+            
+            console.log('Daily trails reset - new day started');
+        }
+
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            // Haversine formula to calculate distance between two GPS points
+            const R = 6371; // Earth's radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; // Distance in km
+        }
+
         function addToVehicleTrail(vehicle) {
             const piId = vehicle.pi;
+            const today = new Date().toDateString();
+            
+            // Check if we need to reset trails for a new day
+            if (currentTrailDate !== today) {
+                resetDailyTrails();
+                currentTrailDate = today;
+            }
+            
             if (!vehicleTrails[piId]) {
-                vehicleTrails[piId] = [];
+                vehicleTrails[piId] = {
+                    points: [],
+                    dailyDistance: 0
+                };
+            }
+            
+            // Calculate distance from last point if we have previous points
+            if (vehicleTrails[piId].points.length > 0) {
+                const lastPoint = vehicleTrails[piId].points[vehicleTrails[piId].points.length - 1];
+                const distance = calculateDistance(
+                    lastPoint.lat, lastPoint.lng,
+                    vehicle.lat, vehicle.lng
+                );
+                vehicleTrails[piId].dailyDistance += distance;
             }
             
             // Add current position to trail
-            vehicleTrails[piId].push({
+            vehicleTrails[piId].points.push({
                 lat: vehicle.lat,
                 lng: vehicle.lng,
                 timestamp: new Date(vehicle.last_update).getTime(),
                 speed: vehicle.speed
             });
             
-            // Keep only last 1200 positions (20 minutes) to prevent performance issues
-            if (vehicleTrails[piId].length > 1200) {
-                vehicleTrails[piId] = vehicleTrails[piId].slice(-1200);
-            }
+            // No point limit - keep all positions for the day
+            // Trails will reset at midnight automatically
         }
 
         function showVehicleTrail(piId) {
@@ -1453,9 +1557,9 @@
                 map.removeLayer(routeLayers[piId]);
             }
             
-            if (vehicleTrails[piId] && vehicleTrails[piId].length > 1) {
+            if (vehicleTrails[piId] && vehicleTrails[piId].points && vehicleTrails[piId].points.length > 1) {
                 // Create polyline from trail data
-                const trailCoordinates = vehicleTrails[piId].map(point => [point.lat, point.lng]);
+                const trailCoordinates = vehicleTrails[piId].points.map(point => [point.lat, point.lng]);
                 
                 // Create simple green line trail
                 const trailPolyline = L.polyline(trailCoordinates, {
@@ -1466,7 +1570,7 @@
                 }).addTo(map);
                 
                 routeLayers[piId] = trailPolyline;
-                console.log(`Trail shown for vehicle ${piId} with ${vehicleTrails[piId].length} points`);
+                console.log(`Trail shown for vehicle ${piId} with ${vehicleTrails[piId].points.length} points`);
             }
         }
 

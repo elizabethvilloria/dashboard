@@ -34,6 +34,23 @@ last_pi_heartbeat_time = 0
 gps_broadcast_thread = None
 stop_broadcast = False
 
+def format_trip_duration(minutes):
+    """Format trip duration from minutes to readable format (hours, minutes, seconds)"""
+    if not minutes or minutes <= 0:
+        return 'N/A'
+    
+    total_seconds = round(minutes * 60)
+    hours = total_seconds // 3600
+    mins = (total_seconds % 3600) // 60
+    secs = total_seconds % 60
+    
+    if hours > 0:
+        return f"{hours}h {mins}m {secs}s"
+    elif mins > 0:
+        return f"{mins}m {secs}s"
+    else:
+        return f"{secs}s"
+
 def get_latest_log_time():
     """Finds the timestamp of the most recent log entry."""
     latest_time = None
@@ -1421,7 +1438,7 @@ def export_pdf():
             story.append(Spacer(1, 12))
             
             # Prepare table data
-            table_data = [['#', 'Entry Time', 'Exit Time', 'Dwell Time (min)']]
+            table_data = [['#', 'Entry Time', 'Exit Time', 'Trip Duration']]
             for i, passenger in enumerate(passengers, 1):  # Show all passengers
                 entry_time = passenger.get('entry_timestamp', 0)
                 exit_time = passenger.get('exit_timestamp', 0)
@@ -1430,7 +1447,7 @@ def export_pdf():
                 # Convert timestamp to local time
                 entry_str = datetime.datetime.fromtimestamp(entry_time).strftime('%H:%M:%S') if entry_time else 'N/A'
                 exit_str = datetime.datetime.fromtimestamp(exit_time).strftime('%H:%M:%S') if exit_time else 'N/A'
-                dwell_str = f"{dwell_time:.1f}" if dwell_time else 'N/A'
+                dwell_str = format_trip_duration(dwell_time) if dwell_time else 'N/A'
                 
                 table_data.append([str(i), entry_str, exit_str, dwell_str])
             

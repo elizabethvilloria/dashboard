@@ -1026,13 +1026,13 @@
                  <!-- GPS Vehicle Dropdown -->
                  <div class="gps-dropdown-container">
                      <div class="custom-dropdown" id="gps-dropdown">
-                         <div class="dropdown-selected" id="gps-selected">
-                             <span>All GPS Vehicles</span>
-                             <i class="fas fa-chevron-up"></i>
-                         </div>
-                         <div class="dropdown-options" id="gps-options">
-                             <div class="dropdown-option" data-value="">All GPS Vehicles</div>
-                         </div>
+                        <div class="dropdown-selected" id="gps-selected">
+                            <span>All Vehicles</span>
+                            <i class="fas fa-chevron-up"></i>
+                        </div>
+                        <div class="dropdown-options" id="gps-options">
+                            <div class="dropdown-option" data-value="">All Vehicles</div>
+                        </div>
                      </div>
                  </div>
                  <!-- Fullscreen Button -->
@@ -1095,7 +1095,7 @@
                 .then(response => response.json())
                 .then(data => {
                     const gpsOptions = document.getElementById('gps-options');
-                    gpsOptions.innerHTML = '<div class="dropdown-option" data-value="">All GPS Vehicles</div>';
+                    gpsOptions.innerHTML = '<div class="dropdown-option" data-value="">All Vehicles</div>';
                     
                     data.vehicles.forEach(vehicle => {
                         const option = document.createElement('div');
@@ -1164,7 +1164,7 @@
 
         function clearFilters() {
             const gpsSelected = document.getElementById('gps-selected');
-            gpsSelected.querySelector('span').textContent = 'All GPS Vehicles';
+            gpsSelected.querySelector('span').textContent = 'All Vehicles';
             
             // Clear localStorage
             localStorage.removeItem('gpsMapSelectedGps');
@@ -1226,7 +1226,7 @@
             const gpsSelected = document.getElementById('gps-selected');
             const currentText = gpsSelected.querySelector('span').textContent;
             
-            gpsOptions.innerHTML = '<div class="dropdown-option" data-value="">All GPS Vehicles</div>';
+            gpsOptions.innerHTML = '<div class="dropdown-option" data-value="">All Vehicles</div>';
             
             vehicles.forEach(vehicle => {
                 const option = document.createElement('div');

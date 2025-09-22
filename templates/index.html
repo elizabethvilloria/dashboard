@@ -1679,7 +1679,9 @@
                         <div class="col-md-6">
                             <label for="historicalDate" class="form-label">Select Date:</label>
                             <div class="d-flex gap-2 align-items-end">
-                                <input type="date" class="form-control form-control-sm" id="historicalDate" onchange="loadHistoricalPopulationData()" style="width: 220px;">
+                                <div class="clickable-date-container" onclick="openDatePicker('historicalDate')">
+                                    <input type="date" class="form-control form-control-sm" id="historicalDate" onchange="loadHistoricalPopulationData()" style="width: 220px;">
+                                </div>
                                 <button class="btn btn-sm export-pdf-btn" onclick="exportPopulationData('pdf')" title="Export to PDF">
                                     <i class="fas fa-file-pdf"></i>
                                 </button>
@@ -1996,7 +1998,7 @@
                         sortedPassengers.forEach((passenger, index) => {
                             const entryTime = passenger.entry_timestamp ? new Date(passenger.entry_timestamp * 1000).toLocaleString(undefined, {timeZone: 'Europe/Madrid'}) : 'N/A';
                             const exitTime = passenger.exit_timestamp ? new Date(passenger.exit_timestamp * 1000).toLocaleString(undefined, {timeZone: 'Europe/Madrid'}) : 'N/A';
-                            const dwellTime = passenger.dwell_time_minutes ? `${passenger.dwell_time_minutes} minutes` : 'N/A';
+                            const dwellTime = passenger.dwell_time_minutes ? formatTripDuration(passenger.dwell_time_minutes) : 'N/A';
                             const personId = passenger.person_id || (index + 1);
                             
                                 detailsHtml += `
@@ -2004,7 +2006,7 @@
                                     <h6><i class="fas fa-user me-2"></i>Person ID: ${personId}</h6>
                                     <p><strong>Entry Time:</strong> ${entryTime}</p>
                                     <p><strong>Exit Time:</strong> ${exitTime}</p>
-                                    <p><strong>Dwell Time:</strong> <span class="dwell-time">${dwellTime}</span></p>
+                                    <p><strong>Trip Duration:</strong> <span class="dwell-time">${dwellTime}</span></p>
                                     </div>
                                 `;
                         });
@@ -2482,6 +2484,24 @@
         function formatMonth(monthString) {
             const [year, month] = monthString.split('-');
             return `${month}/${year}`;
+        }
+
+        // Helper function to format trip duration from minutes to readable format
+        function formatTripDuration(minutes) {
+            if (!minutes || minutes <= 0) return 'N/A';
+            
+            const totalSeconds = Math.round(minutes * 60);
+            const hours = Math.floor(totalSeconds / 3600);
+            const mins = Math.floor((totalSeconds % 3600) / 60);
+            const secs = totalSeconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${mins}m ${secs}s`;
+            } else if (mins > 0) {
+                return `${mins}m ${secs}s`;
+            } else {
+                return `${secs}s`;
+            }
         }
 
 

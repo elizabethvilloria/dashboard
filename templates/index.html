@@ -2217,6 +2217,11 @@
                 });
         }
 
+        // Add missing function that was being called but not defined
+        function loadEtrikesForToda(todaId) {
+            loadEtrikes(todaId);
+        }
+
         function updateApplyButton() {
             const applyBtn = document.getElementById('apply-filter');
             applyBtn.disabled = !currentToda;
@@ -2362,7 +2367,51 @@
             // Update passenger counter display cards with filtered totals
             document.getElementById('total-passengers').textContent = data.total;
             
-            // Additional dashboard elements (charts, graphs) can be updated here
+            // Calculate time-based counts from filtered data
+            const now = new Date();
+            const filteredData = data.filtered_data || [];
+            
+            // Calculate hourly count (last hour)
+            const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+            const hourlyCount = filteredData.filter(entry => {
+                const entryTime = new Date(entry.entry_timestamp * 1000);
+                return entryTime >= oneHourAgo;
+            }).length;
+            
+            // Calculate daily count (today)
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const dailyCount = filteredData.filter(entry => {
+                const entryTime = new Date(entry.entry_timestamp * 1000);
+                return entryTime >= todayStart;
+            }).length;
+            
+            // Calculate weekly count (last 7 days)
+            const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const weeklyCount = filteredData.filter(entry => {
+                const entryTime = new Date(entry.entry_timestamp * 1000);
+                return entryTime >= oneWeekAgo;
+            }).length;
+            
+            // Calculate monthly count (last 30 days)
+            const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const monthlyCount = filteredData.filter(entry => {
+                const entryTime = new Date(entry.entry_timestamp * 1000);
+                return entryTime >= oneMonthAgo;
+            }).length;
+            
+            // Update all passenger counters
+            document.getElementById('hourly-passengers').textContent = hourlyCount;
+            document.getElementById('daily-passengers').textContent = dailyCount;
+            document.getElementById('weekly-passengers').textContent = weeklyCount;
+            document.getElementById('monthly-passengers').textContent = monthlyCount;
+            
+            // Calculate and update revenue (assuming ₱10 per passenger)
+            const fareRate = 10; // ₱10 per passenger
+            document.getElementById('hourly-revenue').textContent = `₱${hourlyCount * fareRate}`;
+            document.getElementById('daily-revenue').textContent = `₱${dailyCount * fareRate}`;
+            document.getElementById('weekly-revenue').textContent = `₱${weeklyCount * fareRate}`;
+            document.getElementById('monthly-revenue').textContent = `₱${monthlyCount * fareRate}`;
+            
             console.log('Dashboard updated with filtered data:', data);
         }
 
@@ -2372,7 +2421,8 @@
                 .then(response => response.json())
                 .then(data => {
                     updateDashboardWithFilteredData({
-                        total: data.total
+                        total: data.total,
+                        filtered_data: [] // Add empty array for consistency with filtered data structure
                     });
                 })
                 .catch(error => {

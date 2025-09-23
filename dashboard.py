@@ -1243,10 +1243,18 @@ def upload_data():
             with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as temp_file:
                 file.save(temp_file.name)
                 
-                # Extract the zip file
+                # Extract and merge data instead of overwriting
                 with zipfile.ZipFile(temp_file.name, 'r') as zip_ref:
-                    # Extract all files to current directory
-                    zip_ref.extractall('.')
+                    for file_info in zip_ref.filelist:
+                        if file_info.filename.endswith('.json'):
+                            # Extract to temporary location first
+                            temp_data = zip_ref.read(file_info.filename)
+                            
+                            # Parse the JSON data
+                            new_data = json.loads(temp_data.decode('utf-8'))
+                            
+                            # Merge with existing data
+                            merge_log_data(file_info.filename, new_data, pi_id)
                 
                 # Clean up temp file
                 os.remove(temp_file.name)
@@ -1263,6 +1271,46 @@ def upload_data():
     except Exception as e:
         print(f"❌ Upload error: {e}")
         return jsonify({'error': str(e)}), 500
+
+def merge_log_data(filename, new_data, pi_id):
+    """Merge new log data with existing data to prevent data collision"""
+    # Load existing data if it exists
+    existing_data = []
+    if os.path.exists(filename):
+        try:
+            with open(filename, 'r') as f:
+                existing_data = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            existing_data = []
+    
+    # Handle different data types
+    # If existing data is a dict, convert to list
+    if isinstance(existing_data, dict):
+        existing_data = [existing_data]
+    
+    # If new data is a dict, convert to list
+    if isinstance(new_data, dict):
+        new_data = [new_data]
+    
+    # Ensure both are lists before extending
+    if not isinstance(existing_data, list):
+        existing_data = []
+    if not isinstance(new_data, list):
+        new_data = []
+    
+    # Add new data to existing data
+    existing_data.extend(new_data)
+    
+    # Save merged data
+    # Only create directory if filename has a directory path
+    dir_path = os.path.dirname(filename)
+    if dir_path:  # Only create directory if there's a path
+        os.makedirs(dir_path, exist_ok=True)
+    
+    with open(filename, 'w') as f:
+        json.dump(existing_data, f, indent=4)
+    
+    print(f"📊 Merged {len(new_data)} new entries with {len(existing_data) - len(new_data)} existing entries in {filename}")
 
 @app.route('/export-pdf', methods=['POST'])
 @login_required

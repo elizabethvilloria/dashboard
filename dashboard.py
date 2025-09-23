@@ -733,9 +733,29 @@ def get_etrikes():
     if not toda:
         return jsonify({'etikes': []})
     
-    # Mock data - in real implementation, this would come from a database
-    # All e-trikes removed - no mock data
+    # Extract unique E-Trikes from log data for the selected TODA
     etikes = []
+    today = datetime.datetime.now()
+    
+    # Get data for the last 7 days
+    for i in range(7):
+        check_date = today.date() - datetime.timedelta(days=i)
+        log_path = os.path.join(LOG_DIR, str(check_date.year), str(check_date.month), f"{check_date.day}.json")
+        if os.path.exists(log_path):
+            try:
+                with open(log_path, 'r') as f:
+                    log_data = json.load(f)
+                    for entry in log_data:
+                        if entry.get('toda_id') == toda:
+                            etrike_id = entry.get('etrike_id')
+                            if etrike_id and etrike_id not in [e['id'] for e in etikes]:
+                                etikes.append({
+                                    'id': etrike_id,
+                                    'name': f'E-Trike {etrike_id}',
+                                    'status': 'Active'
+                                })
+            except (json.JSONDecodeError, FileNotFoundError):
+                continue
     
     return jsonify({'etikes': etikes})
 

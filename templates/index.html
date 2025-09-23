@@ -1847,38 +1847,16 @@
 
         // Update live passenger counter displays (hourly, daily, weekly, monthly)
         function updateCounts() {
-            // Check if filters are actually applied (not just selected in dropdowns)
-            const filterStatus = document.getElementById('filter-status').textContent;
-            const isFilterApplied = filterStatus !== 'City-wide View' && filterStatus !== '';
-            
-            if (isFilterApplied) {
-                // Use filtered data if filters are actually applied
-                const todaId = document.getElementById('toda-select').value;
-                const etrikeId = document.getElementById('etrike-select').value;
-                
-                const params = new URLSearchParams();
-                if (todaId) params.append('toda_id', todaId);
-                if (etrikeId) params.append('etrike_id', etrikeId);
-                
-                fetch(`/get-filtered-data?${params.toString()}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        updateCountsFromFilteredData(data.filtered_data || []);
-                    })
-                    .catch(error => {
-                        console.error('Error updating filtered counts:', error);
-                    });
-            } else {
-                // Use unfiltered data if no filters are applied
-                fetch('/data')
-                    .then(response => response.json())
-                    .then(data => {
-                        updateCountsFromUnfilteredData(data);
-                    })
-                    .catch(error => {
-                        console.error('Error updating counts:', error);
-                    });
-            }
+            // Always use unfiltered data for live counter updates
+            // Live counter should only show city-wide data until filters are applied
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    updateCountsFromUnfilteredData(data);
+                })
+                .catch(error => {
+                    console.error('Error updating counts:', error);
+                });
         }
         
         function updateCountsFromUnfilteredData(data) {

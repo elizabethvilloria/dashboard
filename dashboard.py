@@ -220,24 +220,29 @@ def get_passenger_counts():
         with open(today_log_path, 'r') as f:
             try:
                 log_data = json.load(f)
-                # Daily count
-                counts['daily'] = len(log_data)
+                # Daily count - count unique passengers only
+                unique_passengers = set()
+                for entry in log_data:
+                    # Only count entries with valid exit timestamps (completed trips)
+                    if entry.get('exit_timestamp') is not None:
+                        unique_passengers.add(entry['person_id'])
+                counts['daily'] = len(unique_passengers)
                 
-                # Hourly count (rolling)
-                hourly_count = 0
+                # Hourly count (rolling) - count unique passengers only
+                hourly_passengers = set()
                 for entry in log_data:
                     # Convert timestamp to local time
                     entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
-                    if (now - entry_time).total_seconds() <= 3600:
-                        hourly_count += 1
-                counts['hourly'] = hourly_count
+                    if (now - entry_time).total_seconds() <= 3600 and entry.get('exit_timestamp') is not None:
+                        hourly_passengers.add(entry['person_id'])
+                counts['hourly'] = len(hourly_passengers)
                         
             except json.JSONDecodeError:
                 pass
 
-    # Weekly
+    # Weekly - count unique passengers only
     start_of_week = now - datetime.timedelta(days=now.weekday())
-    weekly_total = 0
+    weekly_passengers = set()
     for i in range(7):
         current_day = start_of_week + datetime.timedelta(days=i)
         week_log_path = os.path.join(LOG_DIR, str(current_day.year), str(current_day.month), f"{current_day.day}.json")
@@ -245,14 +250,16 @@ def get_passenger_counts():
             with open(week_log_path, 'r') as f:
                 try:
                     log_data = json.load(f)
-                    weekly_total += len(log_data)
+                    for entry in log_data:
+                        if entry.get('exit_timestamp') is not None:
+                            weekly_passengers.add(entry['person_id'])
                 except json.JSONDecodeError:
                     pass
-    counts['weekly'] = weekly_total
+    counts['weekly'] = len(weekly_passengers)
     
-    # Monthly
+    # Monthly - count unique passengers only
     month_log_dir = os.path.join(LOG_DIR, str(now.year), str(now.month))
-    monthly_total = 0
+    monthly_passengers = set()
     if os.path.exists(month_log_dir):
         for day_file in os.listdir(month_log_dir):
             if day_file.endswith('.json'):
@@ -260,10 +267,12 @@ def get_passenger_counts():
                 with open(day_path, 'r') as f:
                     try:
                         log_data = json.load(f)
-                        monthly_total += len(log_data)
+                        for entry in log_data:
+                            if entry.get('exit_timestamp') is not None:
+                                monthly_passengers.add(entry['person_id'])
                     except json.JSONDecodeError:
                         pass
-    counts['monthly'] = monthly_total
+    counts['monthly'] = len(monthly_passengers)
 
     return dict(counts)
 

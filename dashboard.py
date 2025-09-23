@@ -1275,6 +1275,14 @@ def upload_data():
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
+        # Get Pi device information from form data
+        pi_id = request.form.get('pi_id', 'unknown')
+        city = request.form.get('city', 'unknown')
+        toda_id = request.form.get('toda_id', 'unknown')
+        etrike_id = request.form.get('etrike_id', 'unknown')
+        
+        print(f"📦 Received data from Pi: {pi_id} ({city}, {toda_id}, {etrike_id})")
+        
         if file and file.filename.endswith('.zip'):
             # Save the uploaded zip file temporarily
             import tempfile

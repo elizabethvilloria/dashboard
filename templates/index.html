@@ -1847,52 +1847,128 @@
 
         // Update live passenger counter displays (hourly, daily, weekly, monthly)
         function updateCounts() {
-            fetch('/data')
-                .then(response => response.json())
-                .then(data => {
-                    // Hourly
-                    const hourlyCount = data.hourly || 0;
-                    if (!isInitialLoad && previousCounts.hourly !== null && hourlyCount > previousCounts.hourly) {
-                        const increase = hourlyCount - previousCounts.hourly;
-                        createFloatingRevenue(document.getElementById('hourly-revenue'), increase * 20);
-                    }
-                    document.getElementById('hourly-count').textContent = hourlyCount;
-                    document.getElementById('hourly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(hourlyCount * 20).toLocaleString()}`;
-                    previousCounts.hourly = hourlyCount;
-                    
-                    // Daily
-                    const dailyCount = data.daily || 0;
-                    if (!isInitialLoad && previousCounts.daily !== null && dailyCount > previousCounts.daily) {
-                        const increase = dailyCount - previousCounts.daily;
-                        createFloatingRevenue(document.getElementById('daily-revenue'), increase * 20);
-                    }
-                    document.getElementById('daily-count').textContent = dailyCount;
-                    document.getElementById('daily-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(dailyCount * 20).toLocaleString()}`;
-                    previousCounts.daily = dailyCount;
+            // Check if filters are active
+            const todaId = document.getElementById('toda-select').value;
+            const etrikeId = document.getElementById('etrike-select').value;
+            
+            if (todaId || etrikeId) {
+                // Use filtered data if filters are active
+                const params = new URLSearchParams();
+                if (todaId) params.append('toda_id', todaId);
+                if (etrikeId) params.append('etrike_id', etrikeId);
+                
+                fetch(`/get-filtered-data?${params.toString()}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updateCountsFromFilteredData(data.filtered_data || []);
+                    })
+                    .catch(error => {
+                        console.error('Error updating filtered counts:', error);
+                    });
+            } else {
+                // Use unfiltered data if no filters
+                fetch('/data')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateCountsFromUnfilteredData(data);
+                    })
+                    .catch(error => {
+                        console.error('Error updating counts:', error);
+                    });
+            }
+        }
+        
+        function updateCountsFromUnfilteredData(data) {
+            // Hourly
+            const hourlyCount = data.hourly || 0;
+            if (!isInitialLoad && previousCounts.hourly !== null && hourlyCount > previousCounts.hourly) {
+                const increase = hourlyCount - previousCounts.hourly;
+                createFloatingRevenue(document.getElementById('hourly-revenue'), increase * 20);
+            }
+            document.getElementById('hourly-count').textContent = hourlyCount;
+            document.getElementById('hourly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(hourlyCount * 20).toLocaleString()}`;
+            previousCounts.hourly = hourlyCount;
+            
+            // Daily
+            const dailyCount = data.daily || 0;
+            if (!isInitialLoad && previousCounts.daily !== null && dailyCount > previousCounts.daily) {
+                const increase = dailyCount - previousCounts.daily;
+                createFloatingRevenue(document.getElementById('daily-revenue'), increase * 20);
+            }
+            document.getElementById('daily-count').textContent = dailyCount;
+            document.getElementById('daily-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(dailyCount * 20).toLocaleString()}`;
+            previousCounts.daily = dailyCount;
 
-                    // Weekly
-                    const weeklyCount = data.weekly || 0;
-                    if (!isInitialLoad && previousCounts.weekly !== null && weeklyCount > previousCounts.weekly) {
-                        const increase = weeklyCount - previousCounts.weekly;
-                        createFloatingRevenue(document.getElementById('weekly-revenue'), increase * 20);
-                    }
-                    document.getElementById('weekly-count').textContent = weeklyCount;
-                    document.getElementById('weekly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(weeklyCount * 20).toLocaleString()}`;
-                    previousCounts.weekly = weeklyCount;
+            // Weekly
+            const weeklyCount = data.weekly || 0;
+            if (!isInitialLoad && previousCounts.weekly !== null && weeklyCount > previousCounts.weekly) {
+                const increase = weeklyCount - previousCounts.weekly;
+                createFloatingRevenue(document.getElementById('weekly-revenue'), increase * 20);
+            }
+            document.getElementById('weekly-count').textContent = weeklyCount;
+            document.getElementById('weekly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(weeklyCount * 20).toLocaleString()}`;
+            previousCounts.weekly = weeklyCount;
 
-                    // Monthly
-                    const monthlyCount = data.monthly || 0;
-                    if (!isInitialLoad && previousCounts.monthly !== null && monthlyCount > previousCounts.monthly) {
-                        const increase = monthlyCount - previousCounts.monthly;
-                        createFloatingRevenue(document.getElementById('monthly-revenue'), increase * 20);
-                    }
-                    document.getElementById('monthly-count').textContent = monthlyCount;
-                    document.getElementById('monthly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(monthlyCount * 20).toLocaleString()}`;
-                    previousCounts.monthly = monthlyCount;
-                    
-                    // Mark that initial load is complete
-                    isInitialLoad = false;
-                });
+            // Monthly
+            const monthlyCount = data.monthly || 0;
+            if (!isInitialLoad && previousCounts.monthly !== null && monthlyCount > previousCounts.monthly) {
+                const increase = monthlyCount - previousCounts.monthly;
+                createFloatingRevenue(document.getElementById('monthly-revenue'), increase * 20);
+            }
+            document.getElementById('monthly-count').textContent = monthlyCount;
+            document.getElementById('monthly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(monthlyCount * 20).toLocaleString()}`;
+            previousCounts.monthly = monthlyCount;
+            
+            // Mark that initial load is complete
+            isInitialLoad = false;
+        }
+        
+        function updateCountsFromFilteredData(filteredData) {
+            const now = new Date();
+            
+            // Calculate hourly count (last hour)
+            const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+            const hourlyCount = filteredData.filter(entry => {
+                const entryTime = new Date(entry.entry_timestamp * 1000);
+                return entryTime >= oneHourAgo;
+            }).length;
+            
+            // Calculate daily count (today)
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const dailyCount = filteredData.filter(entry => {
+                const entryTime = new Date(entry.entry_timestamp * 1000);
+                return entryTime >= todayStart;
+            }).length;
+            
+            // Calculate weekly count (last 7 days)
+            const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const weeklyCount = filteredData.filter(entry => {
+                const entryTime = new Date(entry.entry_timestamp * 1000);
+                return entryTime >= oneWeekAgo;
+            }).length;
+            
+            // Calculate monthly count (last 30 days)
+            const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const monthlyCount = filteredData.filter(entry => {
+                const entryTime = new Date(entry.entry_timestamp * 1000);
+                return entryTime >= oneMonthAgo;
+            }).length;
+            
+            // Update counters with filtered data
+            document.getElementById('hourly-count').textContent = hourlyCount;
+            document.getElementById('hourly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(hourlyCount * 20).toLocaleString()}`;
+            
+            document.getElementById('daily-count').textContent = dailyCount;
+            document.getElementById('daily-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(dailyCount * 20).toLocaleString()}`;
+            
+            document.getElementById('weekly-count').textContent = weeklyCount;
+            document.getElementById('weekly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(weeklyCount * 20).toLocaleString()}`;
+            
+            document.getElementById('monthly-count').textContent = monthlyCount;
+            document.getElementById('monthly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(monthlyCount * 20).toLocaleString()}`;
+            
+            // Mark that initial load is complete
+            isInitialLoad = false;
         }
 
         // Load and display historical passenger data tables

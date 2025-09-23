@@ -216,45 +216,35 @@ def get_passenger_counts():
 
     # Hourly and Daily
     today_log_path = os.path.join(LOG_DIR, str(now.year), str(now.month), f"{now.day}.json")
-    if os.path.exists(today_log_path):
-        with open(today_log_path, 'r') as f:
-            try:
-                log_data = json.load(f)
-                # Daily count - count unique passengers only
-                unique_passengers = set()
-                for entry in log_data:
-                    # Only count entries with valid exit timestamps (completed trips)
-                    if entry.get('exit_timestamp') is not None:
-                        unique_passengers.add(entry['person_id'])
-                counts['daily'] = len(unique_passengers)
-                
-                # Hourly count (rolling) - count unique passengers only
-                hourly_passengers = set()
-                for entry in log_data:
-                    # Convert timestamp to local time
-                    entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
-                    if (now - entry_time).total_seconds() <= 3600 and entry.get('exit_timestamp') is not None:
-                        hourly_passengers.add(entry['person_id'])
-                counts['hourly'] = len(hourly_passengers)
-                        
-            except json.JSONDecodeError:
-                pass
+    today_data = get_combined_data_for_date(now.year, now.month, now.day)
+    
+    if today_data:
+        # Daily count - count unique passengers only
+        unique_passengers = set()
+        for entry in today_data:
+            # Only count entries with valid exit timestamps (completed trips)
+            if entry.get('exit_timestamp') is not None:
+                unique_passengers.add(entry['person_id'])
+        counts['daily'] = len(unique_passengers)
+        
+        # Hourly count (rolling) - count unique passengers only
+        hourly_passengers = set()
+        for entry in today_data:
+            # Convert timestamp to local time
+            entry_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'])
+            if (now - entry_time).total_seconds() <= 3600 and entry.get('exit_timestamp') is not None:
+                hourly_passengers.add(entry['person_id'])
+        counts['hourly'] = len(hourly_passengers)
 
     # Weekly - count unique passengers only
     start_of_week = now - datetime.timedelta(days=now.weekday())
     weekly_passengers = set()
     for i in range(7):
         current_day = start_of_week + datetime.timedelta(days=i)
-        week_log_path = os.path.join(LOG_DIR, str(current_day.year), str(current_day.month), f"{current_day.day}.json")
-        if os.path.exists(week_log_path):
-            with open(week_log_path, 'r') as f:
-                try:
-                    log_data = json.load(f)
-                    for entry in log_data:
-                        if entry.get('exit_timestamp') is not None:
-                            weekly_passengers.add(entry['person_id'])
-                except json.JSONDecodeError:
-                    pass
+        day_data = get_combined_data_for_date(current_day.year, current_day.month, current_day.day)
+        for entry in day_data:
+            if entry.get('exit_timestamp') is not None:
+                weekly_passengers.add(entry['person_id'])
     counts['weekly'] = len(weekly_passengers)
     
     # Monthly - count unique passengers only
@@ -262,19 +252,52 @@ def get_passenger_counts():
     monthly_passengers = set()
     if os.path.exists(month_log_dir):
         for day_file in os.listdir(month_log_dir):
-            if day_file.endswith('.json'):
+            if day_file.endswith('.json') and not '_' in day_file:  # Skip device-specific files
                 day_path = os.path.join(month_log_dir, day_file)
-                with open(day_path, 'r') as f:
-                    try:
-                        log_data = json.load(f)
-                        for entry in log_data:
-                            if entry.get('exit_timestamp') is not None:
-                                monthly_passengers.add(entry['person_id'])
-                    except json.JSONDecodeError:
-                        pass
+                day_data = get_combined_data_for_date(now.year, now.month, int(day_file.replace('.json', '')))
+                for entry in day_data:
+                    if entry.get('exit_timestamp') is not None:
+                        monthly_passengers.add(entry['person_id'])
     counts['monthly'] = len(monthly_passengers)
 
     return dict(counts)
+
+def get_combined_data_for_date(year, month, day):
+    """Get combined data from all Pi devices for a specific date"""
+    combined_data = []
+    log_dir = os.path.join(LOG_DIR, str(year), str(month))
+    
+    if not os.path.exists(log_dir):
+        return combined_data
+    
+    # Look for device-specific files (e.g., 23_PI001.json, 23_PI002.json)
+    for filename in os.listdir(log_dir):
+        if filename.startswith(f"{day}_") and filename.endswith('.json'):
+            file_path = os.path.join(log_dir, filename)
+            try:
+                with open(file_path, 'r') as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        combined_data.extend(data)
+                    elif isinstance(data, dict):
+                        combined_data.append(data)
+            except (json.JSONDecodeError, FileNotFoundError):
+                continue
+    
+    # Also check for legacy files (e.g., 23.json) for backward compatibility
+    legacy_file = os.path.join(log_dir, f"{day}.json")
+    if os.path.exists(legacy_file):
+        try:
+            with open(legacy_file, 'r') as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    combined_data.extend(data)
+                elif isinstance(data, dict):
+                    combined_data.append(data)
+        except (json.JSONDecodeError, FileNotFoundError):
+            pass
+    
+    return combined_data
 
 def login_required(f):
     """Decorator to require login for routes"""
@@ -769,22 +792,17 @@ def get_etrikes():
     # Get data for the last 7 days
     for i in range(7):
         check_date = today.date() - datetime.timedelta(days=i)
-        log_path = os.path.join(LOG_DIR, str(check_date.year), str(check_date.month), f"{check_date.day}.json")
-        if os.path.exists(log_path):
-            try:
-                with open(log_path, 'r') as f:
-                    log_data = json.load(f)
-                    for entry in log_data:
-                        if entry.get('toda_id') == toda:
-                            etrike_id = entry.get('etrike_id')
-                            if etrike_id and etrike_id not in [e['id'] for e in etikes]:
-                                etikes.append({
-                                    'id': etrike_id,
-                                    'name': f'E-Trike {etrike_id}',
-                                    'status': 'Active'
-                                })
-            except (json.JSONDecodeError, FileNotFoundError):
-                continue
+        log_data = get_combined_data_for_date(check_date.year, check_date.month, check_date.day)
+        
+        for entry in log_data:
+            if entry.get('toda_id') == toda:
+                etrike_id = entry.get('etrike_id')
+                if etrike_id and etrike_id not in [e['id'] for e in etikes]:
+                    etikes.append({
+                        'id': etrike_id,
+                        'name': f'E-Trike {etrike_id}',
+                        'status': 'Active'
+                    })
     
     return jsonify({'etikes': etikes})
 
@@ -827,26 +845,21 @@ def get_filtered_data(toda_id=None, etrike_id=None, pi_id=None):
     # Get data for the last 7 days
     for i in range(7):
         check_date = today.date() - datetime.timedelta(days=i)
-        log_path = os.path.join(LOG_DIR, str(check_date.year), str(check_date.month), f"{check_date.day}.json")
-        if os.path.exists(log_path):
-            try:
-                with open(log_path, 'r') as f:
-                    log_data = json.load(f)
-                    for entry in log_data:
-                        # Check if entry matches filter criteria
-                        matches_filter = True
-                        
-                        if toda_id and entry.get('toda_id') != toda_id:
-                            matches_filter = False
-                        if etrike_id and entry.get('etrike_id') != etrike_id:
-                            matches_filter = False
-                        if pi_id and entry.get('pi_id') != pi_id:
-                            matches_filter = False
-                        
-                        if matches_filter:
-                            filtered_data.append(entry)
-            except (json.JSONDecodeError, FileNotFoundError):
-                continue
+        log_data = get_combined_data_for_date(check_date.year, check_date.month, check_date.day)
+        
+        for entry in log_data:
+            # Check if entry matches filter criteria
+            matches_filter = True
+            
+            if toda_id and entry.get('toda_id') != toda_id:
+                matches_filter = False
+            if etrike_id and entry.get('etrike_id') != etrike_id:
+                matches_filter = False
+            if pi_id and entry.get('pi_id') != pi_id:
+                matches_filter = False
+            
+            if matches_filter:
+                filtered_data.append(entry)
     
     return filtered_data
 
@@ -1304,16 +1317,20 @@ def upload_data():
                 
                 # Extract and merge data instead of overwriting
                 with zipfile.ZipFile(temp_file.name, 'r') as zip_ref:
-                    for file_info in zip_ref.filelist:
-                        if file_info.filename.endswith('.json'):
-                            # Extract to temporary location first
-                            temp_data = zip_ref.read(file_info.filename)
-                            
-                            # Parse the JSON data
-                            new_data = json.loads(temp_data.decode('utf-8'))
-                            
-                            # Merge with existing data
-                            merge_log_data(file_info.filename, new_data, pi_id)
+                    json_files = [f for f in zip_ref.filelist if f.filename.endswith('.json')]
+                    print(f"📦 Found {len(json_files)} JSON files in zip")
+                    
+                    for file_info in json_files:
+                        print(f"📦 Processing: {file_info.filename}")
+                        # Extract to temporary location first
+                        temp_data = zip_ref.read(file_info.filename)
+                        
+                        # Parse the JSON data
+                        new_data = json.loads(temp_data.decode('utf-8'))
+                        print(f"📦 File {file_info.filename} contains {len(new_data) if isinstance(new_data, list) else 1} entries")
+                        
+                        # Save data separately by device
+                        save_log_data_by_device(file_info.filename, new_data, pi_id)
                 
                 # Clean up temp file
                 os.remove(temp_file.name)
@@ -1331,13 +1348,19 @@ def upload_data():
         print(f"❌ Upload error: {e}")
         return jsonify({'error': str(e)}), 500
 
-def merge_log_data(filename, new_data, pi_id):
-    """Merge new log data with existing data to prevent data collision and duplicates"""
-    # Load existing data if it exists
+def save_log_data_by_device(filename, new_data, pi_id):
+    """Save log data separately by Pi device to prevent data collision"""
+    # Create device-specific filename
+    # Original: logs/2025/9/23.json
+    # New: logs/2025/9/23_PI001.json
+    base_name = filename.replace('.json', '')
+    device_filename = f"{base_name}_{pi_id}.json"
+    
+    # Load existing data for this device if it exists
     existing_data = []
-    if os.path.exists(filename):
+    if os.path.exists(device_filename):
         try:
-            with open(filename, 'r') as f:
+            with open(device_filename, 'r') as f:
                 existing_data = json.load(f)
         except (json.JSONDecodeError, FileNotFoundError):
             existing_data = []
@@ -1378,16 +1401,16 @@ def merge_log_data(filename, new_data, pi_id):
     
     # Only save if there were new entries added
     if new_entries_added > 0:
-        # Save merged data
+        # Save device-specific data
         # Only create directory if filename has a directory path
-        dir_path = os.path.dirname(filename)
+        dir_path = os.path.dirname(device_filename)
         if dir_path:  # Only create directory if there's a path
             os.makedirs(dir_path, exist_ok=True)
         
-        with open(filename, 'w') as f:
+        with open(device_filename, 'w') as f:
             json.dump(existing_data, f, indent=4)
     
-    print(f"📊 Pi {pi_id}: {new_entries_added} new entries added, {duplicates_skipped} duplicates skipped in {filename}")
+    print(f"📊 Pi {pi_id}: {new_entries_added} new entries added, {duplicates_skipped} duplicates skipped in {device_filename}")
     
     # If all entries were duplicates, log a warning
     if duplicates_skipped > 0 and new_entries_added == 0:

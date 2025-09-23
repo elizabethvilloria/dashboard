@@ -1828,22 +1828,54 @@
 
         // Create floating revenue animation
         function createFloatingRevenue(element, amount) {
-            const rect = element.getBoundingClientRect();
-            const floatingText = document.createElement('div');
-            floatingText.className = 'revenue-float';
-            floatingText.textContent = `+${getCurrencySymbol()}${convertCurrency(amount)}`;
-            floatingText.style.left = rect.left + rect.width / 2 + 'px';
-            floatingText.style.top = (rect.top - 30) + 'px';
-            
-            document.body.appendChild(floatingText);
-            
-            // Remove the element after animation
-            setTimeout(() => {
-                if (floatingText.parentNode) {
-                    floatingText.parentNode.removeChild(floatingText);
-                }
-            }, 2000);
+            try {
+                const rect = element.getBoundingClientRect();
+                const floatingText = document.createElement('div');
+                
+                // Set all styles inline to avoid CSS conflicts
+                floatingText.style.position = 'fixed';
+                floatingText.style.fontSize = '1.5rem';
+                floatingText.style.fontWeight = '700';
+                floatingText.style.color = '#10b981';
+                floatingText.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.5)';
+                floatingText.style.pointerEvents = 'none';
+                floatingText.style.zIndex = '99999';
+                floatingText.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                floatingText.style.padding = '8px 12px';
+                floatingText.style.borderRadius = '8px';
+                floatingText.style.border = '2px solid #10b981';
+                floatingText.style.transform = 'translateX(-50%)';
+                floatingText.style.transition = 'all 1.5s ease-out';
+                
+                floatingText.textContent = `+${getCurrencySymbol()}${convertCurrency(amount)}`;
+                
+                // Calculate position relative to viewport
+                const leftPos = rect.left + rect.width / 2;
+                const topPos = rect.top - 40;
+                
+                floatingText.style.left = leftPos + 'px';
+                floatingText.style.top = topPos + 'px';
+                
+                document.body.appendChild(floatingText);
+                
+                // Animate the element
+                setTimeout(() => {
+                    floatingText.style.transform = 'translateX(-30%) translateY(-20px) scale(1.2)';
+                    floatingText.style.opacity = '0.8';
+                }, 100);
+                
+                // Remove the element after animation
+                setTimeout(() => {
+                    if (floatingText.parentNode) {
+                        floatingText.parentNode.removeChild(floatingText);
+                    }
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Animation error:', error);
+            }
         }
+        
 
         // Update live passenger counter displays (hourly, daily, weekly, monthly)
         function updateCounts() {
@@ -1891,6 +1923,7 @@
             document.getElementById('hourly-count').textContent = hourlyCount;
             document.getElementById('hourly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(hourlyCount * 20).toLocaleString()}`;
             previousCounts.hourly = hourlyCount;
+            console.log(`Revenue update - Hourly: ${hourlyCount} passengers = ₱${hourlyCount * 20}`);
             
             // Daily
             const dailyCount = data.daily || 0;
@@ -1901,6 +1934,7 @@
             document.getElementById('daily-count').textContent = dailyCount;
             document.getElementById('daily-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(dailyCount * 20).toLocaleString()}`;
             previousCounts.daily = dailyCount;
+            console.log(`Revenue update - Daily: ${dailyCount} passengers = ₱${dailyCount * 20}`);
 
             // Weekly
             const weeklyCount = data.weekly || 0;
@@ -2484,12 +2518,12 @@
             document.getElementById('weekly-passengers').textContent = weeklyCount;
             document.getElementById('monthly-passengers').textContent = monthlyCount;
             
-            // Calculate and update revenue (assuming ₱10 per passenger)
-            const fareRate = 10; // ₱10 per passenger
-            document.getElementById('hourly-revenue').textContent = `₱${hourlyCount * fareRate}`;
-            document.getElementById('daily-revenue').textContent = `₱${dailyCount * fareRate}`;
-            document.getElementById('weekly-revenue').textContent = `₱${weeklyCount * fareRate}`;
-            document.getElementById('monthly-revenue').textContent = `₱${monthlyCount * fareRate}`;
+            // Calculate and update revenue (assuming ₱20 per passenger)
+            const fareRate = 20; // ₱20 per passenger
+            document.getElementById('hourly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(hourlyCount * fareRate).toLocaleString()}`;
+            document.getElementById('daily-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(dailyCount * fareRate).toLocaleString()}`;
+            document.getElementById('weekly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(weeklyCount * fareRate).toLocaleString()}`;
+            document.getElementById('monthly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(monthlyCount * fareRate).toLocaleString()}`;
             
             console.log('Dashboard updated with filtered data:', data);
         }
@@ -2499,10 +2533,8 @@
             fetch('/data')
                 .then(response => response.json())
                 .then(data => {
-                    updateDashboardWithFilteredData({
-                        total: data.total,
-                        filtered_data: [] // Add empty array for consistency with filtered data structure
-                    });
+                    // Use the unfiltered data structure for revenue calculation
+                    updateCountsFromUnfilteredData(data);
                 })
                 .catch(error => {
                     console.error('Error loading dashboard data:', error);

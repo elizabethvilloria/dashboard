@@ -1847,12 +1847,15 @@
 
         // Update live passenger counter displays (hourly, daily, weekly, monthly)
         function updateCounts() {
-            // Check if filters are active
-            const todaId = document.getElementById('toda-select').value;
-            const etrikeId = document.getElementById('etrike-select').value;
+            // Check if filters are actually applied (not just selected in dropdowns)
+            const filterStatus = document.getElementById('filter-status').textContent;
+            const isFilterApplied = filterStatus !== 'City-wide View' && filterStatus !== '';
             
-            if (todaId || etrikeId) {
-                // Use filtered data if filters are active
+            if (isFilterApplied) {
+                // Use filtered data if filters are actually applied
+                const todaId = document.getElementById('toda-select').value;
+                const etrikeId = document.getElementById('etrike-select').value;
+                
                 const params = new URLSearchParams();
                 if (todaId) params.append('toda_id', todaId);
                 if (etrikeId) params.append('etrike_id', etrikeId);
@@ -1866,7 +1869,7 @@
                         console.error('Error updating filtered counts:', error);
                     });
             } else {
-                // Use unfiltered data if no filters
+                // Use unfiltered data if no filters are applied
                 fetch('/data')
                     .then(response => response.json())
                     .then(data => {

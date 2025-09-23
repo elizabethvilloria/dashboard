@@ -1291,6 +1291,8 @@ def upload_data():
         etrike_id = request.form.get('etrike_id', 'unknown')
         
         print(f"📦 Received data from Pi: {pi_id} ({city}, {toda_id}, {etrike_id})")
+        print(f"📦 File size: {file.content_length} bytes")
+        print(f"📦 File name: {file.filename}")
         
         if file and file.filename.endswith('.zip'):
             # Save the uploaded zip file temporarily
@@ -1330,7 +1332,7 @@ def upload_data():
         return jsonify({'error': str(e)}), 500
 
 def merge_log_data(filename, new_data, pi_id):
-    """Merge new log data with existing data to prevent data collision"""
+    """Merge new log data with existing data to prevent data collision and duplicates"""
     # Load existing data if it exists
     existing_data = []
     if os.path.exists(filename):
@@ -1355,19 +1357,103 @@ def merge_log_data(filename, new_data, pi_id):
     if not isinstance(new_data, list):
         new_data = []
     
-    # Add new data to existing data
-    existing_data.extend(new_data)
+    # Create a set of existing entry signatures to detect duplicates
+    existing_signatures = set()
+    for entry in existing_data:
+        # Create a unique signature based on person_id, entry_timestamp, and pi_id
+        signature = f"{entry.get('person_id')}_{entry.get('entry_timestamp')}_{entry.get('pi_id')}"
+        existing_signatures.add(signature)
     
-    # Save merged data
-    # Only create directory if filename has a directory path
-    dir_path = os.path.dirname(filename)
-    if dir_path:  # Only create directory if there's a path
-        os.makedirs(dir_path, exist_ok=True)
+    # Only add new entries that don't already exist
+    duplicates_skipped = 0
+    new_entries_added = 0
+    for entry in new_data:
+        signature = f"{entry.get('person_id')}_{entry.get('entry_timestamp')}_{entry.get('pi_id')}"
+        if signature not in existing_signatures:
+            existing_data.append(entry)
+            existing_signatures.add(signature)
+            new_entries_added += 1
+        else:
+            duplicates_skipped += 1
     
-    with open(filename, 'w') as f:
-        json.dump(existing_data, f, indent=4)
+    # Only save if there were new entries added
+    if new_entries_added > 0:
+        # Save merged data
+        # Only create directory if filename has a directory path
+        dir_path = os.path.dirname(filename)
+        if dir_path:  # Only create directory if there's a path
+            os.makedirs(dir_path, exist_ok=True)
+        
+        with open(filename, 'w') as f:
+            json.dump(existing_data, f, indent=4)
     
-    print(f"📊 Merged {len(new_data)} new entries with {len(existing_data) - len(new_data)} existing entries in {filename}")
+    print(f"📊 Pi {pi_id}: {new_entries_added} new entries added, {duplicates_skipped} duplicates skipped in {filename}")
+    
+    # If all entries were duplicates, log a warning
+    if duplicates_skipped > 0 and new_entries_added == 0:
+        print(f"⚠️  WARNING: Pi {pi_id} sent {duplicates_skipped} duplicate entries - no new data added")
+
+def cleanup_duplicate_data():
+    """Clean up existing duplicate data in log files"""
+    print("🧹 Starting duplicate cleanup...")
+    
+    # Get all log files
+    log_files = []
+    if os.path.exists(LOG_DIR):
+        for year in os.listdir(LOG_DIR):
+            year_path = os.path.join(LOG_DIR, year)
+            if os.path.isdir(year_path):
+                for month in os.listdir(year_path):
+                    month_path = os.path.join(year_path, month)
+                    if os.path.isdir(month_path):
+                        for day_file in os.listdir(month_path):
+                            if day_file.endswith('.json'):
+                                log_files.append(os.path.join(month_path, day_file))
+    
+    total_duplicates_removed = 0
+    for log_file in log_files:
+        try:
+            with open(log_file, 'r') as f:
+                data = json.load(f)
+            
+            if not isinstance(data, list):
+                continue
+            
+            # Remove duplicates based on signature
+            seen_signatures = set()
+            unique_data = []
+            duplicates_in_file = 0
+            
+            for entry in data:
+                signature = f"{entry.get('person_id')}_{entry.get('entry_timestamp')}_{entry.get('pi_id')}"
+                if signature not in seen_signatures:
+                    unique_data.append(entry)
+                    seen_signatures.add(signature)
+                else:
+                    duplicates_in_file += 1
+            
+            if duplicates_in_file > 0:
+                # Save cleaned data
+                with open(log_file, 'w') as f:
+                    json.dump(unique_data, f, indent=4)
+                
+                total_duplicates_removed += duplicates_in_file
+                print(f"🧹 Cleaned {log_file}: removed {duplicates_in_file} duplicates")
+        
+        except (json.JSONDecodeError, FileNotFoundError):
+            continue
+    
+    print(f"✅ Cleanup complete: removed {total_duplicates_removed} total duplicates")
+
+@app.route('/cleanup-duplicates', methods=['POST'])
+@login_required
+def cleanup_duplicates_route():
+    """Trigger duplicate cleanup"""
+    try:
+        cleanup_duplicate_data()
+        return jsonify({'message': 'Duplicate cleanup completed successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/export-pdf', methods=['POST'])
 @login_required

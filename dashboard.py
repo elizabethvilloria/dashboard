@@ -1,23 +1,39 @@
 
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for, flash, send_file
-from flask_socketio import SocketIO, emit
+try:
+    from flask_socketio import SocketIO, emit
+    SOCKETIO_AVAILABLE = True
+except ImportError:
+    print("⚠️  Flask-SocketIO not available. Real-time features will be disabled.")
+    SOCKETIO_AVAILABLE = False
+    SocketIO = None
+    emit = None
 import json
 import datetime
 from collections import defaultdict
 import os
 import hashlib
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import inch
+try:
+    from reportlab.lib.pagesizes import letter, A4
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    print("⚠️  ReportLab not available. PDF export will be disabled.")
+    REPORTLAB_AVAILABLE = False
 import io
 import threading
 import time
 
 app = Flask(__name__)
 app.secret_key = 'etrike-secret-key-change-this'  # Change this to a random string
-socketio = SocketIO(app, cors_allowed_origins="*")
+
+if SOCKETIO_AVAILABLE:
+    socketio = SocketIO(app, cors_allowed_origins="*")
+else:
+    socketio = None
 
 # Simple authentication (in production, use proper user database)
 USERS = {
@@ -263,6 +279,9 @@ def login_required(f):
 
 def broadcast_gps_updates():
     """Background thread to broadcast GPS updates via WebSocket"""
+    if not SOCKETIO_AVAILABLE:
+        return
+        
     global stop_broadcast
     while not stop_broadcast:
         try:
@@ -349,28 +368,29 @@ def get_vehicle_locations_data():
         print(f"Vehicle locations error: {e}")
         return []
 
-@socketio.on('connect')
-def handle_connect():
-    """Handle client connection"""
-    print(f'Client connected: {request.sid}')
-    # Start broadcast thread if not already running
-    global gps_broadcast_thread, stop_broadcast
-    if gps_broadcast_thread is None or not gps_broadcast_thread.is_alive():
-        stop_broadcast = False
-        gps_broadcast_thread = threading.Thread(target=broadcast_gps_updates, daemon=True)
-        gps_broadcast_thread.start()
-        print("GPS broadcast thread started")
+if SOCKETIO_AVAILABLE:
+    @socketio.on('connect')
+    def handle_connect():
+        """Handle client connection"""
+        print(f'Client connected: {request.sid}')
+        # Start broadcast thread if not already running
+        global gps_broadcast_thread, stop_broadcast
+        if gps_broadcast_thread is None or not gps_broadcast_thread.is_alive():
+            stop_broadcast = False
+            gps_broadcast_thread = threading.Thread(target=broadcast_gps_updates, daemon=True)
+            gps_broadcast_thread.start()
+            print("GPS broadcast thread started")
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    """Handle client disconnection"""
-    print(f'Client disconnected: {request.sid}')
+    @socketio.on('disconnect')
+    def handle_disconnect():
+        """Handle client disconnection"""
+        print(f'Client disconnected: {request.sid}')
 
-@socketio.on('request_gps_update')
-def handle_gps_request():
-    """Handle client request for immediate GPS update"""
-    vehicles = get_vehicle_locations_data()
-    emit('gps_update', {'vehicles': vehicles})
+    @socketio.on('request_gps_update')
+    def handle_gps_request():
+        """Handle client request for immediate GPS update"""
+        vehicles = get_vehicle_locations_data()
+        emit('gps_update', {'vehicles': vehicles})
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -1336,6 +1356,9 @@ def merge_log_data(filename, new_data, pi_id):
 @login_required
 def export_pdf():
     """Export historical data to PDF"""
+    if not REPORTLAB_AVAILABLE:
+        return jsonify({'error': 'PDF export not available. ReportLab not installed.'}), 400
+    
     try:
         data = request.get_json()
         period = data.get('period')
@@ -1604,17 +1627,25 @@ if __name__ == '__main__':
     key_path = '/etc/letsencrypt/live/etrikedashboard.com/privkey.pem'
     
     try:
-        # Try HTTPS first
-        if os.path.exists(cert_path) and os.path.exists(key_path):
-            context = ssl.SSLContext(ssl.PROTOCOL_TLS)  # Use TLS instead of TLSv1_2
-            context.load_cert_chain(cert_path, key_path)
-            print("🚀 Dashboard with WebSocket running on https://etrikedashboard.com:5001/")
-            socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context)
+        if SOCKETIO_AVAILABLE:
+            # Try HTTPS first
+            if os.path.exists(cert_path) and os.path.exists(key_path):
+                context = ssl.SSLContext(ssl.PROTOCOL_TLS)  # Use TLS instead of TLSv1_2
+                context.load_cert_chain(cert_path, key_path)
+                print("🚀 Dashboard with WebSocket running on https://etrikedashboard.com:5001/")
+                socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context)
+            else:
+                # Fall back to HTTP
+                print("🚀 Dashboard with WebSocket running on http://localhost:5001/")
+                socketio.run(app, debug=False, host='0.0.0.0', port=5001)
         else:
-            # Fall back to HTTP
-            print("🚀 Dashboard with WebSocket running on http://localhost:5001/")
-            socketio.run(app, debug=False, host='0.0.0.0', port=5001)
+            # Run without SocketIO
+            print("🚀 Dashboard running on http://localhost:5001/ (WebSocket disabled)")
+            app.run(debug=False, host='0.0.0.0', port=5001)
     except Exception as e:
         print(f"⚠️  SSL Error: {e}")
         print("🔄 Falling back to HTTP mode...")
-        socketio.run(app, debug=False, host='0.0.0.0', port=5001) 
+        if SOCKETIO_AVAILABLE:
+            socketio.run(app, debug=False, host='0.0.0.0', port=5001)
+        else:
+            app.run(debug=False, host='0.0.0.0', port=5001) 

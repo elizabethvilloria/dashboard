@@ -13,6 +13,14 @@ import datetime
 from collections import defaultdict
 import os
 import hashlib
+
+# Environment flag for ingest system
+USE_INGEST = os.getenv("USE_INGEST", "false").lower() == "true"
+import sqlite3
+import time
+
+# Database configuration
+EVENTS_DB_PATH = os.getenv("EVENTS_DB_PATH", "events.db")
 try:
     from reportlab.lib.pagesizes import letter, A4
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -302,6 +310,90 @@ def get_combined_data_for_date(year, month, day):
             pass
     
     return combined_data
+
+# Database helper functions for ingest system
+def _events_db_conn():
+    """Get connection to events database, returns None if DB doesn't exist"""
+    if not os.path.exists(EVENTS_DB_PATH):
+        return None
+    conn = sqlite3.connect(EVENTS_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    # Enable JSON1 if available (bundled in modern sqlite)
+    try:
+        conn.execute("SELECT json('[]')")
+    except:
+        pass
+    return conn
+
+def _events_table_exists(conn):
+    """Check if events table exists in the database"""
+    try:
+        cur = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='events'")
+        return cur.fetchone() is not None
+    except:
+        return False
+
+def _recent_events_exist(conn, since_epoch):
+    """Check if there are any events since the given epoch time"""
+    try:
+        cur = conn.execute("SELECT 1 FROM events WHERE event_time_utc >= ? LIMIT 1", (since_epoch,))
+        return cur.fetchone() is not None
+    except:
+        return False
+
+def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days=7):
+    """
+    Returns entries shaped like your log records by reading events.db.
+    Falls back (returns None) if DB missing or no usable rows.
+    """
+    conn = _events_db_conn()
+    if not conn or not _events_table_exists(conn):
+        return None
+
+    now = time.time()
+    start = now - days*24*3600
+
+    # Quick sanity: do we even have recent rows?
+    if not _recent_events_exist(conn, start):
+        return None
+
+    # Try to select only rows whose payload_json has the fields we need.
+    # We accept rows where payload_json has 'entry_timestamp' (to match your current log shape).
+    # If your ingested events aren't in this shape yet, we'll fallback by returning None.
+    base_sql = """
+      SELECT payload_json
+      FROM events
+      WHERE event_time_utc >= ?
+        AND (? IS NULL OR json_extract(payload_json, '$.toda_id') = ?)
+        AND (? IS NULL OR json_extract(payload_json, '$.etrike_id') = ?)
+        AND (? IS NULL OR device_id = ?)
+        AND json_extract(payload_json, '$.entry_timestamp') IS NOT NULL
+      ORDER BY seq ASC
+    """
+    params = (start, toda_id, toda_id, etrike_id, etrike_id, pi_id, pi_id)
+
+    try:
+        rows = conn.execute(base_sql, params).fetchall()
+    except Exception:
+        # If JSON1 not available or payloads not shaped yet, bail to logs
+        conn.close()
+        return None
+
+    entries = []
+    for r in rows:
+        try:
+            payload = r["payload_json"]
+            if isinstance(payload, str):
+                payload = json.loads(payload)
+            # Ensure it at least looks like your log entry
+            if "toda_id" in payload and "etrike_id" in payload and "entry_timestamp" in payload:
+                entries.append(payload)
+        except Exception:
+            continue
+
+    conn.close()
+    # If nothing usable, fallback
+    return entries if entries else None
 
 def login_required(f):
     """Decorator to require login for routes"""
@@ -817,26 +909,27 @@ def get_etrikes():
 @login_required
 def get_filtered_data_route():
     """Get filtered passenger data based on selection"""
-    toda_id = request.args.get('toda_id', '')
-    etrike_id = request.args.get('etrike_id', '')
-    pi_id = request.args.get('pi_id', '')
+    toda_id = request.args.get('toda_id') or None
+    etrike_id = request.args.get('etrike_id') or None
+    pi_id = request.args.get('pi_id') or None
+
+    data = None
+    source = 'logs'  # Default source
     
-    # Convert empty strings to None for filtering
-    if not toda_id:
-        toda_id = None
-    if not etrike_id:
-        etrike_id = None
-    if not pi_id:
-        pi_id = None
-    
-    filtered_data = get_filtered_data(toda_id, etrike_id, pi_id)
-    
-    # Count total passengers
-    total_count = len(filtered_data)
-    
+    if USE_INGEST:
+        data = get_filtered_data_from_ingest(toda_id=toda_id, etrike_id=etrike_id, pi_id=pi_id, days=7)
+        if data is not None:
+            source = 'ingest'
+
+    # Fallback to current file logs if ingest not ready/usable
+    if data is None:
+        data = get_filtered_data(toda_id=toda_id, etrike_id=etrike_id, pi_id=pi_id)
+        source = 'logs'
+
     return jsonify({
-        'total': total_count,
-        'filtered_data': filtered_data
+        'total': len(data),
+        'filtered_data': data,
+        'source': source
     })
 
 
@@ -908,6 +1001,11 @@ def health():
                 "cities": len(cat.get("cities", [])),
                 "todas": len(cat.get("todas", [])),
                 "etrikes": len(cat.get("etrikes", [])),
+            },
+            "ingest": {
+                "USE_INGEST": USE_INGEST,
+                "EVENTS_DB_PATH": EVENTS_DB_PATH,
+                "events_db_exists": os.path.exists(EVENTS_DB_PATH)
             }
         }, 200
     except Exception as e:

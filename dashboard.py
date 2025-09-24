@@ -24,6 +24,7 @@ EVENTS_DB_PATH = os.getenv("EVENTS_DB_PATH", "events.db")
 
 # Ingest security configuration
 INGEST_KEY = os.getenv("INGEST_KEY", "")
+VERBOSE_INGEST = os.getenv("VERBOSE_INGEST", "0") == "1"
 try:
     from reportlab.lib.pagesizes import letter, A4
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -984,10 +985,9 @@ def ingest():
 
         # For now: just log it
         print(f"[INGEST] device_id={device_id} since_seq={since_seq} events={len(events)}")
-
-        # Each event should have an event_id
-        for e in events:
-            print("  Event:", e)
+        if VERBOSE_INGEST:
+            for e in events:
+                print("  Event:", e)
 
         # Simulate ack response
         ack_seq = max([e.get("seq", 0) for e in events], default=since_seq or 0)

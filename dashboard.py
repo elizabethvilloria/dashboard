@@ -1018,6 +1018,42 @@ def health():
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
 
+# --- Ingest health: quick visibility into DB status ---
+@app.route("/ingest/health")
+def ingest_health():
+    try:
+        # Open DB (read-only style)
+        conn = sqlite3.connect(EVENTS_DB_PATH)
+        cur = conn.cursor()
+
+        # Total rows + most recent event time
+        cur.execute("SELECT COUNT(*), COALESCE(MAX(event_time_utc), 0) FROM events")
+        total, latest_ts = cur.fetchone()
+
+        # Per-device max seq (what each Pi last posted)
+        cur.execute("""
+            SELECT device_id, MAX(seq)
+            FROM events
+            GROUP BY device_id
+            ORDER BY device_id
+        """)
+        per_dev = [{"device_id": d, "max_seq": int(s or 0)} for d, s in cur.fetchall()]
+        conn.close()
+
+        return {
+            "use_ingest": os.getenv("USE_INGEST", "false").lower() == "true",
+            "events_db_path": EVENTS_DB_PATH,
+            "events_count": int(total),
+            "latest_event_time": float(latest_ts),   # epoch seconds
+            "per_device": per_dev
+        }, 200
+    except Exception as e:
+        return {
+            "use_ingest": os.getenv("USE_INGEST", "false").lower() == "true",
+            "events_db_path": EVENTS_DB_PATH,
+            "error": str(e)
+        }, 500
+
 @app.route('/pi-heartbeat', methods=['POST'])
 def pi_heartbeat():
     """Pi device heartbeat to maintain connection status"""

@@ -125,6 +125,12 @@
     ],
     "etrikes": [
         {
+            "id": "0000",
+            "name": "E-Trike 0000",
+            "toda_id": "bltmpc",
+            "status": "active"
+        },      
+        {
             "id": "0001",
             "name": "E-Trike 0001",
             "toda_id": "bltmpc",

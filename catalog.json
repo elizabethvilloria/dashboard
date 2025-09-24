@@ -1,0 +1,188 @@
+{
+    "cities": [
+        {
+            "id": "manila",
+            "name": "Manila",
+            "currency": "PHP",
+            "fare_rate": 20
+        },
+        {
+            "id": "quezon_city",
+            "name": "Quezon City",
+            "currency": "PHP",
+            "fare_rate": 25
+        },
+        {
+            "id": "muntinlupa",
+            "name": "Muntinlupa",
+            "currency": "PHP",
+            "fare_rate": 15
+        },
+        {
+            "id": "pasay",
+            "name": "Pasay",
+            "currency": "PHP",
+            "fare_rate": 20
+        },
+        {
+            "id": "lipa",
+            "name": "Lipa",
+            "currency": "PHP",
+            "fare_rate": 12
+        }
+    ],
+    "todas": [
+        {
+            "id": "bltmpc",
+            "name": "BLTMPC",
+            "full_name": "Barangay Laging Tapat Motorcycle and Pedicab Cooperative",
+            "city_id": "manila"
+        },
+        {
+            "id": "mtmpc",
+            "name": "MTMPC",
+            "full_name": "Manila Tricycle and Motorcycle Operators Cooperative",
+            "city_id": "manila"
+        },
+        {
+            "id": "stmpc",
+            "name": "STMPC",
+            "full_name": "San Miguel Tricycle and Motorcycle Operators Cooperative",
+            "city_id": "manila"
+        },
+        {
+            "id": "qctmpc",
+            "name": "QCTMPC",
+            "full_name": "Quezon City Tricycle and Motorcycle Operators Cooperative",
+            "city_id": "quezon_city"
+        },
+        {
+            "id": "qctoda",
+            "name": "QCTODA",
+            "full_name": "Quezon City TODA Association",
+            "city_id": "quezon_city"
+        },
+        {
+            "id": "qctrans",
+            "name": "QCTRANS",
+            "full_name": "Quezon City Transport Cooperative",
+            "city_id": "quezon_city"
+        },
+        {
+            "id": "mntmpc",
+            "name": "MNTMPC",
+            "full_name": "Muntinlupa Tricycle and Motorcycle Operators Cooperative",
+            "city_id": "muntinlupa"
+        },
+        {
+            "id": "mntoda",
+            "name": "MNTODA",
+            "full_name": "Muntinlupa TODA Association",
+            "city_id": "muntinlupa"
+        },
+        {
+            "id": "mntrans",
+            "name": "MNTRANS",
+            "full_name": "Muntinlupa Transport Cooperative",
+            "city_id": "muntinlupa"
+        },
+        {
+            "id": "pstmpc",
+            "name": "PSTMPC",
+            "full_name": "Pasay Tricycle and Motorcycle Operators Cooperative",
+            "city_id": "pasay"
+        },
+        {
+            "id": "pstoda",
+            "name": "PSTODA",
+            "full_name": "Pasay TODA Association",
+            "city_id": "pasay"
+        },
+        {
+            "id": "pstrans",
+            "name": "PSTRANS",
+            "full_name": "Pasay Transport Cooperative",
+            "city_id": "pasay"
+        },
+        {
+            "id": "lptmpc",
+            "name": "LPTMPC",
+            "full_name": "Lipa Tricycle and Motorcycle Operators Cooperative",
+            "city_id": "lipa"
+        },
+        {
+            "id": "lptoda",
+            "name": "LPTODA",
+            "full_name": "Lipa TODA Association",
+            "city_id": "lipa"
+        },
+        {
+            "id": "lptrans",
+            "name": "LPTRANS",
+            "full_name": "Lipa Transport Cooperative",
+            "city_id": "lipa"
+        }
+    ],
+    "etrikes": [
+        {
+            "id": "0001",
+            "name": "E-Trike 0001",
+            "toda_id": "bltmpc",
+            "status": "active"
+        },
+        {
+            "id": "0002",
+            "name": "E-Trike 0002",
+            "toda_id": "bltmpc",
+            "status": "active"
+        },
+        {
+            "id": "0003",
+            "name": "E-Trike 0003",
+            "toda_id": "mtmpc",
+            "status": "active"
+        },
+        {
+            "id": "0004",
+            "name": "E-Trike 0004",
+            "toda_id": "stmpc",
+            "status": "active"
+        },
+        {
+            "id": "0005",
+            "name": "E-Trike 0005",
+            "toda_id": "qctmpc",
+            "status": "active"
+        },
+        {
+            "id": "0006",
+            "name": "E-Trike 0006",
+            "toda_id": "qctoda",
+            "status": "active"
+        },
+        {
+            "id": "0007",
+            "name": "E-Trike 0007",
+            "toda_id": "mntmpc",
+            "status": "active"
+        },
+        {
+            "id": "0008",
+            "name": "E-Trike 0008",
+            "toda_id": "pstmpc",
+            "status": "active"
+        },
+        {
+            "id": "0009",
+            "name": "E-Trike 0009",
+            "toda_id": "lptmpc",
+            "status": "active"
+        },
+        {
+            "id": "0010",
+            "name": "E-Trike 0010",
+            "toda_id": "bltmpc",
+            "status": "active"
+        }
+    ]
+}

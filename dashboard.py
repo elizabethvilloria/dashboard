@@ -27,8 +27,12 @@ import io
 import threading
 import time
 
+from catalog_api import bp as catalog_bp
+
 app = Flask(__name__)
 app.secret_key = 'etrike-secret-key-change-this'  # Change this to a random string
+
+app.register_blueprint(catalog_bp)
 
 if SOCKETIO_AVAILABLE:
     socketio = SocketIO(app, cors_allowed_origins="*")
@@ -1743,6 +1747,200 @@ def shutdown():
         raise RuntimeError('Not running with the Werkzeug Server')
     shutdown_server()
     return 'Server shutting down...'
+
+# ============================================================================
+# NEW CATALOG ENDPOINTS - Powered by catalog.json
+# ============================================================================
+
+def load_catalog():
+    """Load catalog data from catalog.json file"""
+    try:
+        with open('catalog.json', 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Error loading catalog: {e}")
+        return {"cities": [], "todas": [], "etrikes": []}
+
+@app.route('/catalog/cities')
+@login_required
+def get_catalog_cities():
+    """Get all cities from catalog"""
+    catalog = load_catalog()
+    return jsonify({'cities': catalog.get('cities', [])})
+
+@app.route('/catalog/todas')
+@login_required
+def get_catalog_todas():
+    """Get TODAs from catalog, optionally filtered by city"""
+    city_id = request.args.get('city_id')
+    catalog = load_catalog()
+    
+    todas = catalog.get('todas', [])
+    if city_id:
+        todas = [toda for toda in todas if toda.get('city_id') == city_id]
+    
+    return jsonify({'todas': todas})
+
+@app.route('/catalog/etrikes')
+@login_required
+def get_catalog_etrikes():
+    """Get E-Trikes from catalog, optionally filtered by TODA"""
+    toda_id = request.args.get('toda_id')
+    catalog = load_catalog()
+    
+    etrikes = catalog.get('etrikes', [])
+    if toda_id:
+        etrikes = [etrike for etrike in etrikes if etrike.get('toda_id') == toda_id]
+    
+    return jsonify({'etrikes': etrikes})
+
+# ============================================================================
+# NEW INGEST ENDPOINT - Idempotent event ingestion
+# ============================================================================
+
+def get_device_max_seq(device_id):
+    """Get the maximum sequence number for a device from log data"""
+    max_seq = 0
+    today = datetime.datetime.now()
+    
+    # Check last 7 days of data
+    for i in range(7):
+        check_date = today.date() - datetime.timedelta(days=i)
+        log_data = get_combined_data_for_date(check_date.year, check_date.month, check_date.day)
+        
+        for entry in log_data:
+            if entry.get('pi_id') == device_id:
+                seq = entry.get('seq', 0)
+                if seq > max_seq:
+                    max_seq = seq
+    
+    return max_seq
+
+def save_event_to_logs(event, device_id):
+    """Save a single event to the appropriate log file"""
+    try:
+        # Extract timestamp from event
+        entry_timestamp = event.get('entry_timestamp', 0)
+        if entry_timestamp:
+            entry_date = datetime.datetime.fromtimestamp(entry_timestamp)
+        else:
+            entry_date = datetime.datetime.now()
+        
+        # Create log file path
+        log_dir = os.path.join(LOG_DIR, str(entry_date.year), str(entry_date.month))
+        os.makedirs(log_dir, exist_ok=True)
+        
+        # Use device-specific filename
+        log_file = os.path.join(log_dir, f"{entry_date.day}_{device_id}.json")
+        
+        # Load existing data
+        existing_data = []
+        if os.path.exists(log_file):
+            try:
+                with open(log_file, 'r') as f:
+                    existing_data = json.load(f)
+            except (json.JSONDecodeError, FileNotFoundError):
+                existing_data = []
+        
+        # Ensure existing_data is a list
+        if not isinstance(existing_data, list):
+            existing_data = []
+        
+        # Check if event already exists (idempotent)
+        event_id = event.get('event_id')
+        if event_id:
+            # Check if event with this ID already exists
+            for existing_event in existing_data:
+                if existing_event.get('event_id') == event_id:
+                    return False  # Event already exists, skip
+        
+        # Add event to data
+        existing_data.append(event)
+        
+        # Save back to file
+        with open(log_file, 'w') as f:
+            json.dump(existing_data, f, indent=4)
+        
+        return True  # Event was added
+        
+    except Exception as e:
+        print(f"Error saving event to logs: {e}")
+        return False
+
+@app.route('/ingest', methods=['POST'])
+def ingest_events():
+    """Ingest events from Pi devices with idempotent insert by event_id"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        device_id = data.get('device_id')
+        since_seq = data.get('since_seq', 0)
+        events = data.get('events', [])
+        
+        if not device_id:
+            return jsonify({'error': 'device_id is required'}), 400
+        
+        if not isinstance(events, list):
+            return jsonify({'error': 'events must be an array'}), 400
+        
+        print(f"📦 Ingesting {len(events)} events from device {device_id}")
+        
+        # Process events
+        added_count = 0
+        skipped_count = 0
+        max_seq = since_seq
+        
+        for event in events:
+            # Validate event has required fields
+            if not isinstance(event, dict):
+                print(f"⚠️  Skipping invalid event: {event}")
+                skipped_count += 1
+                continue
+            
+            # Check if event has event_id for idempotency
+            event_id = event.get('event_id')
+            if not event_id:
+                print(f"⚠️  Skipping event without event_id: {event}")
+                skipped_count += 1
+                continue
+            
+            # Add device_id to event if not present
+            if 'pi_id' not in event:
+                event['pi_id'] = device_id
+            
+            # Track sequence number
+            seq = event.get('seq', 0)
+            if seq > max_seq:
+                max_seq = seq
+            
+            # Save event (idempotent by event_id)
+            if save_event_to_logs(event, device_id):
+                added_count += 1
+            else:
+                skipped_count += 1
+        
+        # Update Pi heartbeat
+        global last_pi_heartbeat_time
+        last_pi_heartbeat_time = datetime.datetime.now().timestamp()
+        
+        print(f"✅ Ingest complete: {added_count} added, {skipped_count} skipped")
+        
+        return jsonify({
+            'status': 'success',
+            'device_id': device_id,
+            'ack_seq': max_seq,
+            'added_count': added_count,
+            'skipped_count': skipped_count,
+            'message': f'Processed {len(events)} events'
+        })
+        
+    except Exception as e:
+        print(f"❌ Ingest error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     import ssl

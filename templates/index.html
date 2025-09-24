@@ -2275,7 +2275,9 @@
             todaSelect.addEventListener('change', function() {
                 currentToda = this.value;
                 if (currentToda) {
-                    loadEtrikes(currentToda);
+                    if (typeof loadEtrikesFromCatalog === 'function' && currentToda) {
+                        loadEtrikesFromCatalog(currentToda);
+                    }
                     etrikeSelect.disabled = false;
                     etrikeSelect.innerHTML = '<option value="">Loading e-trikes...</option>';
                 } else {
@@ -2303,26 +2305,13 @@
             });
         }
 
-        function loadEtrikes(todaId) {
-            fetch(`/get-etrikes?toda=${todaId}`)
-                .then(response => response.json())
-                .then(data => {
-                    const etrikeSelect = document.getElementById('etrike-select');
-                    etrikeSelect.innerHTML = '<option value="">All E-Trikes in TODA</option>';
-                    
-                    data.etikes.forEach(etrike => {
-                        const option = document.createElement('option');
-                        option.value = etrike.id;
-                        option.textContent = `${etrike.name} (${etrike.status})`;
-                        etrikeSelect.appendChild(option);
-                    });
-                });
-        }
-
-        // Add missing function that was being called but not defined
-        function loadEtrikesForToda(todaId) {
-            loadEtrikes(todaId);
-        }
+        // OLD E-Trike functions - replaced by catalog system
+        // function loadEtrikes(todaId) {
+        //     fetch(`/get-etrikes?toda=${todaId}`) - OLD ENDPOINT, NOW USING /catalog/etrikes
+        // }
+        // function loadEtrikesForToda(todaId) {
+        //     loadEtrikes(todaId);
+        // }
 
         function updateApplyButton() {
             const applyBtn = document.getElementById('apply-filter');
@@ -3277,7 +3266,9 @@
                 
                 // Enable E-Trike dropdown and load options
                 document.getElementById('etrike-select').disabled = false;
-                loadEtrikesForToda(savedToda);
+                if (typeof loadEtrikesFromCatalog === 'function') {
+                    loadEtrikesFromCatalog(savedToda);
+                }
                 
                 // Set E-Trike selection if saved
                 if (savedEtrike) {

@@ -737,10 +737,11 @@ def change_city():
     
     return jsonify({'success': False, 'error': 'No city provided'})
 
+# ⚠️ LEGACY ENDPOINT (to be removed after catalog integration is complete)
 @app.route('/get-todas')
 @login_required
 def get_todas():
-    """Get available TODAs for the selected city"""
+    """Get available TODAs for the selected city - LEGACY: Use /catalog/todas instead"""
     city = request.args.get('city') or session.get('city', 'manila')
     
     # Mock data - in real implementation, this would come from a database
@@ -779,10 +780,11 @@ def get_todas():
     
     return jsonify({'todas': todas})
 
+# ⚠️ LEGACY ENDPOINT (to be removed after catalog integration is complete)
 @app.route('/get-etrikes')
 @login_required
 def get_etrikes():
-    """Get available e-trikes for the selected TODA"""
+    """Get available e-trikes for the selected TODA - LEGACY: Use /catalog/etrikes instead"""
     toda = request.args.get('toda', '')
     city = session.get('city', 'manila')
     
@@ -871,6 +873,45 @@ def get_filtered_data(toda_id=None, etrike_id=None, pi_id=None):
 @login_required
 def data():
     return jsonify(get_passenger_counts())
+
+@app.route("/ingest", methods=["POST"])
+def ingest():
+    try:
+        payload = request.get_json(force=True)  # Parse JSON body
+        device_id = payload.get("device_id")
+        since_seq = payload.get("since_seq")
+        events = payload.get("events", [])
+
+        # For now: just log it
+        print(f"[INGEST] device_id={device_id} since_seq={since_seq} events={len(events)}")
+
+        # Each event should have an event_id
+        for e in events:
+            print("  Event:", e)
+
+        # Simulate ack response
+        ack_seq = max([e.get("seq", 0) for e in events], default=since_seq or 0)
+        return jsonify({"ack_seq": ack_seq})
+
+    except Exception as e:
+        print("Error in /ingest:", e)
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/health")
+def health():
+    try:
+        from catalog_api import load_catalog
+        cat = load_catalog()
+        return {
+            "status": "ok",
+            "catalog": {
+                "cities": len(cat.get("cities", [])),
+                "todas": len(cat.get("todas", [])),
+                "etrikes": len(cat.get("etrikes", [])),
+            }
+        }, 200
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
 
 @app.route('/pi-heartbeat', methods=['POST'])
 def pi_heartbeat():

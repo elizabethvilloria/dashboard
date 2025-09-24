@@ -2194,7 +2194,9 @@
                 if (data.success) {
                     // Clear and reload TODAs for the new city
                     clearTodaDropdown();
-                    loadTodas();
+                    if (typeof loadTodasFromCatalog === 'function') {
+                        loadTodasFromCatalog(cityName);
+                    }
                     
                     // Clear e-trike dropdown
                     const etrikeSelect = document.getElementById('etrike-select');
@@ -2253,27 +2255,15 @@
 
         // Initialize filter dropdowns and load available TODAs on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadTodas();
+            // TODAs will be loaded by the catalog JavaScript
             setupFilterEventListeners();
             loadPiStatus(); // Load Raspberry Pi device status for monitoring
         });
 
-        function loadTodas() {
-            fetch('/get-todas')
-                .then(response => response.json())
-                .then(data => {
-                    const todaSelect = document.getElementById('toda-select');
-                    data.todas.forEach(toda => {
-                        const option = document.createElement('option');
-                        option.value = toda.id;
-                        option.textContent = `${toda.name} - ${toda.full_name}`;
-                        todaSelect.appendChild(option);
-                    });
-                    
-                    // Restore filter preferences after TODAs are loaded
-                    restoreFilterPreferences();
-                });
-        }
+        // OLD loadTodas() function - replaced by catalog system
+        // function loadTodas() {
+        //     fetch('/get-todas') - OLD ENDPOINT, NOW USING /catalog/todas
+        // }
 
         function setupFilterEventListeners() {
             const todaSelect = document.getElementById('toda-select');

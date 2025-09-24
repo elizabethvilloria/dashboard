@@ -21,6 +21,9 @@ import time
 
 # Database configuration
 EVENTS_DB_PATH = os.getenv("EVENTS_DB_PATH", "events.db")
+
+# Ingest security configuration
+INGEST_KEY = os.getenv("INGEST_KEY", "")
 try:
     from reportlab.lib.pagesizes import letter, A4
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -969,6 +972,10 @@ def data():
 
 @app.route("/ingest", methods=["POST"])
 def ingest():
+    # 🔒 Simple check for a secret key
+    if not INGEST_KEY or request.headers.get("X-Ingest-Key") != INGEST_KEY:
+        return jsonify({"error": "unauthorized"}), 401
+
     try:
         payload = request.get_json(force=True)  # Parse JSON body
         device_id = payload.get("device_id")

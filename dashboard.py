@@ -983,13 +983,34 @@ def ingest():
         since_seq = payload.get("since_seq")
         events = payload.get("events", [])
 
-        # For now: just log it
+        # Log the ingest
         print(f"[INGEST] device_id={device_id} since_seq={since_seq} events={len(events)}")
         if VERBOSE_INGEST:
             for e in events:
                 print("  Event:", e)
 
-        # Simulate ack response
+        # Store events in database
+        try:
+            conn = sqlite3.connect(EVENTS_DB_PATH)
+            for event in events:
+                event_id = event.get("event_id")
+                seq = event.get("seq", 0)
+                event_time_utc = time.time()  # Current timestamp
+                payload_json = json.dumps(event)
+                
+                # Insert with IGNORE to handle duplicates
+                conn.execute("""
+                    INSERT OR IGNORE INTO events (device_id, seq, event_id, event_time_utc, payload_json)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (device_id, seq, event_id, event_time_utc, payload_json))
+            
+            conn.commit()
+            conn.close()
+            print(f"[INGEST] Stored {len(events)} events in database")
+        except Exception as db_error:
+            print(f"[INGEST] Database error: {db_error}")
+
+        # Return ack response
         ack_seq = max([e.get("seq", 0) for e in events], default=since_seq or 0)
         return jsonify({"ack_seq": ack_seq})
 

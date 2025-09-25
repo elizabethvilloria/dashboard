@@ -2160,11 +2160,11 @@ if __name__ == '__main__':
                 context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)  # Use modern TLS server protocol
                 context.load_cert_chain(cert_path, key_path)
                 print("🚀 Dashboard with WebSocket running on https://etrikedashboard.com:5001/")
-                socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context, use_reloader=False, threaded=True)
+                socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context, use_reloader=False)
             else:
                 # Fall back to HTTP
                 print("🚀 Dashboard with WebSocket running on http://localhost:5001/")
-                socketio.run(app, debug=False, host='0.0.0.0', port=5001)
+                socketio.run(app, debug=False, host='0.0.0.0', port=5001, use_reloader=False)
         else:
             # Run without SocketIO
             print("🚀 Dashboard running on http://localhost:5001/ (WebSocket disabled)")
@@ -2173,6 +2173,6 @@ if __name__ == '__main__':
         print(f"⚠️  SSL Error: {e}")
         print("🔄 Falling back to HTTP mode...")
         if SOCKETIO_AVAILABLE:
-            socketio.run(app, debug=False, host='0.0.0.0', port=5001)
+            socketio.run(app, debug=False, host='0.0.0.0', port=5001, use_reloader=False)
         else:
-            app.run(debug=False, host='0.0.0.0', port=5001) 
+            app.run(debug=False, host='0.0.0.0', port=5001, use_reloader=False, threaded=True) 

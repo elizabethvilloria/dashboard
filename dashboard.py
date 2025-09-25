@@ -379,6 +379,10 @@ def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days
     params = (start, toda_id, toda_id, etrike_id, etrike_id, pi_id, pi_id)
 
     try:
+        # First, let's see how many total recent events we have
+        total_recent = conn.execute("SELECT COUNT(*) FROM events WHERE event_time_utc >= ?", (start,)).fetchone()[0]
+        print(f"[DEBUG] Ingest filter: Total recent events: {total_recent}")
+        
         rows = conn.execute(base_sql, params).fetchall()
         print(f"[DEBUG] Ingest filter: Found {len(rows)} matching rows for toda_id={toda_id}, etrike_id={etrike_id}")
     except Exception as e:

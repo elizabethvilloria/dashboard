@@ -345,7 +345,7 @@ def _recent_events_exist(conn, since_epoch):
     except:
         return False
 
-def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days=7):
+def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days=30):
     """
     Returns entries shaped like your log records by reading events.db.
     Falls back (returns None) if DB missing or no usable rows.
@@ -364,16 +364,15 @@ def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days
         return None
 
     # Try to select only rows whose payload_json has the fields we need.
-    # We accept rows where payload_json has 'entry_timestamp' (to match your current log shape).
-    # If your ingested events aren't in this shape yet, we'll fallback by returning None.
+    # The data is nested: payload_json contains another payload_json with the actual passenger data
     base_sql = """
       SELECT payload_json
       FROM events
       WHERE event_time_utc >= ?
-        AND (? IS NULL OR json_extract(payload_json, '$.toda_id') = ?)
-        AND (? IS NULL OR json_extract(payload_json, '$.etrike_id') = ?)
+        AND (? IS NULL OR json_extract(payload_json, '$.payload_json') LIKE '%"toda_id":"' || ? || '"%')
+        AND (? IS NULL OR json_extract(payload_json, '$.payload_json') LIKE '%"etrike_id":"' || ? || '"%')
         AND (? IS NULL OR device_id = ?)
-        AND json_extract(payload_json, '$.entry_timestamp') IS NOT NULL
+        AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
       ORDER BY seq ASC
     """
     params = (start, toda_id, toda_id, etrike_id, etrike_id, pi_id, pi_id)
@@ -416,9 +415,16 @@ def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days
             payload = r["payload_json"]
             if isinstance(payload, str):
                 payload = json.loads(payload)
-            # Ensure it at least looks like your log entry
-            if "toda_id" in payload and "etrike_id" in payload and "entry_timestamp" in payload:
-                entries.append(payload)
+            
+            # Extract the nested passenger data
+            if "payload_json" in payload:
+                nested_payload = payload["payload_json"]
+                if isinstance(nested_payload, str):
+                    nested_payload = json.loads(nested_payload)
+                
+                # Ensure it at least looks like your log entry
+                if "toda_id" in nested_payload and "etrike_id" in nested_payload and "entry_timestamp" in nested_payload:
+                    entries.append(nested_payload)
         except Exception:
             continue
 

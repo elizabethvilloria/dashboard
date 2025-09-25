@@ -383,6 +383,25 @@ def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days
         total_recent = conn.execute("SELECT COUNT(*) FROM events WHERE event_time_utc >= ?", (start,)).fetchone()[0]
         print(f"[DEBUG] Ingest filter: Total recent events: {total_recent}")
         
+        # Check how many have the required fields
+        valid_structure = conn.execute("""
+            SELECT COUNT(*) FROM events 
+            WHERE event_time_utc >= ? 
+            AND json_extract(payload_json, '$.entry_timestamp') IS NOT NULL
+            AND json_extract(payload_json, '$.toda_id') IS NOT NULL
+            AND json_extract(payload_json, '$.etrike_id') IS NOT NULL
+        """, (start,)).fetchone()[0]
+        print(f"[DEBUG] Ingest filter: Events with valid passenger structure: {valid_structure}")
+        
+        # Check specifically for PI003 events
+        pi003_events = conn.execute("""
+            SELECT COUNT(*) FROM events 
+            WHERE device_id = 'PI003' 
+            AND event_time_utc >= ?
+            AND json_extract(payload_json, '$.entry_timestamp') IS NOT NULL
+        """, (start,)).fetchone()[0]
+        print(f"[DEBUG] Ingest filter: PI003 events with entry_timestamp: {pi003_events}")
+        
         rows = conn.execute(base_sql, params).fetchall()
         print(f"[DEBUG] Ingest filter: Found {len(rows)} matching rows for toda_id={toda_id}, etrike_id={etrike_id}")
     except Exception as e:

@@ -2157,10 +2157,10 @@ if __name__ == '__main__':
         if SOCKETIO_AVAILABLE:
             # Try HTTPS first
             if os.path.exists(cert_path) and os.path.exists(key_path):
-                context = ssl.SSLContext(ssl.PROTOCOL_TLS)  # Use TLS instead of TLSv1_2
+                context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)  # Use modern TLS server protocol
                 context.load_cert_chain(cert_path, key_path)
                 print("🚀 Dashboard with WebSocket running on https://etrikedashboard.com:5001/")
-                socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context)
+                socketio.run(app, debug=False, host='0.0.0.0', port=443, ssl_context=context, use_reloader=False, threaded=True)
             else:
                 # Fall back to HTTP
                 print("🚀 Dashboard with WebSocket running on http://localhost:5001/")

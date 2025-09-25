@@ -352,6 +352,7 @@ def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days
     """
     conn = _events_db_conn()
     if not conn or not _events_table_exists(conn):
+        print(f"[DEBUG] Ingest filter: DB connection failed or table missing")
         return None
 
     now = time.time()
@@ -359,6 +360,7 @@ def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days
 
     # Quick sanity: do we even have recent rows?
     if not _recent_events_exist(conn, start):
+        print(f"[DEBUG] Ingest filter: No recent events since {start} (now={now})")
         return None
 
     # Try to select only rows whose payload_json has the fields we need.
@@ -378,8 +380,10 @@ def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days
 
     try:
         rows = conn.execute(base_sql, params).fetchall()
-    except Exception:
+        print(f"[DEBUG] Ingest filter: Found {len(rows)} matching rows for toda_id={toda_id}, etrike_id={etrike_id}")
+    except Exception as e:
         # If JSON1 not available or payloads not shaped yet, bail to logs
+        print(f"[DEBUG] Ingest filter: SQL query failed: {e}")
         conn.close()
         return None
 
@@ -397,6 +401,7 @@ def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days
 
     conn.close()
     # If nothing usable, fallback
+    print(f"[DEBUG] Ingest filter: Returning {len(entries)} valid entries")
     return entries if entries else None
 
 def login_required(f):

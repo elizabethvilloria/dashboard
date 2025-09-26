@@ -1690,8 +1690,13 @@ def historical_data_filtered():
         return jsonify({"error": "Date parameter required"}), 400
     
     try:
-        # Parse the selected date
-        selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+        # Parse the selected date based on period
+        if period == 'monthly':
+            # Monthly format: "2025-09"
+            selected_date = datetime.datetime.strptime(date_str, '%Y-%m').date()
+        else:
+            # Daily/Weekly format: "2025-09-26"
+            selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
         
         # Initialize result structure
         result = {"daily": [], "weekly": [], "monthly": []}

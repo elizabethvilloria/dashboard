@@ -2162,14 +2162,27 @@ def export_pdf():
             return jsonify({'error': 'Missing required parameters'}), 400
         
         # Get the data based on period and date
+        passengers = []
+        source = 'logs'
+        
         if period == 'daily':
             target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
-            log_file = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month), f"{target_date.day}.json")
-            if os.path.exists(log_file):
-                with open(log_file, 'r') as f:
-                    passengers = json.load(f)
-            else:
-                passengers = []
+            
+            # Try ingest database first if enabled
+            if USE_INGEST:
+                ingest_passengers = get_passenger_details_from_ingest(date_str, period)
+                if ingest_passengers is not None:
+                    passengers = ingest_passengers
+                    source = 'ingest'
+            
+            # Fallback to log files if ingest not available or no data
+            if not passengers:
+                log_file = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month), f"{target_date.day}.json")
+                if os.path.exists(log_file):
+                    with open(log_file, 'r') as f:
+                        passengers = json.load(f)
+                source = 'logs'
+                
             title = f"Daily Report - {target_date.strftime('%B %d, %Y')}"
             
         elif period == 'weekly':
@@ -2188,19 +2201,31 @@ def export_pdf():
                 first_monday = first_day_of_year + datetime.timedelta(days=days_to_first_monday)
                 # Calculate start of the requested week
                 start_of_week = first_monday + datetime.timedelta(weeks=week-1)
+                converted_date_str = start_of_week.strftime('%Y-%m-%d')
             else:
                 # Regular date format
                 target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
                 start_of_week = target_date - datetime.timedelta(days=target_date.weekday())
+                converted_date_str = date_str
             
-            passengers = []
-            for i in range(7):
-                day = start_of_week + datetime.timedelta(days=i)
-                log_file = os.path.join(LOG_DIR, str(day.year), str(day.month), f"{day.day}.json")
-                if os.path.exists(log_file):
-                    with open(log_file, 'r') as f:
-                        day_passengers = json.load(f)
-                        passengers.extend(day_passengers)
+            # Try ingest database first if enabled
+            if USE_INGEST:
+                ingest_passengers = get_passenger_details_from_ingest(converted_date_str, period)
+                if ingest_passengers is not None:
+                    passengers = ingest_passengers
+                    source = 'ingest'
+            
+            # Fallback to log files if ingest not available or no data
+            if not passengers:
+                passengers = []
+                for i in range(7):
+                    day = start_of_week + datetime.timedelta(days=i)
+                    log_file = os.path.join(LOG_DIR, str(day.year), str(day.month), f"{day.day}.json")
+                    if os.path.exists(log_file):
+                        with open(log_file, 'r') as f:
+                            day_passengers = json.load(f)
+                            passengers.extend(day_passengers)
+                source = 'logs'
             
             # Calculate end of week (6 days after start)
             end_of_week = start_of_week + datetime.timedelta(days=6)
@@ -2208,15 +2233,26 @@ def export_pdf():
             
         elif period == 'monthly':
             target_date = datetime.datetime.strptime(date_str, '%Y-%m')
-            month_dir = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month))
-            passengers = []
-            if os.path.exists(month_dir):
-                for day_file in os.listdir(month_dir):
-                    if day_file.endswith('.json'):
-                        day_path = os.path.join(month_dir, day_file)
-                        with open(day_path, 'r') as f:
-                            day_passengers = json.load(f)
-                            passengers.extend(day_passengers)
+            
+            # Try ingest database first if enabled
+            if USE_INGEST:
+                ingest_passengers = get_passenger_details_from_ingest(date_str, period)
+                if ingest_passengers is not None:
+                    passengers = ingest_passengers
+                    source = 'ingest'
+            
+            # Fallback to log files if ingest not available or no data
+            if not passengers:
+                month_dir = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month))
+                passengers = []
+                if os.path.exists(month_dir):
+                    for day_file in os.listdir(month_dir):
+                        if day_file.endswith('.json'):
+                            day_path = os.path.join(month_dir, day_file)
+                            with open(day_path, 'r') as f:
+                                day_passengers = json.load(f)
+                                passengers.extend(day_passengers)
+                source = 'logs'
             
             # Calculate first and last day of month
             first_day_of_month = target_date.replace(day=1)

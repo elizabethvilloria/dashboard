@@ -1199,6 +1199,64 @@ def health():
         return {"status": "error", "message": str(e)}, 500
 
 # --- Ingest health: quick visibility into DB status ---
+@app.route("/ingest/debug")
+def ingest_debug():
+    """Debug endpoint to check raw PI004 data"""
+    try:
+        conn = sqlite3.connect(EVENTS_DB_PATH)
+        cur = conn.cursor()
+        
+        # Get recent PI004 events
+        cur.execute("""
+            SELECT seq, event_time_utc, payload_json 
+            FROM events 
+            WHERE device_id = 'PI004' 
+            ORDER BY seq DESC 
+            LIMIT 10
+        """)
+        
+        events = []
+        for seq, event_time, payload_str in cur.fetchall():
+            try:
+                payload = json.loads(payload_str)
+                # Check if nested payload exists
+                nested = None
+                if "payload_json" in payload:
+                    nested_str = payload["payload_json"]
+                    if isinstance(nested_str, str):
+                        nested = json.loads(nested_str)
+                    else:
+                        nested = nested_str
+                
+                events.append({
+                    "seq": seq,
+                    "event_time": event_time,
+                    "has_nested": nested is not None,
+                    "toda_id": nested.get("toda_id") if nested else None,
+                    "etrike_id": nested.get("etrike_id") if nested else None,
+                    "entry_timestamp": nested.get("entry_timestamp") if nested else None,
+                    "exit_timestamp": nested.get("exit_timestamp") if nested else None,
+                    "dwell_time_minutes": nested.get("dwell_time_minutes") if nested else None,
+                    "person_id": nested.get("person_id") if nested else None
+                })
+            except Exception as e:
+                events.append({
+                    "seq": seq,
+                    "event_time": event_time,
+                    "error": str(e)
+                })
+        
+        conn.close()
+        
+        return {
+            "device_id": "PI004",
+            "recent_events": events,
+            "count": len(events)
+        }, 200
+        
+    except Exception as e:
+        return {"error": str(e)}, 500
+
 @app.route("/ingest/health")
 def ingest_health():
     try:

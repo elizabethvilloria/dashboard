@@ -1589,6 +1589,96 @@ def historical_data():
     with open(HISTORICAL_FILE, 'r') as f:
         return jsonify(json.load(f))
 
+def get_historical_data_filtered_from_ingest(selected_date, period):
+    """Get historical filtered data from ingest database"""
+    try:
+        conn = _events_db_conn()
+        if not conn or not _events_table_exists(conn):
+            return None
+        
+        result = {"daily": [], "weekly": [], "monthly": []}
+        
+        if period == 'daily':
+            # Get data for the specific day
+            start_of_day = datetime.datetime.combine(selected_date, datetime.time.min)
+            end_of_day = datetime.datetime.combine(selected_date, datetime.time.max)
+            start_epoch = start_of_day.timestamp()
+            end_epoch = end_of_day.timestamp()
+            
+            daily_sql = """
+              SELECT COUNT(*) as total
+              FROM events
+              WHERE event_time_utc >= ? AND event_time_utc <= ?
+                AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+            """
+            
+            row = conn.execute(daily_sql, (start_epoch, end_epoch)).fetchone()
+            daily_total = row["total"] if row else 0
+            
+            if daily_total > 0:
+                result["daily"].append({
+                    "date": selected_date.strftime("%Y-%m-%d"),
+                    "total": daily_total
+                })
+                
+        elif period == 'weekly':
+            # Get data for the week containing the selected date
+            start_of_week = selected_date - datetime.timedelta(days=selected_date.weekday())
+            end_of_week = start_of_week + datetime.timedelta(days=6)
+            start_epoch = datetime.datetime.combine(start_of_week, datetime.time.min).timestamp()
+            end_epoch = datetime.datetime.combine(end_of_week, datetime.time.max).timestamp()
+            
+            weekly_sql = """
+              SELECT COUNT(*) as total
+              FROM events
+              WHERE event_time_utc >= ? AND event_time_utc <= ?
+                AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+            """
+            
+            row = conn.execute(weekly_sql, (start_epoch, end_epoch)).fetchone()
+            weekly_total = row["total"] if row else 0
+            
+            if weekly_total > 0:
+                result["weekly"].append({
+                    "start_date": start_of_week.strftime("%Y-%m-%d"),
+                    "end_date": end_of_week.strftime("%Y-%m-%d"),
+                    "total": weekly_total
+                })
+                
+        elif period == 'monthly':
+            # Get data for the month containing the selected date
+            start_of_month = selected_date.replace(day=1)
+            if selected_date.month == 12:
+                end_of_month = start_of_month.replace(year=selected_date.year + 1, month=1) - datetime.timedelta(days=1)
+            else:
+                end_of_month = start_of_month.replace(month=selected_date.month + 1) - datetime.timedelta(days=1)
+            
+            start_epoch = datetime.datetime.combine(start_of_month, datetime.time.min).timestamp()
+            end_epoch = datetime.datetime.combine(end_of_month, datetime.time.max).timestamp()
+            
+            monthly_sql = """
+              SELECT COUNT(*) as total
+              FROM events
+              WHERE event_time_utc >= ? AND event_time_utc <= ?
+                AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+            """
+            
+            row = conn.execute(monthly_sql, (start_epoch, end_epoch)).fetchone()
+            monthly_total = row["total"] if row else 0
+            
+            if monthly_total > 0:
+                result["monthly"].append({
+                    "month": start_of_month.strftime("%Y-%m"),
+                    "total": monthly_total
+                })
+        
+        conn.close()
+        return result
+        
+    except Exception as e:
+        print(f"Error getting historical filtered data from ingest: {e}")
+        return None
+
 @app.route('/historical-data-filtered')
 @login_required
 def historical_data_filtered():
@@ -1605,22 +1695,33 @@ def historical_data_filtered():
         
         # Initialize result structure
         result = {"daily": [], "weekly": [], "monthly": []}
+        source = 'logs'
         
-        if period == 'daily':
-            # Get data for the specific day
-            log_path = os.path.join(LOG_DIR, str(selected_date.year), str(selected_date.month), f"{selected_date.day}.json")
-            if os.path.exists(log_path):
-                try:
-                    with open(log_path, 'r') as f:
-                        log_data = json.load(f)
-                        daily_total = len(log_data)
-                        if daily_total > 0:
-                            result["daily"].append({
-                                "date": selected_date.strftime("%Y-%m-%d"),
-                                "total": daily_total
-                            })
-                except (json.JSONDecodeError, FileNotFoundError):
-                    pass
+        # Try ingest database first if enabled
+        if USE_INGEST:
+            ingest_result = get_historical_data_filtered_from_ingest(selected_date, period)
+            if ingest_result is not None:
+                result = ingest_result
+                source = 'ingest'
+        
+        # Fallback to log files if ingest not available or no data
+        if not result[period]:  # If no data found in ingest, try logs
+            source = 'logs'
+            if period == 'daily':
+                # Get data for the specific day
+                log_path = os.path.join(LOG_DIR, str(selected_date.year), str(selected_date.month), f"{selected_date.day}.json")
+                if os.path.exists(log_path):
+                    try:
+                        with open(log_path, 'r') as f:
+                            log_data = json.load(f)
+                            daily_total = len(log_data)
+                            if daily_total > 0:
+                                result["daily"].append({
+                                    "date": selected_date.strftime("%Y-%m-%d"),
+                                    "total": daily_total
+                                })
+                    except (json.JSONDecodeError, FileNotFoundError):
+                        pass
                     
         elif period == 'weekly':
             # Get data for the week containing the selected date
@@ -1667,7 +1768,10 @@ def historical_data_filtered():
                     "total": month_total
                 })
         
-        return jsonify(result)
+        return jsonify({
+            **result,
+            'source': source
+        })
         
     except ValueError:
         return jsonify({"error": "Invalid date format"}), 400

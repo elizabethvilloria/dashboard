@@ -1778,6 +1778,97 @@ def historical_data_filtered():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+def get_passenger_details_from_ingest(date, period):
+    """Get individual passenger records from ingest database"""
+    try:
+        conn = _events_db_conn()
+        if not conn or not _events_table_exists(conn):
+            return None
+        
+        passengers = []
+        
+        if period == 'daily':
+            target_date = datetime.datetime.strptime(date, '%Y-%m-%d')
+            start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_of_day = target_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+            start_epoch = start_of_day.timestamp()
+            end_epoch = end_of_day.timestamp()
+            
+            sql = """
+              SELECT payload_json
+              FROM events
+              WHERE event_time_utc >= ? AND event_time_utc <= ?
+                AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+              ORDER BY seq ASC
+            """
+            
+            rows = conn.execute(sql, (start_epoch, end_epoch)).fetchall()
+            
+        elif period == 'weekly':
+            target_date = datetime.datetime.strptime(date, '%Y-%m-%d')
+            start_of_week = target_date - datetime.timedelta(days=target_date.weekday())
+            end_of_week = start_of_week + datetime.timedelta(days=6)
+            start_epoch = datetime.datetime.combine(start_of_week, datetime.time.min).timestamp()
+            end_epoch = datetime.datetime.combine(end_of_week, datetime.time.max).timestamp()
+            
+            sql = """
+              SELECT payload_json
+              FROM events
+              WHERE event_time_utc >= ? AND event_time_utc <= ?
+                AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+              ORDER BY seq ASC
+            """
+            
+            rows = conn.execute(sql, (start_epoch, end_epoch)).fetchall()
+            
+        elif period == 'monthly':
+            target_date = datetime.datetime.strptime(date, '%Y-%m')
+            start_of_month = target_date.replace(day=1)
+            if target_date.month == 12:
+                end_of_month = start_of_month.replace(year=target_date.year + 1, month=1) - datetime.timedelta(days=1)
+            else:
+                end_of_month = start_of_month.replace(month=target_date.month + 1) - datetime.timedelta(days=1)
+            
+            start_epoch = datetime.datetime.combine(start_of_month, datetime.time.min).timestamp()
+            end_epoch = datetime.datetime.combine(end_of_month, datetime.time.max).timestamp()
+            
+            sql = """
+              SELECT payload_json
+              FROM events
+              WHERE event_time_utc >= ? AND event_time_utc <= ?
+                AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+              ORDER BY seq ASC
+            """
+            
+            rows = conn.execute(sql, (start_epoch, end_epoch)).fetchall()
+        else:
+            rows = []
+        
+        # Extract passenger data from nested payload structure
+        for row in rows:
+            try:
+                payload = row["payload_json"]
+                if isinstance(payload, str):
+                    payload = json.loads(payload)
+                
+                # Handle nested payload structure
+                if "payload_json" in payload:
+                    nested_payload = payload["payload_json"]
+                    if isinstance(nested_payload, str):
+                        nested_payload = json.loads(nested_payload)
+                    
+                    if "entry_timestamp" in nested_payload:
+                        passengers.append(nested_payload)
+            except Exception as e:
+                continue
+        
+        conn.close()
+        return passengers
+        
+    except Exception as e:
+        print(f"Error getting passenger details from ingest: {e}")
+        return None
+
 @app.route('/passenger-details')
 @login_required
 def passenger_details():
@@ -1789,49 +1880,62 @@ def passenger_details():
         return jsonify({'error': 'Date parameter required'}), 400
     
     try:
-        # Parse the date
-        if period == 'daily':
-            target_date = datetime.datetime.strptime(date, '%Y-%m-%d')
-            log_file = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month), f"{target_date.day}.json")
-            
-            if os.path.exists(log_file):
-                with open(log_file, 'r') as f:
-                    passengers = json.load(f)
-                    return jsonify({'passengers': passengers})
-            else:
-                return jsonify({'passengers': []})
+        passengers = []
+        source = 'logs'
+        
+        # Try ingest database first if enabled
+        if USE_INGEST:
+            ingest_passengers = get_passenger_details_from_ingest(date, period)
+            if ingest_passengers is not None:
+                passengers = ingest_passengers
+                source = 'ingest'
+        
+        # Fallback to log files if ingest not available or no data
+        if not passengers:
+            source = 'logs'
+            # Parse the date
+            if period == 'daily':
+                target_date = datetime.datetime.strptime(date, '%Y-%m-%d')
+                log_file = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month), f"{target_date.day}.json")
                 
-        elif period == 'weekly':
-            # For weekly, we need to get all days in that week
-            target_date = datetime.datetime.strptime(date, '%Y-%m-%d')
-            start_of_week = target_date - datetime.timedelta(days=target_date.weekday())
-            all_passengers = []
-            
-            for i in range(7):
-                day = start_of_week + datetime.timedelta(days=i)
-                log_file = os.path.join(LOG_DIR, str(day.year), str(day.month), f"{day.day}.json")
                 if os.path.exists(log_file):
                     with open(log_file, 'r') as f:
-                        day_passengers = json.load(f)
-                        all_passengers.extend(day_passengers)
-            
-            return jsonify({'passengers': all_passengers})
-            
-        elif period == 'monthly':
-            # For monthly, get all days in that month
-            target_date = datetime.datetime.strptime(date, '%Y-%m')
-            month_dir = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month))
-            all_passengers = []
-            
-            if os.path.exists(month_dir):
-                for day_file in os.listdir(month_dir):
-                    if day_file.endswith('.json'):
-                        day_path = os.path.join(month_dir, day_file)
-                        with open(day_path, 'r') as f:
+                        passengers = json.load(f)
+                else:
+                    passengers = []
+                    
+            elif period == 'weekly':
+                # For weekly, we need to get all days in that week
+                target_date = datetime.datetime.strptime(date, '%Y-%m-%d')
+                start_of_week = target_date - datetime.timedelta(days=target_date.weekday())
+                passengers = []
+                
+                for i in range(7):
+                    day = start_of_week + datetime.timedelta(days=i)
+                    log_file = os.path.join(LOG_DIR, str(day.year), str(day.month), f"{day.day}.json")
+                    if os.path.exists(log_file):
+                        with open(log_file, 'r') as f:
                             day_passengers = json.load(f)
-                            all_passengers.extend(day_passengers)
-            
-            return jsonify({'passengers': all_passengers})
+                            passengers.extend(day_passengers)
+                            
+            elif period == 'monthly':
+                # For monthly, get all days in that month
+                target_date = datetime.datetime.strptime(date, '%Y-%m')
+                month_dir = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month))
+                passengers = []
+                
+                if os.path.exists(month_dir):
+                    for day_file in os.listdir(month_dir):
+                        if day_file.endswith('.json'):
+                            day_path = os.path.join(month_dir, day_file)
+                            with open(day_path, 'r') as f:
+                                day_passengers = json.load(f)
+                                passengers.extend(day_passengers)
+        
+        return jsonify({
+            'passengers': passengers,
+            'source': source
+        })
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500

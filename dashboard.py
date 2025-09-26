@@ -225,8 +225,133 @@ def update_historical_summary():
         json.dump(summary_data, f, indent=4)
 
 
+def get_passenger_counts_from_ingest():
+    """Get passenger counts from ingest database for different time periods"""
+    try:
+        conn = _events_db_conn()
+        if not conn or not _events_table_exists(conn):
+            return None
+        
+        now = datetime.datetime.now()
+        counts = defaultdict(int)
+        
+        # Daily count (today) - count unique passengers only
+        start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        start_epoch = start_of_day.timestamp()
+        now_epoch = now.timestamp()
+        
+        daily_sql = """
+          SELECT DISTINCT json_extract(payload_json, '$.payload_json') as nested_payload
+          FROM events
+          WHERE event_time_utc >= ? AND event_time_utc <= ?
+            AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+            AND json_extract(payload_json, '$.payload_json') LIKE '%"exit_timestamp"%'
+        """
+        
+        daily_rows = conn.execute(daily_sql, (start_epoch, now_epoch)).fetchall()
+        daily_passengers = set()
+        for row in daily_rows:
+            try:
+                nested_payload = row["nested_payload"]
+                if isinstance(nested_payload, str):
+                    nested_payload = json.loads(nested_payload)
+                if "person_id" in nested_payload and nested_payload.get('exit_timestamp') is not None:
+                    daily_passengers.add(nested_payload['person_id'])
+            except:
+                continue
+        counts['daily'] = len(daily_passengers)
+        
+        # Hourly count (rolling) - count unique passengers only
+        hour_ago_epoch = (now - datetime.timedelta(hours=1)).timestamp()
+        
+        hourly_sql = """
+          SELECT DISTINCT json_extract(payload_json, '$.payload_json') as nested_payload
+          FROM events
+          WHERE event_time_utc >= ? AND event_time_utc <= ?
+            AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+            AND json_extract(payload_json, '$.payload_json') LIKE '%"exit_timestamp"%'
+        """
+        
+        hourly_rows = conn.execute(hourly_sql, (hour_ago_epoch, now_epoch)).fetchall()
+        hourly_passengers = set()
+        for row in hourly_rows:
+            try:
+                nested_payload = row["nested_payload"]
+                if isinstance(nested_payload, str):
+                    nested_payload = json.loads(nested_payload)
+                if "person_id" in nested_payload and nested_payload.get('exit_timestamp') is not None:
+                    hourly_passengers.add(nested_payload['person_id'])
+            except:
+                continue
+        counts['hourly'] = len(hourly_passengers)
+        
+        # Weekly count - count unique passengers only
+        start_of_week = now - datetime.timedelta(days=now.weekday())
+        start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+        week_start_epoch = start_of_week.timestamp()
+        
+        weekly_sql = """
+          SELECT DISTINCT json_extract(payload_json, '$.payload_json') as nested_payload
+          FROM events
+          WHERE event_time_utc >= ? AND event_time_utc <= ?
+            AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+            AND json_extract(payload_json, '$.payload_json') LIKE '%"exit_timestamp"%'
+        """
+        
+        weekly_rows = conn.execute(weekly_sql, (week_start_epoch, now_epoch)).fetchall()
+        weekly_passengers = set()
+        for row in weekly_rows:
+            try:
+                nested_payload = row["nested_payload"]
+                if isinstance(nested_payload, str):
+                    nested_payload = json.loads(nested_payload)
+                if "person_id" in nested_payload and nested_payload.get('exit_timestamp') is not None:
+                    weekly_passengers.add(nested_payload['person_id'])
+            except:
+                continue
+        counts['weekly'] = len(weekly_passengers)
+        
+        # Monthly count - count unique passengers only
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        month_start_epoch = start_of_month.timestamp()
+        
+        monthly_sql = """
+          SELECT DISTINCT json_extract(payload_json, '$.payload_json') as nested_payload
+          FROM events
+          WHERE event_time_utc >= ? AND event_time_utc <= ?
+            AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+            AND json_extract(payload_json, '$.payload_json') LIKE '%"exit_timestamp"%'
+        """
+        
+        monthly_rows = conn.execute(monthly_sql, (month_start_epoch, now_epoch)).fetchall()
+        monthly_passengers = set()
+        for row in monthly_rows:
+            try:
+                nested_payload = row["nested_payload"]
+                if isinstance(nested_payload, str):
+                    nested_payload = json.loads(nested_payload)
+                if "person_id" in nested_payload and nested_payload.get('exit_timestamp') is not None:
+                    monthly_passengers.add(nested_payload['person_id'])
+            except:
+                continue
+        counts['monthly'] = len(monthly_passengers)
+        
+        conn.close()
+        return dict(counts)
+        
+    except Exception as e:
+        print(f"Error getting passenger counts from ingest: {e}")
+        return None
+
 def get_passenger_counts():
     """Calculates passenger counts for different time periods."""
+    # Try ingest database first if enabled
+    if USE_INGEST:
+        ingest_counts = get_passenger_counts_from_ingest()
+        if ingest_counts is not None:
+            return ingest_counts
+    
+    # Fallback to log files
     now = get_latest_log_time()
     counts = defaultdict(int) # Simple defaultdict for totals
 
@@ -1317,6 +1442,75 @@ def population_data():
         'hourly_data': interval_data
     })
 
+def get_historical_population_data_from_ingest(target_date):
+    """Get historical population data from ingest database for a specific date"""
+    try:
+        conn = _events_db_conn()
+        if not conn or not _events_table_exists(conn):
+            return None
+        
+        # Calculate start and end timestamps for the target date
+        start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = target_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+        start_epoch = start_of_day.timestamp()
+        end_epoch = end_of_day.timestamp()
+        
+        # Initialize 48 intervals (every 30 minutes) with 0 counts
+        interval_data = []
+        for hour in range(24):
+            for minute in [0, 30]:
+                interval_data.append({
+                    'hour': f"{hour:02d}:{minute:02d}",
+                    'count': 0,
+                    'timestamp': hour * 60 + minute
+                })
+        
+        # Query events for the target date
+        sql = """
+          SELECT payload_json
+          FROM events
+          WHERE event_time_utc >= ? AND event_time_utc <= ?
+            AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+          ORDER BY seq ASC
+        """
+        
+        rows = conn.execute(sql, (start_epoch, end_epoch)).fetchall()
+        
+        for row in rows:
+            try:
+                payload = row["payload_json"]
+                if isinstance(payload, str):
+                    payload = json.loads(payload)
+                
+                # Handle nested payload structure
+                if "payload_json" in payload:
+                    nested_payload = payload["payload_json"]
+                    if isinstance(nested_payload, str):
+                        nested_payload = json.loads(nested_payload)
+                    
+                    if "entry_timestamp" in nested_payload:
+                        # Convert timestamp to local time
+                        import pytz
+                        utc_time = datetime.datetime.fromtimestamp(nested_payload['entry_timestamp'], tz=pytz.UTC)
+                        entry_time = utc_time.astimezone(pytz.timezone('Europe/Madrid'))
+                        hour = entry_time.hour
+                        minute = entry_time.minute
+                        
+                        # Determine which 30-minute interval
+                        interval_index = hour * 2 + (0 if minute < 30 else 1)
+                        
+                        if 0 <= interval_index < len(interval_data):
+                            interval_data[interval_index]['count'] += 1
+            except Exception as e:
+                continue
+        
+        conn.close()
+        return interval_data
+        
+    except Exception as e:
+        print(f"Error getting historical population data from ingest: {e}")
+        return None
+
 @app.route('/historical-population-data')
 @login_required
 def historical_population_data():
@@ -1327,46 +1521,59 @@ def historical_population_data():
     
     try:
         target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
-        interval_data = []
+        interval_data = None
+        source = 'logs'
         
-        # Initialize 48 intervals (every 30 minutes) with 0 counts
-        for hour in range(24):
-            for minute in [0, 30]:
-                interval_data.append({
-                    'hour': f"{hour:02d}:{minute:02d}",
-                    'count': 0,
-                    'timestamp': hour * 60 + minute
-                })
+        # Try ingest database first if enabled
+        if USE_INGEST:
+            interval_data = get_historical_population_data_from_ingest(target_date)
+            if interval_data is not None:
+                source = 'ingest'
         
-        # Get the specific date's log data
-        log_path = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month), f"{target_date.day}.json")
-        if os.path.exists(log_path):
-            try:
-                with open(log_path, 'r') as f:
-                    log_data = json.load(f)
-                    
-                    # Count passengers by 30-minute intervals
-                    for entry in log_data:
-                        # Convert UTC timestamp to CET timezone
-                        import pytz
-                        utc_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'], tz=pytz.UTC)
-                        entry_time = utc_time.astimezone(pytz.timezone('Europe/Madrid'))
-                        hour = entry_time.hour
-                        minute = entry_time.minute
+        # Fallback to log files if ingest not available or no data
+        if interval_data is None:
+            interval_data = []
+            
+            # Initialize 48 intervals (every 30 minutes) with 0 counts
+            for hour in range(24):
+                for minute in [0, 30]:
+                    interval_data.append({
+                        'hour': f"{hour:02d}:{minute:02d}",
+                        'count': 0,
+                        'timestamp': hour * 60 + minute
+                    })
+            
+            # Get the specific date's log data
+            log_path = os.path.join(LOG_DIR, str(target_date.year), str(target_date.month), f"{target_date.day}.json")
+            if os.path.exists(log_path):
+                try:
+                    with open(log_path, 'r') as f:
+                        log_data = json.load(f)
                         
-                        # Determine which 30-minute interval
-                        interval_minute = 0 if minute < 30 else 30
-                        interval_index = hour * 2 + (0 if minute < 30 else 1)
-                        
-                        if 0 <= interval_index < len(interval_data):
-                            interval_data[interval_index]['count'] += 1
-                        
-            except (json.JSONDecodeError, FileNotFoundError):
-                pass
+                        # Count passengers by 30-minute intervals
+                        for entry in log_data:
+                            # Convert UTC timestamp to CET timezone
+                            import pytz
+                            utc_time = datetime.datetime.fromtimestamp(entry['entry_timestamp'], tz=pytz.UTC)
+                            entry_time = utc_time.astimezone(pytz.timezone('Europe/Madrid'))
+                            hour = entry_time.hour
+                            minute = entry_time.minute
+                            
+                            # Determine which 30-minute interval
+                            interval_minute = 0 if minute < 30 else 30
+                            interval_index = hour * 2 + (0 if minute < 30 else 1)
+                            
+                            if 0 <= interval_index < len(interval_data):
+                                interval_data[interval_index]['count'] += 1
+                            
+                except (json.JSONDecodeError, FileNotFoundError):
+                    pass
+            source = 'logs'
         
         return jsonify({
             'date': date_str,
-            'hourly_data': interval_data
+            'hourly_data': interval_data,
+            'source': source
         })
         
     except ValueError:

@@ -442,9 +442,8 @@ def get_combined_data_for_date(year, month, day):
 
 # Database helper functions for ingest system
 def _events_db_conn():
-    """Get connection to events database, returns None if DB doesn't exist"""
-    if not os.path.exists(EVENTS_DB_PATH):
-        return None
+    """Get database connection and ensure tables exist"""
+    # Create database file if it doesn't exist
     conn = sqlite3.connect(EVENTS_DB_PATH)
     conn.row_factory = sqlite3.Row
     # Enable JSON1 if available (bundled in modern sqlite)
@@ -452,7 +451,50 @@ def _events_db_conn():
         conn.execute("SELECT json('[]')")
     except:
         pass
+    
+    # Always ensure tables exist (safe to run multiple times)
+    _ensure_tables_exist(conn)
     return conn
+
+def _ensure_tables_exist(conn):
+    """Create sessions and events tables if they don't exist"""
+    # Sessions table - one row per ride
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS sessions (
+            device_id TEXT NOT NULL,
+            session_id TEXT NOT NULL,
+            person_id INTEGER,
+            entry_timestamp REAL,
+            exit_timestamp REAL,
+            dwell_seconds INTEGER,
+            toda_id TEXT,
+            etrike_id TEXT,
+            city TEXT,
+            pi_id TEXT,
+            created_at REAL,
+            updated_at REAL,
+            PRIMARY KEY (device_id, session_id)
+        )
+    """)
+    
+    # Keep events table for backward compatibility and debugging
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS events (
+            seq INTEGER PRIMARY KEY,
+            device_id TEXT NOT NULL,
+            event_id TEXT UNIQUE NOT NULL,
+            event_time_utc REAL NOT NULL,
+            payload_json TEXT NOT NULL,
+            type TEXT DEFAULT 'PASSENGER'
+        )
+    """)
+    
+    # Indexes for performance
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_device_entry ON sessions(device_id, entry_timestamp)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_timestamps ON sessions(entry_timestamp, exit_timestamp)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_open ON sessions(device_id, exit_timestamp) WHERE exit_timestamp IS NULL")
+    
+    conn.commit()
 
 def _events_table_exists(conn):
     """Check if events table exists in the database"""
@@ -1148,24 +1190,31 @@ def ingest():
             for e in events:
                 print("  Event:", e)
 
-        # Store events in database
+        # Store in both events (for debugging) and sessions (for dashboard)
         try:
-            conn = sqlite3.connect(EVENTS_DB_PATH)
+            conn = _events_db_conn()  # This will create tables if needed
+            
             for event in events:
+                # Store in events table (debugging/audit trail)
                 event_id = event.get("event_id")
                 seq = event.get("seq", 0)
-                event_time_utc = time.time()  # Current timestamp
+                event_time_utc = time.time()
                 payload_json = json.dumps(event)
                 
-                # Insert with IGNORE to handle duplicates
                 conn.execute("""
                     INSERT OR IGNORE INTO events (device_id, seq, event_id, event_time_utc, payload_json)
                     VALUES (?, ?, ?, ?, ?)
                 """, (device_id, seq, event_id, event_time_utc, payload_json))
+                
+                # Extract session data from event
+                session_data = _extract_session_from_event(event, device_id)
+                if session_data:
+                    _upsert_session(conn, session_data)
             
             conn.commit()
             conn.close()
-            print(f"[INGEST] Stored {len(events)} events in database")
+            print(f"[INGEST] Processed {len(events)} events into sessions")
+            
         except Exception as db_error:
             print(f"[INGEST] Database error: {db_error}")
 
@@ -1176,6 +1225,105 @@ def ingest():
     except Exception as e:
         print("Error in /ingest:", e)
         return jsonify({"error": str(e)}), 400
+
+def _extract_session_from_event(event, device_id):
+    """Extract session data from an event payload"""
+    try:
+        # Handle nested payload_json structure
+        payload = event
+        if "payload_json" in event:
+            nested = event["payload_json"]
+            if isinstance(nested, str):
+                payload = json.loads(nested)
+            else:
+                payload = nested
+        
+        # Extract session fields
+        person_id = payload.get("person_id")
+        entry_timestamp = payload.get("entry_timestamp")
+        exit_timestamp = payload.get("exit_timestamp")
+        toda_id = payload.get("toda_id")
+        etrike_id = payload.get("etrike_id")
+        city = payload.get("city")
+        pi_id = payload.get("pi_id", device_id)
+        
+        if not person_id or not entry_timestamp:
+            return None  # Not a valid session event
+            
+        # Generate stable session_id (device_id + person_id + entry_timestamp)
+        import hashlib
+        session_key = f"{device_id}-{person_id}-{entry_timestamp}"
+        session_id = hashlib.md5(session_key.encode()).hexdigest()[:16]
+        
+        # Calculate dwell time if exit exists
+        dwell_seconds = None
+        if exit_timestamp and entry_timestamp:
+            dwell_seconds = int(exit_timestamp - entry_timestamp)
+        
+        return {
+            "device_id": device_id,
+            "session_id": session_id,
+            "person_id": person_id,
+            "entry_timestamp": entry_timestamp,
+            "exit_timestamp": exit_timestamp,
+            "dwell_seconds": dwell_seconds,
+            "toda_id": toda_id,
+            "etrike_id": etrike_id,
+            "city": city,
+            "pi_id": pi_id
+        }
+        
+    except Exception as e:
+        print(f"Error extracting session from event: {e}")
+        return None
+
+def _upsert_session(conn, session_data):
+    """UPSERT session data - merge entry/exit data idempotently"""
+    try:
+        # First, try to get existing session
+        existing = conn.execute("""
+            SELECT entry_timestamp, exit_timestamp, dwell_seconds 
+            FROM sessions 
+            WHERE device_id = ? AND session_id = ?
+        """, (session_data["device_id"], session_data["session_id"])).fetchone()
+        
+        if existing:
+            # Update existing session - keep earliest entry, update exit if provided
+            entry_ts = existing["entry_timestamp"] or session_data["entry_timestamp"]
+            exit_ts = session_data["exit_timestamp"] or existing["exit_timestamp"]
+            
+            # Recalculate dwell time
+            dwell_seconds = None
+            if exit_ts and entry_ts:
+                dwell_seconds = int(exit_ts - entry_ts)
+            
+            conn.execute("""
+                UPDATE sessions SET
+                    entry_timestamp = ?,
+                    exit_timestamp = ?,
+                    dwell_seconds = ?,
+                    updated_at = ?
+                WHERE device_id = ? AND session_id = ?
+            """, (entry_ts, exit_ts, dwell_seconds, time.time(),
+                  session_data["device_id"], session_data["session_id"]))
+        else:
+            # Insert new session
+            now = time.time()
+            conn.execute("""
+                INSERT INTO sessions (
+                    device_id, session_id, person_id, entry_timestamp, exit_timestamp,
+                    dwell_seconds, toda_id, etrike_id, city, pi_id, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                session_data["device_id"], session_data["session_id"], session_data["person_id"],
+                session_data["entry_timestamp"], session_data["exit_timestamp"], session_data["dwell_seconds"],
+                session_data["toda_id"], session_data["etrike_id"], session_data["city"], session_data["pi_id"],
+                now, now
+            ))
+            
+    except Exception as e:
+        print(f"Error upserting session: {e}")
+        raise
 
 @app.route("/health")
 def health():
@@ -1199,59 +1347,132 @@ def health():
         return {"status": "error", "message": str(e)}, 500
 
 # --- Ingest health: quick visibility into DB status ---
+@app.route("/ingest/test-db")
+def test_db():
+    """Test database connection and table creation"""
+    try:
+        # Test basic connection
+        conn = sqlite3.connect(EVENTS_DB_PATH)
+        
+        # Test creating sessions table
+        try:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS sessions (
+                    device_id TEXT NOT NULL,
+                    session_id TEXT NOT NULL,
+                    person_id INTEGER,
+                    entry_timestamp REAL,
+                    exit_timestamp REAL,
+                    dwell_seconds INTEGER,
+                    toda_id TEXT,
+                    etrike_id TEXT,
+                    city TEXT,
+                    pi_id TEXT,
+                    created_at REAL,
+                    updated_at REAL,
+                    PRIMARY KEY (device_id, session_id)
+                )
+            """)
+            sessions_created = True
+        except Exception as e:
+            sessions_created = f"Error: {e}"
+        
+        # Test creating events table
+        try:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS events (
+                    seq INTEGER PRIMARY KEY,
+                    device_id TEXT NOT NULL,
+                    event_id TEXT UNIQUE NOT NULL,
+                    event_time_utc REAL NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    type TEXT DEFAULT 'PASSENGER'
+                )
+            """)
+            events_created = True
+        except Exception as e:
+            events_created = f"Error: {e}"
+        
+        conn.commit()
+        
+        # Check what tables exist
+        tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        table_names = [t[0] for t in tables]
+        
+        conn.close()
+        
+        return {
+            "status": "success", 
+            "sessions_created": sessions_created,
+            "events_created": events_created,
+            "tables_found": table_names,
+            "db_path": EVENTS_DB_PATH
+        }, 200
+        
+    except Exception as e:
+        return {"error": str(e)}, 500
+
 @app.route("/ingest/debug")
 def ingest_debug():
-    """Debug endpoint to check raw PI004 data"""
+    """Debug endpoint to check sessions and events data"""
     try:
-        conn = sqlite3.connect(EVENTS_DB_PATH)
-        cur = conn.cursor()
+        conn = _events_db_conn()
         
-        # Get recent PI004 events
-        cur.execute("""
-            SELECT seq, event_time_utc, payload_json 
-            FROM events 
-            WHERE device_id = 'PI004' 
-            ORDER BY seq DESC 
-            LIMIT 10
-        """)
+        # Check what tables exist
+        tables = conn.execute("""
+            SELECT name FROM sqlite_master WHERE type='table'
+        """).fetchall()
+        table_names = [t["name"] for t in tables]
         
-        events = []
-        for seq, event_time, payload_str in cur.fetchall():
-            try:
-                payload = json.loads(payload_str)
-                # Check if nested payload exists
-                nested = None
-                if "payload_json" in payload:
-                    nested_str = payload["payload_json"]
-                    if isinstance(nested_str, str):
-                        nested = json.loads(nested_str)
-                    else:
-                        nested = nested_str
-                
-                events.append({
-                    "seq": seq,
-                    "event_time": event_time,
-                    "has_nested": nested is not None,
-                    "toda_id": nested.get("toda_id") if nested else None,
-                    "etrike_id": nested.get("etrike_id") if nested else None,
-                    "entry_timestamp": nested.get("entry_timestamp") if nested else None,
-                    "exit_timestamp": nested.get("exit_timestamp") if nested else None,
-                    "dwell_time_minutes": nested.get("dwell_time_minutes") if nested else None,
-                    "person_id": nested.get("person_id") if nested else None
+        sessions_data = []
+        events_data = []
+        
+        # Get sessions if table exists
+        if "sessions" in table_names:
+            sessions = conn.execute("""
+                SELECT device_id, session_id, person_id, entry_timestamp, exit_timestamp,
+                       dwell_seconds, toda_id, etrike_id, created_at, updated_at
+                FROM sessions 
+                WHERE device_id = 'PI004' 
+                ORDER BY entry_timestamp DESC 
+                LIMIT 10
+            """).fetchall()
+            
+            for s in sessions:
+                sessions_data.append({
+                    "session_id": s["session_id"],
+                    "person_id": s["person_id"],
+                    "entry_timestamp": s["entry_timestamp"],
+                    "exit_timestamp": s["exit_timestamp"],
+                    "dwell_seconds": s["dwell_seconds"],
+                    "toda_id": s["toda_id"],
+                    "etrike_id": s["etrike_id"],
+                    "is_complete": s["exit_timestamp"] is not None,
+                    "created_at": s["created_at"],
+                    "updated_at": s["updated_at"]
                 })
-            except Exception as e:
-                events.append({
-                    "seq": seq,
-                    "event_time": event_time,
-                    "error": str(e)
-                })
+        
+        # Get events if table exists
+        if "events" in table_names:
+            events = conn.execute("""
+                SELECT seq, event_time_utc, event_id
+                FROM events 
+                WHERE device_id = 'PI004' 
+                ORDER BY seq DESC 
+                LIMIT 5
+            """).fetchall()
+            
+            events_data = [{"seq": e["seq"], "event_time": e["event_time_utc"], "event_id": e["event_id"]} for e in events]
         
         conn.close()
         
         return {
             "device_id": "PI004",
-            "recent_events": events,
-            "count": len(events)
+            "tables_found": table_names,
+            "sessions": sessions_data,
+            "sessions_count": len(sessions_data),
+            "recent_events": events_data,
+            "events_count": len(events_data)
         }, 200
         
     except Exception as e:
@@ -2623,80 +2844,6 @@ def save_event_to_logs(event, device_id):
         print(f"Error saving event to logs: {e}")
         return False
 
-@app.route('/ingest', methods=['POST'])
-def ingest_events():
-    """Ingest events from Pi devices with idempotent insert by event_id"""
-    try:
-        data = request.get_json()
-        
-        # Validate required fields
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-        
-        device_id = data.get('device_id')
-        since_seq = data.get('since_seq', 0)
-        events = data.get('events', [])
-        
-        if not device_id:
-            return jsonify({'error': 'device_id is required'}), 400
-        
-        if not isinstance(events, list):
-            return jsonify({'error': 'events must be an array'}), 400
-        
-        print(f"📦 Ingesting {len(events)} events from device {device_id}")
-        
-        # Process events
-        added_count = 0
-        skipped_count = 0
-        max_seq = since_seq
-        
-        for event in events:
-            # Validate event has required fields
-            if not isinstance(event, dict):
-                print(f"⚠️  Skipping invalid event: {event}")
-                skipped_count += 1
-                continue
-            
-            # Check if event has event_id for idempotency
-            event_id = event.get('event_id')
-            if not event_id:
-                print(f"⚠️  Skipping event without event_id: {event}")
-                skipped_count += 1
-                continue
-            
-            # Add device_id to event if not present
-            if 'pi_id' not in event:
-                event['pi_id'] = device_id
-            
-            # Track sequence number
-            seq = event.get('seq', 0)
-            if seq > max_seq:
-                max_seq = seq
-            
-            # Save event (idempotent by event_id)
-            if save_event_to_logs(event, device_id):
-                added_count += 1
-            else:
-                skipped_count += 1
-        
-        # Update Pi heartbeat
-        global last_pi_heartbeat_time
-        last_pi_heartbeat_time = datetime.datetime.now().timestamp()
-        
-        print(f"✅ Ingest complete: {added_count} added, {skipped_count} skipped")
-        
-        return jsonify({
-            'status': 'success',
-            'device_id': device_id,
-            'ack_seq': max_seq,
-            'added_count': added_count,
-            'skipped_count': skipped_count,
-            'message': f'Processed {len(events)} events'
-        })
-        
-    except Exception as e:
-        print(f"❌ Ingest error: {e}")
-        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     import ssl

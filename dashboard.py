@@ -1640,8 +1640,7 @@ def get_historical_data_filtered_from_ingest(selected_date, period):
             
             if weekly_total > 0:
                 result["weekly"].append({
-                    "start_date": start_of_week.strftime("%Y-%m-%d"),
-                    "end_date": end_of_week.strftime("%Y-%m-%d"),
+                    "week_of": start_of_week.strftime("%Y-%m-%d"),
                     "total": weekly_total
                 })
                 
@@ -1668,7 +1667,7 @@ def get_historical_data_filtered_from_ingest(selected_date, period):
             
             if monthly_total > 0:
                 result["monthly"].append({
-                    "month": start_of_month.strftime("%Y-%m"),
+                    "month_of": start_of_month.strftime("%Y-%m"),
                     "total": monthly_total
                 })
         

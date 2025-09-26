@@ -1609,7 +1609,8 @@ def get_historical_data_filtered_from_ingest(selected_date, period):
               SELECT COUNT(*) as total
               FROM events
               WHERE event_time_utc >= ? AND event_time_utc <= ?
-                AND json_extract(payload_json, '$.entry_timestamp') IS NOT NULL
+                AND (json_extract(payload_json, '$.entry_timestamp') IS NOT NULL 
+                     OR json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%')
             """
             
             row = conn.execute(daily_sql, (start_epoch, end_epoch)).fetchone()
@@ -1632,7 +1633,8 @@ def get_historical_data_filtered_from_ingest(selected_date, period):
               SELECT COUNT(*) as total
               FROM events
               WHERE event_time_utc >= ? AND event_time_utc <= ?
-                AND json_extract(payload_json, '$.entry_timestamp') IS NOT NULL
+                AND (json_extract(payload_json, '$.entry_timestamp') IS NOT NULL 
+                     OR json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%')
             """
             
             row = conn.execute(weekly_sql, (start_epoch, end_epoch)).fetchone()
@@ -1659,7 +1661,8 @@ def get_historical_data_filtered_from_ingest(selected_date, period):
               SELECT COUNT(*) as total
               FROM events
               WHERE event_time_utc >= ? AND event_time_utc <= ?
-                AND json_extract(payload_json, '$.entry_timestamp') IS NOT NULL
+                AND (json_extract(payload_json, '$.entry_timestamp') IS NOT NULL 
+                     OR json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%')
             """
             
             row = conn.execute(monthly_sql, (start_epoch, end_epoch)).fetchone()

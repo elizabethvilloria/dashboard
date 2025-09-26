@@ -514,91 +514,74 @@ def _recent_events_exist(conn, since_epoch):
 
 def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days=30):
     """
-    Returns entries shaped like your log records by reading events.db.
-    Falls back (returns None) if DB missing or no usable rows.
+    Returns passenger session data from sessions table.
+    Much simpler and more reliable than parsing events.
     """
-    conn = _events_db_conn()
-    if not conn or not _events_table_exists(conn):
-        print(f"[DEBUG] Ingest filter: DB connection failed or table missing")
-        return None
-
-    now = time.time()
-    start = now - days*24*3600
-
-    # Quick sanity: do we even have recent rows?
-    if not _recent_events_exist(conn, start):
-        print(f"[DEBUG] Ingest filter: No recent events since {start} (now={now})")
-        return None
-
-    # Try to select only rows whose payload_json has the fields we need.
-    # The data is nested: payload_json contains another payload_json with the actual passenger data
-    base_sql = """
-      SELECT payload_json
-      FROM events
-      WHERE event_time_utc >= ?
-        AND (? IS NULL OR json_extract(payload_json, '$.payload_json') LIKE '%"toda_id":"' || ? || '"%')
-        AND (? IS NULL OR json_extract(payload_json, '$.payload_json') LIKE '%"etrike_id":"' || ? || '"%')
-        AND (? IS NULL OR device_id = ?)
-        AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
-      ORDER BY seq ASC
-    """
-    params = (start, toda_id, toda_id, etrike_id, etrike_id, pi_id, pi_id)
-
     try:
-        # First, let's see how many total recent events we have
-        total_recent = conn.execute("SELECT COUNT(*) FROM events WHERE event_time_utc >= ?", (start,)).fetchone()[0]
-        print(f"[DEBUG] Ingest filter: Total recent events: {total_recent}")
-        
-        # Check how many have the required fields
-        valid_structure = conn.execute("""
-            SELECT COUNT(*) FROM events 
-            WHERE event_time_utc >= ? 
-            AND json_extract(payload_json, '$.entry_timestamp') IS NOT NULL
-            AND json_extract(payload_json, '$.toda_id') IS NOT NULL
-            AND json_extract(payload_json, '$.etrike_id') IS NOT NULL
-        """, (start,)).fetchone()[0]
-        print(f"[DEBUG] Ingest filter: Events with valid passenger structure: {valid_structure}")
-        
-        # Check specifically for PI003 events
-        pi003_events = conn.execute("""
-            SELECT COUNT(*) FROM events 
-            WHERE device_id = 'PI003' 
-            AND event_time_utc >= ?
-            AND json_extract(payload_json, '$.entry_timestamp') IS NOT NULL
-        """, (start,)).fetchone()[0]
-        print(f"[DEBUG] Ingest filter: PI003 events with entry_timestamp: {pi003_events}")
-        
-        rows = conn.execute(base_sql, params).fetchall()
-        print(f"[DEBUG] Ingest filter: Found {len(rows)} matching rows for toda_id={toda_id}, etrike_id={etrike_id}")
-    except Exception as e:
-        # If JSON1 not available or payloads not shaped yet, bail to logs
-        print(f"[DEBUG] Ingest filter: SQL query failed: {e}")
-        conn.close()
-        return None
+        conn = _events_db_conn()
+        if not conn:
+            return None
 
-    entries = []
-    for r in rows:
-        try:
-            payload = r["payload_json"]
-            if isinstance(payload, str):
-                payload = json.loads(payload)
+        # Check if sessions table exists
+        tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'").fetchone()
+        if not tables:
+            conn.close()
+            return None
+
+        now = time.time()
+        start = now - days * 24 * 3600
+
+        # Simple, clean query on sessions table
+        sql = """
+            SELECT 
+                person_id,
+                entry_timestamp,
+                exit_timestamp,
+                dwell_seconds,
+                toda_id,
+                etrike_id,
+                city,
+                pi_id,
+                device_id
+            FROM sessions 
+            WHERE entry_timestamp >= ?
+              AND (? IS NULL OR toda_id = ?)
+              AND (? IS NULL OR etrike_id = ?)  
+              AND (? IS NULL OR device_id = ?)
+            ORDER BY entry_timestamp DESC
+        """
+        
+        params = (start, toda_id, toda_id, etrike_id, etrike_id, pi_id, pi_id)
+        rows = conn.execute(sql, params).fetchall()
+        
+        # Convert to format expected by dashboard
+        entries = []
+        for row in rows:
+            entry = {
+                "person_id": row["person_id"],
+                "entry_timestamp": row["entry_timestamp"],
+                "exit_timestamp": row["exit_timestamp"],
+                "toda_id": row["toda_id"],
+                "etrike_id": row["etrike_id"],
+                "city": row["city"],
+                "pi_id": row["pi_id"] or row["device_id"]
+            }
             
-            # Extract the nested passenger data
-            if "payload_json" in payload:
-                nested_payload = payload["payload_json"]
-                if isinstance(nested_payload, str):
-                    nested_payload = json.loads(nested_payload)
+            # Calculate dwell time in minutes (for compatibility)
+            if row["dwell_seconds"]:
+                entry["dwell_time_minutes"] = row["dwell_seconds"] / 60.0
+            else:
+                entry["dwell_time_minutes"] = None
                 
-                # Ensure it at least looks like your log entry
-                if "toda_id" in nested_payload and "etrike_id" in nested_payload and "entry_timestamp" in nested_payload:
-                    entries.append(nested_payload)
-        except Exception:
-            continue
-
-    conn.close()
-    # If nothing usable, fallback
-    print(f"[DEBUG] Ingest filter: Returning {len(entries)} valid entries")
-    return entries if entries else None
+            entries.append(entry)
+        
+        conn.close()
+        print(f"[SESSIONS] Found {len(entries)} sessions for toda_id={toda_id}, etrike_id={etrike_id}")
+        return entries if entries else None
+        
+    except Exception as e:
+        print(f"Error getting sessions data: {e}")
+        return None
 
 def login_required(f):
     """Decorator to require login for routes"""
@@ -1347,70 +1330,6 @@ def health():
         return {"status": "error", "message": str(e)}, 500
 
 # --- Ingest health: quick visibility into DB status ---
-@app.route("/ingest/test-db")
-def test_db():
-    """Test database connection and table creation"""
-    try:
-        # Test basic connection
-        conn = sqlite3.connect(EVENTS_DB_PATH)
-        
-        # Test creating sessions table
-        try:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS sessions (
-                    device_id TEXT NOT NULL,
-                    session_id TEXT NOT NULL,
-                    person_id INTEGER,
-                    entry_timestamp REAL,
-                    exit_timestamp REAL,
-                    dwell_seconds INTEGER,
-                    toda_id TEXT,
-                    etrike_id TEXT,
-                    city TEXT,
-                    pi_id TEXT,
-                    created_at REAL,
-                    updated_at REAL,
-                    PRIMARY KEY (device_id, session_id)
-                )
-            """)
-            sessions_created = True
-        except Exception as e:
-            sessions_created = f"Error: {e}"
-        
-        # Test creating events table
-        try:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS events (
-                    seq INTEGER PRIMARY KEY,
-                    device_id TEXT NOT NULL,
-                    event_id TEXT UNIQUE NOT NULL,
-                    event_time_utc REAL NOT NULL,
-                    payload_json TEXT NOT NULL,
-                    type TEXT DEFAULT 'PASSENGER'
-                )
-            """)
-            events_created = True
-        except Exception as e:
-            events_created = f"Error: {e}"
-        
-        conn.commit()
-        
-        # Check what tables exist
-        tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-        table_names = [t[0] for t in tables]
-        
-        conn.close()
-        
-        return {
-            "status": "success", 
-            "sessions_created": sessions_created,
-            "events_created": events_created,
-            "tables_found": table_names,
-            "db_path": EVENTS_DB_PATH
-        }, 200
-        
-    except Exception as e:
-        return {"error": str(e)}, 500
 
 @app.route("/ingest/debug")
 def ingest_debug():

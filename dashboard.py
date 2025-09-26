@@ -1609,7 +1609,7 @@ def get_historical_data_filtered_from_ingest(selected_date, period):
               SELECT COUNT(*) as total
               FROM events
               WHERE event_time_utc >= ? AND event_time_utc <= ?
-                AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+                AND json_extract(payload_json, '$.entry_timestamp') IS NOT NULL
             """
             
             row = conn.execute(daily_sql, (start_epoch, end_epoch)).fetchone()
@@ -1632,7 +1632,7 @@ def get_historical_data_filtered_from_ingest(selected_date, period):
               SELECT COUNT(*) as total
               FROM events
               WHERE event_time_utc >= ? AND event_time_utc <= ?
-                AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+                AND json_extract(payload_json, '$.entry_timestamp') IS NOT NULL
             """
             
             row = conn.execute(weekly_sql, (start_epoch, end_epoch)).fetchone()
@@ -1659,7 +1659,7 @@ def get_historical_data_filtered_from_ingest(selected_date, period):
               SELECT COUNT(*) as total
               FROM events
               WHERE event_time_utc >= ? AND event_time_utc <= ?
-                AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
+                AND json_extract(payload_json, '$.entry_timestamp') IS NOT NULL
             """
             
             row = conn.execute(monthly_sql, (start_epoch, end_epoch)).fetchone()
@@ -1691,8 +1691,11 @@ def historical_data_filtered():
     try:
         # Parse the selected date based on period
         if period == 'monthly':
-            # Monthly format: "2025-09"
-            selected_date = datetime.datetime.strptime(date_str, '%Y-%m').date()
+            # Monthly format can be "2025-09" or "2025-09-01" (frontend sends first day of month)
+            if len(date_str) == 7:  # "2025-09"
+                selected_date = datetime.datetime.strptime(date_str, '%Y-%m').date()
+            else:  # "2025-09-01" 
+                selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
         else:
             # Daily/Weekly format: "2025-09-26"
             selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()

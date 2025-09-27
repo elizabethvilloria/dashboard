@@ -1233,10 +1233,8 @@ def _extract_session_from_event(event, device_id):
         if not person_id or not entry_timestamp:
             return None  # Not a valid session event
             
-        # Generate stable session_id (device_id + person_id + entry_timestamp)
-        import hashlib
-        session_key = f"{device_id}-{person_id}-{entry_timestamp}"
-        session_id = hashlib.md5(session_key.encode()).hexdigest()[:16]
+        # Generate stable session_id to match AI camera format (person_id + entry_timestamp)
+        session_id = f"{person_id}_{int(entry_timestamp)}"
         
         # Calculate dwell time if exit exists
         dwell_seconds = None

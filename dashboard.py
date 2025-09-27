@@ -331,115 +331,69 @@ def update_historical_summary():
 
 
 def get_passenger_counts_from_ingest():
-    """Get passenger counts from ingest database for different time periods"""
+    """Get passenger counts from ingest database for different time periods using sessions table"""
     try:
         conn = _events_db_conn()
-        if not conn or not _events_table_exists(conn):
+        if not conn:
+            return None
+        
+        # Check if sessions table exists
+        tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'").fetchone()
+        if not tables:
+            conn.close()
             return None
         
         now = datetime.datetime.now()
         counts = defaultdict(int)
         
-        # Daily count (today) - count unique passengers only
+        # Daily count (today) - count unique COMPLETED sessions only
         start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
         start_epoch = start_of_day.timestamp()
         now_epoch = now.timestamp()
         
-        daily_sql = """
-          SELECT DISTINCT json_extract(payload_json, '$.payload_json') as nested_payload
-          FROM events
-          WHERE event_time_utc >= ? AND event_time_utc <= ?
-            AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
-            AND json_extract(payload_json, '$.payload_json') LIKE '%"exit_timestamp"%'
-        """
+        daily_count = conn.execute("""
+            SELECT COUNT(DISTINCT session_id) 
+            FROM sessions 
+            WHERE entry_timestamp >= ? AND entry_timestamp <= ?
+            AND exit_timestamp IS NOT NULL
+        """, (start_epoch, now_epoch)).fetchone()[0]
+        counts['daily'] = daily_count
         
-        daily_rows = conn.execute(daily_sql, (start_epoch, now_epoch)).fetchall()
-        daily_passengers = set()
-        for row in daily_rows:
-            try:
-                nested_payload = row["nested_payload"]
-                if isinstance(nested_payload, str):
-                    nested_payload = json.loads(nested_payload)
-                if "person_id" in nested_payload and nested_payload.get('exit_timestamp') is not None:
-                    daily_passengers.add(nested_payload['person_id'])
-            except:
-                continue
-        counts['daily'] = len(daily_passengers)
-        
-        # Hourly count (rolling) - count unique passengers only
+        # Hourly count (rolling) - count unique COMPLETED sessions only
         hour_ago_epoch = (now - datetime.timedelta(hours=1)).timestamp()
         
-        hourly_sql = """
-          SELECT DISTINCT json_extract(payload_json, '$.payload_json') as nested_payload
-          FROM events
-          WHERE event_time_utc >= ? AND event_time_utc <= ?
-            AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
-            AND json_extract(payload_json, '$.payload_json') LIKE '%"exit_timestamp"%'
-        """
+        hourly_count = conn.execute("""
+            SELECT COUNT(DISTINCT session_id) 
+            FROM sessions 
+            WHERE entry_timestamp >= ? AND entry_timestamp <= ?
+            AND exit_timestamp IS NOT NULL
+        """, (hour_ago_epoch, now_epoch)).fetchone()[0]
+        counts['hourly'] = hourly_count
         
-        hourly_rows = conn.execute(hourly_sql, (hour_ago_epoch, now_epoch)).fetchall()
-        hourly_passengers = set()
-        for row in hourly_rows:
-            try:
-                nested_payload = row["nested_payload"]
-                if isinstance(nested_payload, str):
-                    nested_payload = json.loads(nested_payload)
-                if "person_id" in nested_payload and nested_payload.get('exit_timestamp') is not None:
-                    hourly_passengers.add(nested_payload['person_id'])
-            except:
-                continue
-        counts['hourly'] = len(hourly_passengers)
-        
-        # Weekly count - count unique passengers only
+        # Weekly count - count unique COMPLETED sessions only
         start_of_week = now - datetime.timedelta(days=now.weekday())
         start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
         week_start_epoch = start_of_week.timestamp()
         
-        weekly_sql = """
-          SELECT DISTINCT json_extract(payload_json, '$.payload_json') as nested_payload
-          FROM events
-          WHERE event_time_utc >= ? AND event_time_utc <= ?
-            AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
-            AND json_extract(payload_json, '$.payload_json') LIKE '%"exit_timestamp"%'
-        """
+        weekly_count = conn.execute("""
+            SELECT COUNT(DISTINCT session_id) 
+            FROM sessions 
+            WHERE entry_timestamp >= ? AND entry_timestamp <= ?
+            AND exit_timestamp IS NOT NULL
+        """, (week_start_epoch, now_epoch)).fetchone()[0]
+        counts['weekly'] = weekly_count
         
-        weekly_rows = conn.execute(weekly_sql, (week_start_epoch, now_epoch)).fetchall()
-        weekly_passengers = set()
-        for row in weekly_rows:
-            try:
-                nested_payload = row["nested_payload"]
-                if isinstance(nested_payload, str):
-                    nested_payload = json.loads(nested_payload)
-                if "person_id" in nested_payload and nested_payload.get('exit_timestamp') is not None:
-                    weekly_passengers.add(nested_payload['person_id'])
-            except:
-                continue
-        counts['weekly'] = len(weekly_passengers)
-        
-        # Monthly count - count unique passengers only
+        # Monthly count - count unique COMPLETED sessions only
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         month_start_epoch = start_of_month.timestamp()
         
-        monthly_sql = """
-          SELECT DISTINCT json_extract(payload_json, '$.payload_json') as nested_payload
-          FROM events
-          WHERE event_time_utc >= ? AND event_time_utc <= ?
-            AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
-            AND json_extract(payload_json, '$.payload_json') LIKE '%"exit_timestamp"%'
-        """
-        
-        monthly_rows = conn.execute(monthly_sql, (month_start_epoch, now_epoch)).fetchall()
-        monthly_passengers = set()
-        for row in monthly_rows:
-            try:
-                nested_payload = row["nested_payload"]
-                if isinstance(nested_payload, str):
-                    nested_payload = json.loads(nested_payload)
-                if "person_id" in nested_payload and nested_payload.get('exit_timestamp') is not None:
-                    monthly_passengers.add(nested_payload['person_id'])
-            except:
-                continue
-        counts['monthly'] = len(monthly_passengers)
+        monthly_count = conn.execute("""
+            SELECT COUNT(DISTINCT session_id) 
+            FROM sessions 
+            WHERE entry_timestamp >= ? AND entry_timestamp <= ?
+            AND exit_timestamp IS NOT NULL
+        """, (month_start_epoch, now_epoch)).fetchone()[0]
+        counts['monthly'] = monthly_count
         
         conn.close()
         return dict(counts)

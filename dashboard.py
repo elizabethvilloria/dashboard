@@ -124,7 +124,7 @@ def get_latest_log_time():
 
 def update_historical_summary():
     """
-    Updates the historical summary with current data.
+    Updates the historical summary with current data from sessions table.
     This function now runs every time and provides real-time historical data.
     """
     today = datetime.datetime.now()
@@ -139,73 +139,178 @@ def update_historical_summary():
     weekly_data = []
     monthly_data = []
     
-    # Get daily data for the last 7 days
-    for i in range(7):
-        check_date = today.date() - datetime.timedelta(days=i)
-        log_path = os.path.join(LOG_DIR, str(check_date.year), str(check_date.month), f"{check_date.day}.json")
-        if os.path.exists(log_path):
-            try:
-                with open(log_path, 'r') as log_file:
-                    log_data = json.load(log_file)
-                    daily_total = len(log_data)
+    # Try to get data from sessions table if available
+    if USE_INGEST:
+        try:
+            conn = _events_db_conn()
+            if conn:
+                # Get daily data for the last 7 days from sessions
+                for i in range(7):
+                    check_date = today.date() - datetime.timedelta(days=i)
+                    start_of_day = datetime.datetime.combine(check_date, datetime.time.min).timestamp()
+                    end_of_day = datetime.datetime.combine(check_date, datetime.time.max).timestamp()
+                    
+                    # Count unique completed sessions for this day
+                    daily_total = conn.execute("""
+                        SELECT COUNT(DISTINCT session_id) 
+                        FROM sessions 
+                        WHERE entry_timestamp >= ? AND entry_timestamp <= ?
+                        AND exit_timestamp IS NOT NULL
+                    """, (start_of_day, end_of_day)).fetchone()[0]
+                    
                     if daily_total > 0:
                         daily_data.append({
                             "date": check_date.strftime("%Y-%m-%d"),
                             "total": daily_total
                         })
-            except (json.JSONDecodeError, FileNotFoundError):
-                continue
+                conn.close()
+        except Exception as e:
+            print(f"Error getting historical data from sessions: {e}")
+            # Fall back to log files if sessions fail
+            pass
     
-    # Get weekly data for the last 4 weeks
-    for week_offset in range(4):
-        week_start = today.date() - datetime.timedelta(days=today.weekday() + (week_offset * 7))
-        weekly_total = 0
+    # Fallback to log files if sessions not available or failed
+    if not daily_data:
         for i in range(7):
-            check_date = week_start + datetime.timedelta(days=i)
+            check_date = today.date() - datetime.timedelta(days=i)
             log_path = os.path.join(LOG_DIR, str(check_date.year), str(check_date.month), f"{check_date.day}.json")
             if os.path.exists(log_path):
                 try:
                     with open(log_path, 'r') as log_file:
                         log_data = json.load(log_file)
-                        weekly_total += len(log_data)
+                        daily_total = len(log_data)
+                        if daily_total > 0:
+                            daily_data.append({
+                                "date": check_date.strftime("%Y-%m-%d"),
+                                "total": daily_total
+                            })
                 except (json.JSONDecodeError, FileNotFoundError):
                     continue
-        
-        if weekly_total > 0:
-            weekly_data.append({
-                "week_of": week_start.strftime("%Y-%m-%d"),
-                "total": weekly_total
-            })
     
-    # Get monthly data for the last 6 months
-    for month_offset in range(6):
-        # Calculate the month start date for each month offset
-        current_month = today.month
-        current_year = today.year
-        
-        # Calculate target month and year
-        target_month = current_month - month_offset
-        target_year = current_year
-        
-        # Handle year rollover
-        while target_month <= 0:
-            target_month += 12
-            target_year -= 1
-        
-        month_start = datetime.datetime(target_year, target_month, 1)
-        
-        month_total = 0
-        current_day = month_start
-        while current_day.month == month_start.month and current_day.year == month_start.year:
-            log_path = os.path.join(LOG_DIR, str(current_day.year), str(current_day.month), f"{current_day.day}.json")
-            if os.path.exists(log_path):
-                try:
-                    with open(log_path, 'r') as log_file:
-                        log_data = json.load(log_file)
-                        month_total += len(log_data)
-                except (json.JSONDecodeError, FileNotFoundError):
-                    pass
-            current_day += datetime.timedelta(days=1)
+    # Get weekly data for the last 4 weeks (try sessions first)
+    if USE_INGEST and conn:
+        try:
+            conn = _events_db_conn()
+            if conn:
+                for week_offset in range(4):
+                    week_start = today.date() - datetime.timedelta(days=today.weekday() + (week_offset * 7))
+                    week_end = week_start + datetime.timedelta(days=6)
+                    start_epoch = datetime.datetime.combine(week_start, datetime.time.min).timestamp()
+                    end_epoch = datetime.datetime.combine(week_end, datetime.time.max).timestamp()
+                    
+                    weekly_total = conn.execute("""
+                        SELECT COUNT(DISTINCT session_id) 
+                        FROM sessions 
+                        WHERE entry_timestamp >= ? AND entry_timestamp <= ?
+                        AND exit_timestamp IS NOT NULL
+                    """, (start_epoch, end_epoch)).fetchone()[0]
+                    
+                    if weekly_total > 0:
+                        weekly_data.append({
+                            "week_of": week_start.strftime("%Y-%m-%d"),
+                            "total": weekly_total
+                        })
+                conn.close()
+        except Exception as e:
+            print(f"Error getting weekly data from sessions: {e}")
+    
+    # Fallback to log files for weekly data if sessions failed
+    if not weekly_data:
+        for week_offset in range(4):
+            week_start = today.date() - datetime.timedelta(days=today.weekday() + (week_offset * 7))
+            weekly_total = 0
+            for i in range(7):
+                check_date = week_start + datetime.timedelta(days=i)
+                log_path = os.path.join(LOG_DIR, str(check_date.year), str(check_date.month), f"{check_date.day}.json")
+                if os.path.exists(log_path):
+                    try:
+                        with open(log_path, 'r') as log_file:
+                            log_data = json.load(log_file)
+                            weekly_total += len(log_data)
+                    except (json.JSONDecodeError, FileNotFoundError):
+                        continue
+            
+            if weekly_total > 0:
+                weekly_data.append({
+                    "week_of": week_start.strftime("%Y-%m-%d"),
+                    "total": weekly_total
+                })
+    
+    # Get monthly data for the last 6 months (try sessions first)
+    if USE_INGEST:
+        try:
+            conn = _events_db_conn()
+            if conn:
+                for month_offset in range(6):
+                    # Calculate the month start date for each month offset
+                    current_month = today.month
+                    current_year = today.year
+                    
+                    # Calculate target month and year
+                    target_month = current_month - month_offset
+                    target_year = current_year
+                    
+                    # Handle year rollover
+                    while target_month <= 0:
+                        target_month += 12
+                        target_year -= 1
+                    
+                    month_start = datetime.datetime(target_year, target_month, 1)
+                    # Get last day of month
+                    if target_month == 12:
+                        month_end = datetime.datetime(target_year + 1, 1, 1) - datetime.timedelta(days=1)
+                    else:
+                        month_end = datetime.datetime(target_year, target_month + 1, 1) - datetime.timedelta(days=1)
+                    
+                    start_epoch = month_start.timestamp()
+                    end_epoch = datetime.datetime.combine(month_end, datetime.time.max).timestamp()
+                    
+                    month_total = conn.execute("""
+                        SELECT COUNT(DISTINCT session_id) 
+                        FROM sessions 
+                        WHERE entry_timestamp >= ? AND entry_timestamp <= ?
+                        AND exit_timestamp IS NOT NULL
+                    """, (start_epoch, end_epoch)).fetchone()[0]
+                    
+                    if month_total > 0:
+                        monthly_data.append({
+                            "month_of": month_start.strftime("%Y-%m"),
+                            "total": month_total
+                        })
+                conn.close()
+        except Exception as e:
+            print(f"Error getting monthly data from sessions: {e}")
+    
+    # Fallback to log files for monthly data if sessions failed
+    if not monthly_data:
+        for month_offset in range(6):
+            # Calculate the month start date for each month offset
+            current_month = today.month
+            current_year = today.year
+            
+            # Calculate target month and year
+            target_month = current_month - month_offset
+            target_year = current_year
+            
+            # Handle year rollover
+            while target_month <= 0:
+                target_month += 12
+                target_year -= 1
+            
+            month_start = datetime.datetime(target_year, target_month, 1)
+            
+            month_total = 0
+            current_day = month_start
+            while current_day.month == month_start.month and current_day.year == month_start.year:
+                log_path = os.path.join(LOG_DIR, str(current_day.year), str(current_day.month), f"{current_day.day}.json")
+                if os.path.exists(log_path):
+                    try:
+                        with open(log_path, 'r') as log_file:
+                            log_data = json.load(log_file)
+                            month_total += len(log_data)
+                    except (json.JSONDecodeError, FileNotFoundError):
+                        pass
+                current_day += datetime.timedelta(days=1)
         
         if month_total > 0:
             monthly_data.append({

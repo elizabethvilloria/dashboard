@@ -169,23 +169,7 @@ def update_historical_summary():
             # Fall back to log files if sessions fail
             pass
     
-    # Fallback to log files if sessions not available or failed
-    if not daily_data:
-        for i in range(7):
-            check_date = today.date() - datetime.timedelta(days=i)
-            log_path = os.path.join(LOG_DIR, str(check_date.year), str(check_date.month), f"{check_date.day}.json")
-            if os.path.exists(log_path):
-                try:
-                    with open(log_path, 'r') as log_file:
-                        log_data = json.load(log_file)
-                        daily_total = len(log_data)
-                        if daily_total > 0:
-                            daily_data.append({
-                                "date": check_date.strftime("%Y-%m-%d"),
-                                "total": daily_total
-                            })
-                except (json.JSONDecodeError, FileNotFoundError):
-                    continue
+    # No fallback to log files - ingest system only
     
     # Get weekly data for the last 4 weeks (try sessions first)
     if USE_INGEST:

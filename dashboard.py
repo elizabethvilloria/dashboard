@@ -620,7 +620,7 @@ def _recent_events_exist(conn, since_epoch):
 def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days=30):
     """
     Returns passenger session data from sessions table.
-    Much simpler and more reliable than parsing events.
+    Only returns COMPLETED trips (with exit_timestamp).
     """
     try:
         conn = _events_db_conn()
@@ -636,7 +636,7 @@ def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days
         now = time.time()
         start = now - days * 24 * 3600
 
-        # Simple, clean query on sessions table
+        # Only return COMPLETED sessions (with exit_timestamp)
         sql = """
             SELECT 
                 person_id,
@@ -650,6 +650,7 @@ def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days
                 device_id
             FROM sessions 
             WHERE entry_timestamp >= ?
+              AND exit_timestamp IS NOT NULL
               AND (? IS NULL OR toda_id = ?)
               AND (? IS NULL OR etrike_id = ?)  
               AND (? IS NULL OR device_id = ?)
@@ -2090,10 +2091,16 @@ def historical_data_filtered():
         return jsonify({"error": str(e)}), 500
 
 def get_passenger_details_from_ingest(date, period):
-    """Get individual passenger records from ingest database"""
+    """Get individual passenger records from sessions table"""
     try:
         conn = _events_db_conn()
-        if not conn or not _events_table_exists(conn):
+        if not conn:
+            return None
+        
+        # Check if sessions table exists
+        tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'").fetchone()
+        if not tables:
+            conn.close()
             return None
         
         passengers = []
@@ -2106,11 +2113,12 @@ def get_passenger_details_from_ingest(date, period):
             end_epoch = end_of_day.timestamp()
             
             sql = """
-              SELECT payload_json
-              FROM events
-              WHERE event_time_utc >= ? AND event_time_utc <= ?
-                AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
-              ORDER BY seq ASC
+              SELECT person_id, entry_timestamp, exit_timestamp, dwell_seconds,
+                     toda_id, etrike_id, city, pi_id, device_id
+              FROM sessions
+              WHERE entry_timestamp >= ? AND entry_timestamp <= ?
+                AND exit_timestamp IS NOT NULL
+              ORDER BY entry_timestamp ASC
             """
             
             rows = conn.execute(sql, (start_epoch, end_epoch)).fetchall()
@@ -2123,11 +2131,12 @@ def get_passenger_details_from_ingest(date, period):
             end_epoch = datetime.datetime.combine(end_of_week, datetime.time.max).timestamp()
             
             sql = """
-              SELECT payload_json
-              FROM events
-              WHERE event_time_utc >= ? AND event_time_utc <= ?
-                AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
-              ORDER BY seq ASC
+              SELECT person_id, entry_timestamp, exit_timestamp, dwell_seconds,
+                     toda_id, etrike_id, city, pi_id, device_id
+              FROM sessions
+              WHERE entry_timestamp >= ? AND entry_timestamp <= ?
+                AND exit_timestamp IS NOT NULL
+              ORDER BY entry_timestamp ASC
             """
             
             rows = conn.execute(sql, (start_epoch, end_epoch)).fetchall()
@@ -2144,34 +2153,37 @@ def get_passenger_details_from_ingest(date, period):
             end_epoch = datetime.datetime.combine(end_of_month, datetime.time.max).timestamp()
             
             sql = """
-              SELECT payload_json
-              FROM events
-              WHERE event_time_utc >= ? AND event_time_utc <= ?
-                AND json_extract(payload_json, '$.payload_json') LIKE '%"entry_timestamp"%'
-              ORDER BY seq ASC
+              SELECT person_id, entry_timestamp, exit_timestamp, dwell_seconds,
+                     toda_id, etrike_id, city, pi_id, device_id
+              FROM sessions
+              WHERE entry_timestamp >= ? AND entry_timestamp <= ?
+                AND exit_timestamp IS NOT NULL
+              ORDER BY entry_timestamp ASC
             """
             
             rows = conn.execute(sql, (start_epoch, end_epoch)).fetchall()
         else:
             rows = []
         
-        # Extract passenger data from nested payload structure
+        # Convert sessions to passenger format expected by frontend
         for row in rows:
-            try:
-                payload = row["payload_json"]
-                if isinstance(payload, str):
-                    payload = json.loads(payload)
+            passenger = {
+                "person_id": row["person_id"],
+                "entry_timestamp": row["entry_timestamp"],
+                "exit_timestamp": row["exit_timestamp"],
+                "toda_id": row["toda_id"],
+                "etrike_id": row["etrike_id"],
+                "city": row["city"],
+                "pi_id": row["pi_id"] or row["device_id"]
+            }
+            
+            # Calculate dwell time in minutes for compatibility
+            if row["dwell_seconds"]:
+                passenger["dwell_time_minutes"] = row["dwell_seconds"] / 60.0
+            else:
+                passenger["dwell_time_minutes"] = None
                 
-                # Handle nested payload structure
-                if "payload_json" in payload:
-                    nested_payload = payload["payload_json"]
-                    if isinstance(nested_payload, str):
-                        nested_payload = json.loads(nested_payload)
-                    
-                    if "entry_timestamp" in nested_payload:
-                        passengers.append(nested_payload)
-            except Exception as e:
-                continue
+            passengers.append(passenger)
         
         conn.close()
         return passengers

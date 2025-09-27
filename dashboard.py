@@ -1278,6 +1278,7 @@ def _extract_session_from_event(event, device_id):
             
         # Generate stable session_id to match AI camera format (person_id + entry_timestamp)
         session_id = f"{person_id}_{int(entry_timestamp)}"
+        print(f"[DEBUG] Generated session_id: {session_id} for person_id={person_id}, entry_timestamp={entry_timestamp}")  # Debug logging
         
         # Calculate dwell time if exit exists
         dwell_seconds = None

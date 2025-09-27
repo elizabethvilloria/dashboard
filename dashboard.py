@@ -188,7 +188,7 @@ def update_historical_summary():
                     continue
     
     # Get weekly data for the last 4 weeks (try sessions first)
-    if USE_INGEST and conn:
+    if USE_INGEST:
         try:
             conn = _events_db_conn()
             if conn:

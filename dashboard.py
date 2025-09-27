@@ -1835,11 +1835,17 @@ def historical_population_data():
 @login_required
 def historical_data():
     # Always update historical data when requested
+    print("[DEBUG ENDPOINT] /historical-data called - updating summary...")
     update_historical_summary()
     if not os.path.exists(HISTORICAL_FILE):
+        print("[DEBUG ENDPOINT] No historical file found, returning empty data")
         return jsonify({"daily": [], "weekly": [], "monthly": []})
+    
     with open(HISTORICAL_FILE, 'r') as f:
-        return jsonify(json.load(f))
+        data = json.load(f)
+    
+    print(f"[DEBUG ENDPOINT] Returning historical data: daily={data.get('daily', [])}")
+    return jsonify(data)
 
 def get_historical_data_filtered_from_ingest(selected_date, period):
     """Get historical filtered data from ingest database"""

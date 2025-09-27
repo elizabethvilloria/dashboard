@@ -620,7 +620,7 @@ def _recent_events_exist(conn, since_epoch):
 def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days=30):
     """
     Returns passenger session data from sessions table.
-    Only returns COMPLETED trips (with exit_timestamp).
+    Returns ALL sessions (including incomplete ones) for LIVE updates.
     """
     try:
         conn = _events_db_conn()
@@ -636,7 +636,7 @@ def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days
         now = time.time()
         start = now - days * 24 * 3600
 
-        # Only return COMPLETED sessions (with exit_timestamp)
+        # Return ALL sessions (both complete and incomplete) for live updates
         sql = """
             SELECT 
                 person_id,
@@ -650,7 +650,6 @@ def get_filtered_data_from_ingest(toda_id=None, etrike_id=None, pi_id=None, days
                 device_id
             FROM sessions 
             WHERE entry_timestamp >= ?
-              AND exit_timestamp IS NOT NULL
               AND (? IS NULL OR toda_id = ?)
               AND (? IS NULL OR etrike_id = ?)  
               AND (? IS NULL OR device_id = ?)

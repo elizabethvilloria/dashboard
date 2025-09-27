@@ -1350,6 +1350,18 @@ def _upsert_session(conn, session_data):
         print(f"Error upserting session: {e}")
         raise
 
+@app.route('/get-pi-assignments')
+@login_required
+def get_pi_assignments():
+    """Get Pi device assignments (placeholder for now)"""
+    return jsonify({
+        "assignments": [
+            {"pi_id": "PI001", "toda_id": "bltmpc", "etrike_id": "0000"},
+            {"pi_id": "PI003", "toda_id": "bltmpc", "etrike_id": "0003"},
+            {"pi_id": "PI004", "toda_id": "stmpc", "etrike_id": "0004"}
+        ]
+    })
+
 @app.route("/health")
 def health():
     try:

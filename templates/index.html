@@ -1673,7 +1673,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="historicalPopulationModalLabel">
-                        <i class="fas fa-chart-line me-2"></i>Historical Passenger Graph Data
+                        <i class="fas fa-chart-line me-2"></i>Historical Graph
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="z-index: 10001;"></button>
                 </div>
@@ -3155,7 +3155,8 @@
                                 }
                             },
                             beginAtZero: true,
-                            max: 150,
+                            min: 0,
+                            suggestedMax: 100,
                             stepSize: 1,
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.1)',

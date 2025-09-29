@@ -1994,18 +1994,42 @@
                 return entryTime >= oneMonthAgo;
             }).length;
             
-            // Update counters with filtered data
+            // Update counters with filtered data and check for increases
+            // Hourly
+            if (!isInitialLoad && previousCounts.hourly !== null && hourlyCount > previousCounts.hourly) {
+                const increase = hourlyCount - previousCounts.hourly;
+                createFloatingRevenue(document.getElementById('hourly-revenue'), increase * 20);
+            }
             document.getElementById('hourly-count').textContent = hourlyCount;
             document.getElementById('hourly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(hourlyCount * 20).toLocaleString()}`;
+            previousCounts.hourly = hourlyCount;
             
+            // Daily
+            if (!isInitialLoad && previousCounts.daily !== null && dailyCount > previousCounts.daily) {
+                const increase = dailyCount - previousCounts.daily;
+                createFloatingRevenue(document.getElementById('daily-revenue'), increase * 20);
+            }
             document.getElementById('daily-count').textContent = dailyCount;
             document.getElementById('daily-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(dailyCount * 20).toLocaleString()}`;
+            previousCounts.daily = dailyCount;
             
+            // Weekly
+            if (!isInitialLoad && previousCounts.weekly !== null && weeklyCount > previousCounts.weekly) {
+                const increase = weeklyCount - previousCounts.weekly;
+                createFloatingRevenue(document.getElementById('weekly-revenue'), increase * 20);
+            }
             document.getElementById('weekly-count').textContent = weeklyCount;
             document.getElementById('weekly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(weeklyCount * 20).toLocaleString()}`;
+            previousCounts.weekly = weeklyCount;
             
+            // Monthly
+            if (!isInitialLoad && previousCounts.monthly !== null && monthlyCount > previousCounts.monthly) {
+                const increase = monthlyCount - previousCounts.monthly;
+                createFloatingRevenue(document.getElementById('monthly-revenue'), increase * 20);
+            }
             document.getElementById('monthly-count').textContent = monthlyCount;
             document.getElementById('monthly-revenue').textContent = `${getCurrencySymbol()}${convertCurrency(monthlyCount * 20).toLocaleString()}`;
+            previousCounts.monthly = monthlyCount;
             
             // Mark that initial load is complete
             isInitialLoad = false;

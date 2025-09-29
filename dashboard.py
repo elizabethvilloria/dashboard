@@ -1543,6 +1543,7 @@ def pi_heartbeat():
     return jsonify({'status': 'ok'})
 
 @app.route('/pi-live-status')
+@login_required
 def pi_live_status():
     """Check if Pi devices are connected (heartbeat within last 15 seconds)"""
     global last_pi_heartbeat_time

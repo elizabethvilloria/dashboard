@@ -1108,7 +1108,7 @@
                         const option = document.createElement('div');
                         option.className = 'dropdown-option';
                         option.setAttribute('data-value', vehicle.pi);
-                        option.textContent = `Pi ${vehicle.pi} - ${vehicle.name}`;
+                        option.textContent = `E-Trike ${vehicle.pi} (${vehicle.status})`;
                         gpsOptions.appendChild(option);
                     });
                 })
@@ -1239,7 +1239,7 @@
                 const option = document.createElement('div');
                 option.className = 'dropdown-option';
                 option.setAttribute('data-value', vehicle.pi);
-                option.textContent = `Pi ${vehicle.pi} - ${vehicle.name} (${vehicle.status})`;
+                option.textContent = `E-Trike ${vehicle.pi} (${vehicle.status})`;
                 gpsOptions.appendChild(option);
             });
             
@@ -1307,11 +1307,10 @@
                     
                     marker.setPopupContent(`
                         <div class="vehicle-info">
-                            <h6>Pi ${vehicle.pi}</h6>
+                            <h6>E-Trike ${vehicle.pi}</h6>
                             <p><strong>Status:</strong> <span style="color: ${statusColor}">${vehicle.status.toUpperCase()}</span></p>
                             <p><strong>Total Distance:</strong> ${dailyDistance.toFixed(1)}km</p>
                             <p><strong>Speed:</strong> ${vehicle.speed.toFixed(1)} km/h</p>
-                            <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
                             <p><strong>Last Update:</strong> ${getRelativeTime(vehicle.last_update)}</p>
                         </div>
                     `);
@@ -1354,11 +1353,10 @@
                         .addTo(map)
                         .bindPopup(`
                             <div class="vehicle-info">
-                                <h6>Pi ${vehicle.pi}</h6>
+                                <h6>E-Trike ${vehicle.pi}</h6>
                                 <p><strong>Status:</strong> <span style="color: ${iconColor}">${vehicle.status.toUpperCase()}</span></p>
                                 <p><strong>Total Distance:</strong> ${dailyDistance.toFixed(1)}km</p>
                                 <p><strong>Speed:</strong> ${vehicle.speed.toFixed(1)} km/h</p>
-                                <p><strong>TODA:</strong> ${vehicle.toda.toUpperCase()}</p>
                                 <p><strong>Last Update:</strong> ${getRelativeTime(vehicle.last_update)}</p>
                                 <div style="margin-top: 10px; text-align: center;">
                                     <button onclick="hideVehicleTrail('${vehicle.pi}')" style="

@@ -3338,7 +3338,7 @@
 
         // Check Pi live status
         function checkPiLiveStatus() {
-            fetch('https://etrikedashboard.com/pi-live-status')
+            fetch('/pi-live-status')
                 .then(response => response.json())
                 .then(data => {
                     const liveText = document.getElementById('pi-status-text');

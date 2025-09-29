@@ -1592,6 +1592,9 @@ def receive_gps_data():
 
 def save_gps_data_to_files(gps_entry):
     """Save GPS data to current log file for real-time display"""
+    # Ensure logs directory exists
+    os.makedirs(LOG_DIR, exist_ok=True)
+    
     # Save to current GPS log file (for real-time display)
     gps_log_path = os.path.join(LOG_DIR, 'gps_data.json')
     gps_data = []

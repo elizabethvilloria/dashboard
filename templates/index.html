@@ -1396,7 +1396,7 @@
                                     </select>
                                 </div>
                                 <span class="selection-badge filter-status" id="filter-status">
-                                    City-wide View
+                                    Loading...
                                 </span>
                             </div>
                         </div>
@@ -1408,25 +1408,29 @@
                             <label class="filter-label-small">
                                 City
                             </label>
-                            <select class="filter-select-small" id="citySelect" onchange="selectCity()">
-                                <option value="manila">📍 Manila</option>
-                                <option value="quezon_city">📍 Quezon City</option>
-                                <option value="muntinlupa">📍 Muntinlupa</option>
-                                <option value="pasay">📍 Pasay</option>
-                                <option value="lipa">📍 Lipa</option>
+                            <select class="filter-select-small" id="citySelect">
+                                <option value="manila">Manila</option>
+                                <option value="quezon_city">Quezon City</option>
+                                <option value="muntinlupa">Muntinlupa</option>
+                                <option value="pasay">Pasay</option>
+                                <option value="lipa">Lipa</option>
                             </select>
                         </div>
                         <div class="col-md-3">
                             <label class="filter-label-small">
                                 TODA
                             </label>
-                            <select class="filter-select-small" id="toda-select"></select>
+                            <select class="filter-select-small" id="toda-select">
+                                <option value="">Loading TODAs...</option>
+                            </select>
                         </div>
                         <div class="col-md-3">
                             <label class="filter-label-small">
                                 E-Trike
                             </label>
-                            <select class="filter-select-small" id="etrike-select" disabled></select>
+                            <select class="filter-select-small" id="etrike-select" disabled>
+                                <option value="">Loading E-trikes...</option>
+                            </select>
                         </div>
                         <div class="col-md-2">
                             <label class="filter-label-small">&nbsp;</label>
@@ -1880,7 +1884,7 @@
         function updateCounts() {
             // Check if filters are actually applied (not just selected in dropdowns)
             const filterStatus = document.getElementById('filter-status').textContent;
-            const isFilterApplied = filterStatus !== 'City-wide View' && filterStatus !== '';
+            const isFilterApplied = filterStatus !== 'City Wide' && filterStatus !== '';
             
             if (isFilterApplied) {
                 // Use filtered data if filters are actually applied
@@ -2218,7 +2222,7 @@
         // Clear TODA dropdown
         function clearTodaDropdown() {
             const todaSelect = document.getElementById('toda-select');
-            todaSelect.innerHTML = '<option value="">All TODAs (City-wide)</option>';
+            todaSelect.innerHTML = '<option value="">All TODAs</option>';
         }
 
         function editProfile() {
@@ -2295,8 +2299,8 @@
             });
 
             // Apply selected filter criteria to dashboard data
-            applyBtn.addEventListener('click', function() {
-                applyFilter();
+            applyBtn.addEventListener('click', async function() {
+                await applyFilter();
             });
 
             // Reset all filters to show city-wide data
@@ -2313,45 +2317,85 @@
         //     loadEtrikes(todaId);
         // }
 
+        let filtersApplied = false; // Track if filters have been applied
+
         function updateApplyButton() {
             const applyBtn = document.getElementById('apply-filter');
-            applyBtn.disabled = !currentToda;
+            const cityId = document.getElementById('citySelect').value;
+            
+            // Enable only if city is selected AND filters haven't been applied yet
+            applyBtn.disabled = !cityId || filtersApplied;
         }
 
-        function applyFilter() {
+        async function applyFilter() {
+            const cityId = document.getElementById('citySelect').value;
             const todaId = document.getElementById('toda-select').value;
             const etrikeId = document.getElementById('etrike-select').value;
+            
+            // Load TODAs for the selected city if not already loaded
+            if (cityId && document.getElementById('toda-select').options.length <= 1) {
+                await loadTodasFromCatalog(cityId);
+                // Update the selected TODA after loading
+                if (todaId) {
+                    document.getElementById('toda-select').value = todaId;
+                }
+            }
+            
+            // Load E-trikes for the selected TODA if not already loaded
+            if (todaId && document.getElementById('etrike-select').options.length <= 1) {
+                await loadEtrikesFromCatalog(todaId);
+                // Update the selected E-trike after loading
+                if (etrikeId) {
+                    document.getElementById('etrike-select').value = etrikeId;
+                }
+            }
             
             // Save filter selections to localStorage
             localStorage.setItem('selectedToda', todaId);
             localStorage.setItem('selectedEtrike', etrikeId);
             
-            if (!todaId && !etrikeId) {
-                // No filters selected - show all city data
-                document.getElementById('filter-status').innerHTML = 'City-wide View';
-                loadDashboardData(); // Load unfiltered city-wide passenger data
-                return;
-            }
+            // Get city name for display
+            const citySelect = document.getElementById('citySelect');
+            const selectedCity = citySelect.options[citySelect.selectedIndex].text;
             
-            let filterText = '';
+            // This condition is now handled in the main filter logic below
+            
+            let filterText = `${selectedCity}`;
             if (todaId) {
                 const todaSelect = document.getElementById('toda-select');
                 const selectedToda = todaSelect.options[todaSelect.selectedIndex].text;
-                filterText += `TODA: ${selectedToda}`;
+                filterText += ` - ${selectedToda}`;
                 console.log('TODA selected:', selectedToda);
+            } else {
+                // No TODA selected - show "All TODAs"
+                filterText += ` - All TODAs`;
             }
             if (etrikeId) {
                 const etrikeSelect = document.getElementById('etrike-select');
                 const selectedEtrike = etrikeSelect.options[etrikeSelect.selectedIndex].text;
-                filterText += ` - E-Trike: ${selectedEtrike}`;
+                // Keep "E-Trike" + number format
+                filterText += ` - ${selectedEtrike}`;
                 console.log('E-Trike selected:', selectedEtrike);
+            } else if (todaId) {
+                // TODA selected but no specific E-trike - show "All E-Trikes"
+                filterText += ` - All E-Trikes`;
             }
             
             console.log('Filter text:', filterText);
             document.getElementById('filter-status').innerHTML = filterText;
             
             // Apply filters and update dashboard with filtered passenger data
-            loadFilteredData(todaId, etrikeId, '');
+            if (!todaId && !etrikeId) {
+                // No TODA/E-trike selected - load city-wide data
+                loadDashboardData();
+            } else {
+                // TODA or E-trike selected - load filtered data
+                loadFilteredData(todaId, etrikeId, '');
+            }
+            
+            // Mark filters as applied and disable Apply button
+            filtersApplied = true;
+            updateApplyButton();
         }
 
         function clearFilter() {
@@ -2365,10 +2409,13 @@
             document.getElementById('toda-select').value = '';
             document.getElementById('etrike-select').value = '';
             document.getElementById('etrike-select').disabled = true;
-            document.getElementById('apply-filter').disabled = true;
             
             const filterStatus = document.getElementById('filter-status');
-            filterStatus.innerHTML = 'City-wide View';
+            filterStatus.innerHTML = 'City Wide';
+            
+            // Reset filters applied flag and update apply button state
+            filtersApplied = false;
+            updateApplyButton();
             
             showFilterMessage('Filter cleared!', 'info');
         }
@@ -3417,15 +3464,17 @@
     // --- loaders (use catalog API) ---
     async function loadCitiesFromCatalog() {
       const { cities } = await fetchJSON('/catalog/cities');
-      // keep the 📍 icon like your current UI
-      const html = cities.map(c => `<option value="${c.id}">📍 ${c.name}</option>`).join('');
+      // load cities without pin icon
+      const html = cities.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
       setOptions(document.getElementById('citySelect'), html);
     }
 
     async function loadTodasFromCatalog(cityId) {
-      const { todas } = await fetchJSON(`/catalog/todas?city_id=${encodeURIComponent(cityId)}`);
       const todaSel = document.getElementById('toda-select');
-      const html = `<option value="">All TODAs (City-wide)</option>` +
+      setOptions(todaSel, `<option value="">Loading TODAs...</option>`);
+      
+      const { todas } = await fetchJSON(`/catalog/todas?city_id=${encodeURIComponent(cityId)}`);
+      const html = `<option value="">All TODAs</option>` +
         todas.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
       setOptions(todaSel, html);
       // reset E-Trike until TODA chosen
@@ -3437,9 +3486,11 @@
     }
 
     async function loadEtrikesFromCatalog(todaId) {
-      const { etrikes } = await fetchJSON(`/catalog/etrikes?toda_id=${encodeURIComponent(todaId)}`);
       const etSel = document.getElementById('etrike-select');
-      const html = `<option value="">All E-Trikes (TODA-wide)</option>` +
+      setOptions(etSel, `<option value="">Loading E-trikes...</option>`);
+      
+      const { etrikes } = await fetchJSON(`/catalog/etrikes?toda_id=${encodeURIComponent(todaId)}`);
+      const html = `<option value="">All E-Trikes</option>` +
         etrikes.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
       setOptions(etSel, html);
       etSel.disabled = false;
@@ -3472,6 +3523,24 @@
           if (savedEtrike) etSel.value = savedEtrike;
         }
 
+        // Update purple badge with selected city and any saved filters
+        const selectedCity = citySel.options[citySel.selectedIndex].text;
+        let filterText = `${selectedCity}`;
+        
+        // Check if TODA and E-trike were previously selected
+        if (savedToda && savedEtrike) {
+          const selectedToda = todaSel.options[todaSel.selectedIndex].text;
+          const selectedEtrike = etSel.options[etSel.selectedIndex].text;
+          filterText += ` - ${selectedToda} - ${selectedEtrike}`;
+        } else if (savedToda) {
+          const selectedToda = todaSel.options[todaSel.selectedIndex].text;
+          filterText += ` - ${selectedToda} - All E-Trikes`;
+        } else {
+          filterText += ` - All TODAs`;
+        }
+        
+        document.getElementById('filter-status').innerHTML = filterText;
+        
         // ensure Apply enabled once catalog is loaded
         document.getElementById('apply-filter').disabled = false;
       } catch (e) {
@@ -3481,23 +3550,29 @@
     });
 
     // --- hook existing UI events (non-breaking) ---
-    document.getElementById('citySelect').addEventListener('change', async (e) => {
+    document.getElementById('citySelect').addEventListener('change', (e) => {
       const cityId = e.target.value;
       localStorage.setItem('selectedCity', cityId);
       // call your existing handler if you have one
       if (typeof selectCity === 'function') { try { selectCity(); } catch(_){} }
-      // then load TODAs from catalog
-      await loadTodasFromCatalog(cityId);
+      // Reset filters applied flag when city changes
+      filtersApplied = false;
+      updateApplyButton(); // Enable Apply button when city is selected
     });
 
-    document.getElementById('toda-select').addEventListener('change', async (e) => {
+    document.getElementById('toda-select').addEventListener('change', (e) => {
       const todaId = e.target.value;
       localStorage.setItem('selectedToda', todaId);
-      if (todaId) { await loadEtrikesFromCatalog(todaId); }
+      // Reset filters applied flag when TODA changes
+      filtersApplied = false;
+      updateApplyButton();
     });
 
     document.getElementById('etrike-select').addEventListener('change', (e) => {
       localStorage.setItem('selectedEtrike', e.target.value);
+      // Reset filters applied flag when E-trike changes
+      filtersApplied = false;
+      updateApplyButton();
     });
     </script>
 </body>

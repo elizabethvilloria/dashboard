@@ -1904,7 +1904,7 @@
         function updateCounts() {
             // Check if filters are actually applied (not just selected in dropdowns)
             const filterStatus = document.getElementById('filter-status').textContent;
-            const isFilterApplied = filterStatus !== 'City Wide' && filterStatus !== '';
+            const isFilterApplied = filterStatus !== 'No Filter' && filterStatus !== '';
             
             if (isFilterApplied) {
                 // Use filtered data if filters are actually applied
@@ -2455,7 +2455,7 @@
             document.getElementById('etrike-select').disabled = true;
             
             const filterStatus = document.getElementById('filter-status');
-            filterStatus.innerHTML = 'City Wide';
+            filterStatus.innerHTML = 'No Filter';
             
             // Reset filters applied flag and update apply button state
             filtersApplied = false;
